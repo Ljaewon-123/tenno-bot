@@ -1,2 +1,3 @@
-# teno-bot
-teno-bot
+# Teno Bot
+
+Teno Bot
