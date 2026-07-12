@@ -1,9 +1,9 @@
+import { WarframeApiModule } from '@/warframe-api/warframe-api.module';
 import { Module } from '@nestjs/common';
-import { SlashCommandController } from './slash-command.controller';
 import { SlashCommandService } from './slash-command.service';
 
 @Module({
+  imports: [WarframeApiModule],
   providers: [SlashCommandService],
-  controllers: [SlashCommandController],
 })
 export class SlashCommandModule {}

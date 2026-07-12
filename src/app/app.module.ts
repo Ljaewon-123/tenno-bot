@@ -11,9 +11,11 @@ import { APP_PIPE } from '@nestjs/core';
 import { IntentsBitField } from 'discord.js';
 import { NecordModule } from 'necord';
 import { ConfigModule } from '../config/config.module';
+import { BotLifecycleHook } from './bot-lifecycle.hook';
 
 @Module({
   imports: [
+    BotLifecycleHook,
     ConfigModule,
     NecordModule.forRootAsync({
       inject: [AppConfig],
