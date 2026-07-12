@@ -5,6 +5,7 @@ import type { SlashCommandContext } from 'necord';
 import { Context, Options, SlashCommand } from 'necord';
 import { AutoDto } from './dto/auto.dto';
 import { TextDto } from './dto/text.dto';
+import { VoidFissures } from './dto/void-fissures.dto';
 
 @Injectable()
 export class SlashCommandService {
@@ -41,8 +42,13 @@ export class SlashCommandService {
     name: 'void-fissures',
     description: 'Get the current Void Fissures information',
   })
-  async voidFissures(@Context() [interaction]: SlashCommandContext) {
-    const voidFissures = await this.warframeApi.voidFissures();
+  async voidFissures(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { tier }: VoidFissures,
+  ) {
+    const voidFissures = await this.warframeApi.voidFissures(
+      tier ? [tier] : undefined,
+    );
     return interaction.reply({ embeds: [voidFissures] });
   }
 
