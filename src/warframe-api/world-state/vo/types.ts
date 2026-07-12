@@ -1,4 +1,4 @@
-import { Enemy, VoidTier } from './enum';
+import { ArchonBoss, Enemy, VoidTier } from './enum';
 
 /** 소티/집정관 미션 3개 슬롯 중 하나 */
 export interface SortieVariant {
@@ -10,7 +10,7 @@ export interface SortieVariant {
 }
 
 /** pc/sortie, pc/archonHunt 공통 스키마 */
-export interface SortieDto {
+export interface Sortie {
   id: string;
   activation: string; // ISO 8601
   expiry: string; // ISO 8601
@@ -24,11 +24,27 @@ export interface SortieDto {
   expired: boolean;
 }
 
-/** pc/archonHunt 응답은 SortieDto와 동일 스키마 (스펙에서 동일 $ref 확인) */
-export type ArchonHuntDto = SortieDto;
+/** pc/archonHunt 미션 슬롯 (실제 응답은 variants가 아닌 missions로 내려옴) */
+export interface ArchonMission {
+  node: string;
+  nodeKey: string;
+  type: string;
+  typeKey: string;
+}
+
+/** pc/archonHunt 실제 응답 스키마 (sortie와 달리 eta/expired 없음, missions/faction 있음) */
+export type ArchonHunt = {
+  id: string;
+  activation: string;
+  expiry: string;
+  boss: ArchonBoss; // 아콘 이름 (예: "Archon Nira")
+  faction: Enemy;
+  rewardPool: string;
+  missions: ArchonMission[];
+};
 
 /** pc/fissures 배열의 원소 */
-export interface FissureDto {
+export interface Fissure {
   id: string;
   activation: string;
   expiry: string;
@@ -52,7 +68,7 @@ export interface FissureDto {
  * index signature로 예상 못한 필드도 타입 에러 없이 받아지도록 열어둠 —
  * 실제 소비할 필드는 런타임에서 존재 여부를 확인하고 쓰는 걸 권장합니다.
  */
-export interface WorldEventDto {
+export interface WorldEvent {
   id: string;
   activation: string;
   expiry: string;

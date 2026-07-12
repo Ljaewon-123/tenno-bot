@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
+import { ArchonHunt } from './vo/types';
 
 @Injectable()
 export class WorldStateService {
   constructor(private readonly httpJsonService: HttpJsonService) {}
 
   /** 집정관 */
-  async archonHunt() {
+  async archonHunt(): Promise<ArchonHunt> {
     return this.httpJsonService.request(HttpMethod.Get, 'pc/archonHunt');
   }
 

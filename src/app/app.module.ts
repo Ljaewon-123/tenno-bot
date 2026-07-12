@@ -15,7 +15,6 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
 
 @Module({
   imports: [
-    BotLifecycleHook,
     ConfigModule,
     NecordModule.forRootAsync({
       inject: [AppConfig],
@@ -46,6 +45,7 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
         },
       }),
     },
+    BotLifecycleHook,
   ],
 })
 export class AppModule {}

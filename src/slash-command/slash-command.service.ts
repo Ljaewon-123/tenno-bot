@@ -11,12 +11,12 @@ export class SlashCommandService {
   constructor(private readonly warframeApi: WarframeApiService) {}
 
   @SlashCommand({
-    name: 'archonHunt',
+    name: 'archon-hunt',
     description: 'Get the current Archon Hunt information',
   })
   async archonHunt(@Context() [interaction]: SlashCommandContext) {
-    // const archon = await this.warframeApi.archonHunt();
-    return interaction.reply('archon');
+    const archon = await this.warframeApi.archonHunt();
+    return interaction.reply({ embeds: [archon] });
   }
 
   @SlashCommand({
@@ -36,7 +36,7 @@ export class SlashCommandService {
   }
 
   @SlashCommand({
-    name: 'voidFissures',
+    name: 'void-fissures',
     description: 'Get the current Void Fissures information',
   })
   async voidFissures(@Context() [interaction]: SlashCommandContext) {
