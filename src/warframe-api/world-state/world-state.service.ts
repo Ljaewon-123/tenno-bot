@@ -1,7 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
-import { ArchonHunt, Fissure, Sortie, WorldEvent } from './vo/types';
+import { VoidTier } from './vo/enum';
+import {
+  ArchonHunt,
+  Fissure,
+  Sortie,
+  VoidTrader,
+  WorldEvent,
+} from './vo/types';
 
 @Injectable()
 export class WorldStateService {
@@ -23,7 +30,17 @@ export class WorldStateService {
   }
 
   /** 보이드 균열 */
-  async voidFissures(): Promise<Fissure[]> {
-    return this.httpJsonService.request(HttpMethod.Get, 'pc/fissures');
+  async voidFissures(options?: VoidTier[]): Promise<Fissure[]> {
+    const fissures = await this.httpJsonService.request<Fissure[]>(
+      HttpMethod.Get,
+      'pc/fissures',
+    );
+    if (!options?.length) return fissures;
+    return fissures.filter((f) => options.includes(f.tier));
+  }
+
+  /** 보이드 상인 (바로 키티어) */
+  async voidTrader(): Promise<VoidTrader> {
+    return this.httpJsonService.request(HttpMethod.Get, 'pc/voidTrader');
   }
 }

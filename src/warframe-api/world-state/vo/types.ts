@@ -50,8 +50,7 @@ export interface Fissure {
   expiry: string;
   node: string; // e.g. "Ukko (Jupiter)"
   missionType: string;
-  /** 팩션명, 예: "Grineer", "Corpus" */
-  enemy: Enemy;
+  enemy: Enemy; // 팩션명, 예: "Grineer", "Corpus"
   tier: VoidTier;
   tierNum: number;
   expired: boolean;
@@ -60,6 +59,34 @@ export interface Fissure {
   isStorm: boolean;
   /** 강화(Steel Path) 균열 여부 */
   isHard: boolean;
+}
+
+/** pc/voidTrader 응답의 inventory 배열 원소 */
+export interface VoidTraderItem {
+  uniqueName: string;
+  item: string;
+  ducats: number;
+  credits: number;
+}
+
+/** pc/voidTrader 응답의 schedule 배열 원소 (다음 방문 예정 품목) */
+export interface VoidTraderSchedule {
+  item: string;
+  expiry: string;
+}
+
+/** pc/voidTrader (바로 키티어) 응답 스키마 */
+export interface VoidTrader {
+  id: string;
+  activation: string;
+  expiry: string;
+  character: string; // 항상 "Baro Ki'Teer"
+  location: string; // 예: "Strata Relay (Earth)"
+  completed: boolean;
+  initialStart: string;
+  inventory: VoidTraderItem[];
+  psId: string;
+  schedule: VoidTraderSchedule[];
 }
 
 /**

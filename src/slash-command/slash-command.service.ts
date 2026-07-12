@@ -47,6 +47,15 @@ export class SlashCommandService {
   }
 
   @SlashCommand({
+    name: 'void-trader',
+    description: "Get the current Void Trader (Baro Ki'Teer) information",
+  })
+  async voidTrader(@Context() [interaction]: SlashCommandContext) {
+    const voidTrader = await this.warframeApi.voidTrader();
+    return interaction.reply({ embeds: [voidTrader] });
+  }
+
+  @SlashCommand({
     name: 'length',
     description: 'Calculate the length of your text',
   })

@@ -5,4 +5,5 @@ export const ALLOWED_PATHS = new Set<string>([
   'pc/sortie',
   'pc/events',
   'pc/fissures',
+  'pc/voidTrader',
 ]);

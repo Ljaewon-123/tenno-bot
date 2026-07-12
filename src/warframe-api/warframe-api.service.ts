@@ -112,4 +112,36 @@ export class WarframeApiService {
     }
     return embed;
   }
+
+  /** 보이드 상인 (바로 키티어) */
+  async voidTrader() {
+    const trader = await this.worldStateService.voidTrader();
+    const now = dayjs();
+    const isActive =
+      now.isAfter(trader.activation) && now.isBefore(trader.expiry);
+    const nextTimestamp = dayjs(
+      isActive ? trader.expiry : trader.activation,
+    ).unix();
+
+    const embed = new EmbedBuilder()
+      .setTitle(`Void Trader - ${trader.character}`)
+      .setDescription(`Location: ${trader.location}`)
+      .addFields({
+        name: isActive ? 'Departs' : 'Arrives',
+        value: `<t:${nextTimestamp}:R>`,
+      })
+      .setColor(0x5865f2);
+
+    if (isActive && trader.inventory.length) {
+      embed.addFields({
+        name: 'Inventory',
+        value: trader.inventory
+          .map((item) => `${item.item} - ${item.ducats}dt / ${item.credits}cr`)
+          .join('\n')
+          .slice(0, 1024),
+      });
+    }
+
+    return embed;
+  }
 }
