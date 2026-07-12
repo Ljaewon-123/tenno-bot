@@ -24,7 +24,8 @@ export class SlashCommandService {
     description: 'Get the current Sortie information',
   })
   async sortie(@Context() [interaction]: SlashCommandContext) {
-    return interaction.reply('pong!');
+    const sortie = await this.warframeApi.sortie();
+    return interaction.reply({ embeds: [sortie] });
   }
 
   @SlashCommand({
@@ -32,7 +33,8 @@ export class SlashCommandService {
     description: 'Get the current Events information',
   })
   async events(@Context() [interaction]: SlashCommandContext) {
-    return interaction.reply('pong!');
+    const events = await this.warframeApi.events();
+    return interaction.reply({ embeds: [events] });
   }
 
   @SlashCommand({
@@ -40,7 +42,8 @@ export class SlashCommandService {
     description: 'Get the current Void Fissures information',
   })
   async voidFissures(@Context() [interaction]: SlashCommandContext) {
-    return interaction.reply('pong!');
+    const voidFissures = await this.warframeApi.voidFissures();
+    return interaction.reply({ embeds: [voidFissures] });
   }
 
   @SlashCommand({
