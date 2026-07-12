@@ -82,7 +82,7 @@ export class WarframeApiService {
   }
 
   /** 보이드 균열 */
-  async voidFissures(options?: VoidTier[]) {
+  async voidFissures(options?: VoidTier) {
     const fissures = await this.worldStateService.voidFissures(options);
     const activeByTier = fissures
       .filter((fissure) => !fissure.expired)

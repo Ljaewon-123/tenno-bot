@@ -30,7 +30,7 @@ export class WorldStateService {
   }
 
   /** 보이드 균열 */
-  async voidFissures(options?: VoidTier[]): Promise<Fissure[]> {
+  async voidFissures(options?: VoidTier): Promise<Fissure[]> {
     const fissures = await this.httpJsonService.request<Fissure[]>(
       HttpMethod.Get,
       'pc/fissures',

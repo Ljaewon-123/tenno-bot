@@ -46,9 +46,7 @@ export class SlashCommandService {
     @Context() [interaction]: SlashCommandContext,
     @Options() { tier }: VoidFissures,
   ) {
-    const voidFissures = await this.warframeApi.voidFissures(
-      tier ? [tier] : undefined,
-    );
+    const voidFissures = await this.warframeApi.voidFissures(tier);
     return interaction.reply({ embeds: [voidFissures] });
   }
 
@@ -61,6 +59,7 @@ export class SlashCommandService {
     return interaction.reply({ embeds: [voidTrader] });
   }
 
+  /** example */
   @SlashCommand({
     name: 'length',
     description: 'Calculate the length of your text',
@@ -74,6 +73,7 @@ export class SlashCommandService {
     });
   }
 
+  /** example */
   @UseInterceptors(CommandAutocompleteInterceptor)
   @SlashCommand({
     name: 'cat',
