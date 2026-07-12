@@ -3,8 +3,8 @@ import { NodeEnv } from '@/config/enum';
 import { SlashCommandModule } from '@/slash-command/slash-command.module';
 import { UserContextModule } from '@/user-context/user-context.module';
 import {
-  InternalServerErrorException,
   Module,
+  UnprocessableEntityException,
   ValidationPipe,
 } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
@@ -41,7 +41,7 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
           excludeExtraneousValues: true,
         },
         exceptionFactory(errors) {
-          return new InternalServerErrorException(errors);
+          return new UnprocessableEntityException(errors);
         },
       }),
     },
