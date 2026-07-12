@@ -1,11 +1,24 @@
 import { Expose, plainToInstance } from 'class-transformer';
-import { IsInt, IsString, validateSync } from 'class-validator';
+import { IsEnum, IsInt, IsString, validateSync } from 'class-validator';
 import dotenv from 'dotenv';
+import { NodeEnv } from './enum';
 
 export class AppConfig {
   @Expose()
+  @IsEnum(NodeEnv)
+  nodeEnv: NodeEnv = NodeEnv.Development;
+
+  @Expose()
+  @IsString()
+  DISCORD_APP_ID: string;
+
+  @Expose()
   @IsString()
   DISCORD_TOKEN: string;
+
+  @Expose()
+  @IsString()
+  DISCORD_PUBLIC_KEY: string;
 
   @Expose()
   @IsString()

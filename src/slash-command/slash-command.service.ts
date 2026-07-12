@@ -6,10 +6,8 @@ import type {
   ModalContext,
   SlashCommandContext,
   StringSelectContext,
-  TextCommandContext,
 } from 'necord';
 import {
-  Arguments,
   Button,
   Context,
   Modal,
@@ -19,7 +17,6 @@ import {
   SelectedStrings,
   SlashCommand,
   StringSelect,
-  TextCommand,
 } from 'necord';
 import { AutoDto } from './dto/auto.dto';
 import { TextDto } from './dto/text.dto';
@@ -34,17 +31,6 @@ export class SlashCommandService {
   @On('warn')
   onWarn(@Context() [message]: ContextOf<'warn'>) {
     console.log(message);
-  }
-
-  @TextCommand({
-    name: 'ping',
-    description: 'Ping the bot',
-  })
-  onPling(
-    @Context() [message]: TextCommandContext,
-    @Arguments() args: string[],
-  ) {
-    return message.reply(`pong! ${args.join(' ')}`);
   }
 
   @SlashCommand({

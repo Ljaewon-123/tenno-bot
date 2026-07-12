@@ -1,4 +1,7 @@
 import { AppConfig } from '@/config/config.service';
+import { NodeEnv } from '@/config/enum';
+import { SlashCommandModule } from '@/slash-command/slash-command.module';
+import { UserContextModule } from '@/user-context/user-context.module';
 import {
   InternalServerErrorException,
   Module,
@@ -17,9 +20,14 @@ import { ConfigModule } from '../config/config.module';
       useFactory: (config: AppConfig) => ({
         token: config.DISCORD_TOKEN,
         intents: [IntentsBitField.Flags.Guilds],
-        development: [config.DISCORD_DEVELOPMENT_GUILD_ID],
+        development:
+          config.nodeEnv !== NodeEnv.Production
+            ? [config.DISCORD_DEVELOPMENT_GUILD_ID]
+            : undefined,
       }),
     }),
+    SlashCommandModule,
+    UserContextModule,
   ],
   providers: [
     {
