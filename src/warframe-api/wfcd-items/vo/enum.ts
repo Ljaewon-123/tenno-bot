@@ -1,0 +1,16 @@
+export enum Language {
+  de = 'de',
+  fr = 'fr',
+  it = 'it',
+  ko = 'ko',
+  es = 'es',
+  zh = 'zh',
+  ru = 'ru',
+  ja = 'ja',
+  pl = 'pl',
+  pt = 'pt',
+  tc = 'tc',
+  th = 'th',
+  tr = 'tr',
+  uk = 'uk',
+}

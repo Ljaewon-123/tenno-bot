@@ -15,12 +15,13 @@ export class HttpJsonService {
   ): Promise<T> {
     this.assertAllowedPath(path);
 
-    const { data } = await this.httpService.axiosRef.request<T>({
-      ...config,
-      method,
-      url: path,
-    });
-    return data;
+    return this.httpService.axiosRef
+      .request<T>({
+        ...config,
+        method,
+        url: path,
+      })
+      .then((res) => res.data);
   }
 
   /**
