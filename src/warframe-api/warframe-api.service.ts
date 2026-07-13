@@ -1,13 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { EmbedBuilder } from 'discord.js';
+import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import { ArchonReward, VoidTier } from './world-state/vo/enum';
 import { Fissure } from './world-state/vo/types';
 import { WorldStateService } from './world-state/world-state.service';
 
 @Injectable()
 export class WarframeApiService {
-  constructor(private readonly worldStateService: WorldStateService) {}
+  constructor(
+    private readonly worldStateService: WorldStateService,
+    private readonly wfcdItemsService: WfcdItemsService,
+  ) {}
 
   /** 집정관 */
   async archonHunt() {
@@ -140,6 +144,12 @@ export class WarframeApiService {
           .join('\n')
           .slice(0, 1024),
       });
+
+      // 임베드는 썸네일 하나만 넣을 수 있어서 인벤토리 첫 아이템 이미지로 대표
+      const thumbnailUrl = this.wfcdItemsService.findItemImg(
+        trader.inventory[0].uniqueName,
+      );
+      if (thumbnailUrl) embed.setThumbnail(thumbnailUrl);
     }
 
     return embed;
