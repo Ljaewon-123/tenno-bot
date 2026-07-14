@@ -8,6 +8,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { IntentsBitField } from 'discord.js';
 import { NecordModule } from 'necord';
 import { ConfigModule } from '../config/config.module';
@@ -25,6 +26,15 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
           config.nodeEnv !== NodeEnv.Production
             ? [config.DISCORD_DEVELOPMENT_GUILD_ID]
             : undefined,
+      }),
+    }),
+    TypeOrmModule.forRootAsync({
+      inject: [AppConfig],
+      useFactory: () => ({
+        type: 'better-sqlite3',
+        database: 'db.sqlite',
+        synchronize: true,
+        autoLoadEntities: true,
       }),
     }),
     SlashCommandModule,
