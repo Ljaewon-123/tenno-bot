@@ -1,7 +1,9 @@
 import { IsDate, IsString } from 'class-validator';
 import dayjs, { Dayjs } from 'dayjs';
 import {
+  Column,
   CreateDateColumn,
+  Index,
   PrimaryColumn,
   UpdateDateColumn,
   ValueTransformer,
@@ -25,4 +27,11 @@ export class CommonEntity {
   @IsDate()
   @UpdateDateColumn({ type: 'text', transformer: dayjsTransformer })
   updatedAt: Dayjs;
+}
+
+export class CommonWithGuild extends CommonEntity {
+  @IsString()
+  @Column({ unique: true })
+  @Index()
+  guildId: string;
 }

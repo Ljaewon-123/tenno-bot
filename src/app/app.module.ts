@@ -12,6 +12,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { IntentsBitField } from 'discord.js';
 import { NecordModule } from 'necord';
 import { DataSource } from 'typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import {
   addTransactionalDataSource,
   getDataSourceByName,
@@ -40,6 +41,7 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
         database: 'db.sqlite',
         synchronize: true,
         autoLoadEntities: true,
+        namingStrategy: new SnakeNamingStrategy(),
       }),
       dataSourceFactory: async (options) => {
         if (!options) {
