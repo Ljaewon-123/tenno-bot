@@ -11,6 +11,11 @@ import { APP_PIPE } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IntentsBitField } from 'discord.js';
 import { NecordModule } from 'necord';
+import { DataSource } from 'typeorm';
+import {
+  addTransactionalDataSource,
+  getDataSourceByName,
+} from 'typeorm-transactional';
 import { ConfigModule } from '../config/config.module';
 import { BotLifecycleHook } from './bot-lifecycle.hook';
 
@@ -36,6 +41,16 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
         synchronize: true,
         autoLoadEntities: true,
       }),
+      dataSourceFactory: async (options) => {
+        if (!options) {
+          throw new Error('TypeORM options are required');
+        }
+        // 연결 실패 재시도 시 factory가 다시 호출되므로 중복 등록을 피한다
+        return (
+          getDataSourceByName('default') ??
+          addTransactionalDataSource(new DataSource(options))
+        );
+      },
     }),
     SlashCommandModule,
     UserContextModule,
