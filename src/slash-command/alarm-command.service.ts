@@ -1,5 +1,9 @@
 import { AlarmService } from '@/alarm/alarm.service';
 import { CreateAlarmRequest } from '@/alarm/dto/create-alarm.request.dto';
+import { AlarmConfig } from '@/alarm/entities/alarm-config.entity';
+import dayjs from '@/utils/dayjs';
+import { resolveTimezone } from '@/utils/timezone';
+import { TargetCommand } from '@/warframe-api/enum';
 import { Injectable } from '@nestjs/common';
 import {
   Context,
@@ -20,9 +24,58 @@ export class AlarmCommandService {
     @Context() [interaction]: SlashCommandContext,
     @Options() request: CreateAlarmRequest,
   ) {
+    request.timezone = resolveTimezone(interaction.locale, request.timezone);
     const alarm = await this.alarmService.register(request);
     return interaction.reply({
-      content: `Register alarm: ${alarm.name}: ${alarm.targetCommand.target}`,
+      content: `Register alarm: ${alarm.name}: ${alarm.targetCommand.target} (${alarm.timezone})`,
+    });
+  }
+
+  @SlashCommand({
+    name: 'register-sortie-alarm',
+    description: 'Register a daily Sortie reset alarm (9AM KST)',
+  })
+  async registerSortieAlarm(@Context() [interaction]: SlashCommandContext) {
+    return this.registerResetAlarm(interaction, TargetCommand.Sortie);
+  }
+
+  @SlashCommand({
+    name: 'register-archon-alarm',
+    description: 'Register a weekly Archon Hunt reset alarm (Monday 9AM KST)',
+  })
+  async registerArchonAlarm(@Context() [interaction]: SlashCommandContext) {
+    return this.registerResetAlarm(interaction, TargetCommand.ArchonHunt);
+  }
+
+  /** 리셋 시각에 맞춘 반복 알람 등록 */
+  private async registerResetAlarm(
+    interaction: SlashCommandContext[0],
+    target: TargetCommand.Sortie | TargetCommand.ArchonHunt,
+  ) {
+    if (!interaction.guildId) {
+      return interaction.reply({ content: 'This command is guild-only.' });
+    }
+
+    // 아콘 헌트는 매주 월요일, 출격은 매일 리셋
+    const isWeekly = target === TargetCommand.ArchonHunt;
+    const now = dayjs.utc();
+    let fireAt = isWeekly
+      ? now.startOf('week').add(1, 'day') // 이번 주 월요일 00:00 UTC
+      : now.startOf('day').add(1, 'day');
+    if (!fireAt.isAfter(now)) fireAt = fireAt.add(7, 'day');
+
+    const alarm = new AlarmConfig();
+    alarm.guildId = interaction.guildId;
+    alarm.name = `${target} reset`;
+    alarm.description = `Fires every ${isWeekly ? 'Monday' : 'day'} at 9AM KST`;
+    alarm.intervalValue = (isWeekly ? 7 : 1) * 24 * 60;
+    alarm.targetCommand = { target };
+    alarm.timezone = resolveTimezone(interaction.locale);
+    alarm.doneAt = fireAt;
+
+    const saved = await this.alarmService.register(alarm);
+    return interaction.reply({
+      content: `Register alarm: ${saved.name}, first fire <t:${fireAt.unix()}:R>`,
     });
   }
 

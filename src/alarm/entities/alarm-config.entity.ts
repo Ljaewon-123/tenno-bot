@@ -11,9 +11,10 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import dayjs from 'dayjs';
+import dayjs from '@/utils/dayjs';
+import type { Dayjs } from '@/utils/dayjs';
 import { Column, Entity } from 'typeorm';
-import { AlarmStatus } from '../vo/enum';
+import { AlarmStatus, Timezone } from '../vo/enum';
 import { TargetCommandAlarm } from '../vo/target-command.vo';
 
 @Entity()
@@ -39,6 +40,11 @@ export class AlarmConfig extends CommonWithGuild {
   @IsEnum(AlarmStatus)
   status: AlarmStatus = AlarmStatus.PENDING;
 
+  @IsEnum(Timezone)
+  @Expose()
+  @Column({ default: Timezone.KST })
+  timezone: Timezone = Timezone.KST;
+
   @ValidateNested()
   @Type(() => TargetCommandAlarm)
   @Expose()
@@ -47,11 +53,11 @@ export class AlarmConfig extends CommonWithGuild {
 
   @IsDayjs()
   @DateColumn()
-  startedAt: dayjs.Dayjs = dayjs();
+  startedAt: Dayjs = dayjs();
 
   @IsDayjs()
   @DateColumn()
-  doneAt: dayjs.Dayjs = dayjs();
+  doneAt: Dayjs = dayjs();
 
   @IsOptional()
   @Column({ nullable: true })

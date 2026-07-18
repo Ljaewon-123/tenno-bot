@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import dayjs from 'dayjs';
+import dayjs from '@/utils/dayjs';
 import { EmbedBuilder } from 'discord.js';
 import { AlarmRequest, TargetCommand } from './enum';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';

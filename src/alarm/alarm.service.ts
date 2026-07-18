@@ -1,7 +1,7 @@
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import dayjs from 'dayjs';
+import dayjs from '@/utils/dayjs';
 import { In, LessThanOrEqual } from 'typeorm';
 import { Propagation, Transactional } from 'typeorm-transactional';
 import { CreateAlarmRequest } from './dto/create-alarm.request.dto';

@@ -1,5 +1,6 @@
 import { IsString, ValidateBy, ValidationOptions } from 'class-validator';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from '@/utils/dayjs';
+import type { Dayjs } from '@/utils/dayjs';
 import {
   Column,
   CreateDateColumn,
