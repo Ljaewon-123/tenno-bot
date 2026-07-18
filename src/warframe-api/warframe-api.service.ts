@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { EmbedBuilder } from 'discord.js';
-import { TargetCommand } from './enum';
+import { AlarmRequest, TargetCommand } from './enum';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import { ArchonReward, VoidTier } from './world-state/vo/enum';
 import { Fissure } from './world-state/vo/types';
@@ -157,8 +157,8 @@ export class WarframeApiService {
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */
-  async alarmTarget(target: TargetCommand, options?: VoidTier) {
-    switch (target) {
+  async alarmTarget(request: AlarmRequest) {
+    switch (request.target) {
       case TargetCommand.ArchonHunt:
         return this.archonHunt();
       case TargetCommand.Sortie:
@@ -166,7 +166,7 @@ export class WarframeApiService {
       case TargetCommand.Events:
         return this.events();
       case TargetCommand.VoidFissures:
-        return this.voidFissures(options);
+        return this.voidFissures(request.options);
       case TargetCommand.VoidTrader:
         return this.voidTrader();
     }

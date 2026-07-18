@@ -4,7 +4,13 @@ import {
   IsDayjs,
 } from '@/utils/entity/common.entity';
 import { Expose, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsString, ValidateNested } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import dayjs from 'dayjs';
 import { Column, Entity } from 'typeorm';
 import { AlarmStatus } from '../vo/enum';
@@ -40,12 +46,23 @@ export class AlarmConfig extends CommonWithGuild {
   targetCommand: TargetCommandAlarm;
 
   @IsDayjs()
-  @Expose()
   @DateColumn()
   startedAt: dayjs.Dayjs = dayjs();
 
   @IsDayjs()
-  @Expose()
   @DateColumn()
   doneAt: dayjs.Dayjs = dayjs();
+
+  @IsOptional()
+  @Column({ nullable: true })
+  error: string | null = null;
+
+  setAsDone() {
+    const now = dayjs();
+    const next = this.doneAt.add(this.intervalValue, 'minute');
+    this.status = AlarmStatus.DONE;
+    this.doneAt = next.isAfter(now)
+      ? next
+      : now.add(this.intervalValue, 'minute');
+  }
 }

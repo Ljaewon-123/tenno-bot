@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { In, LessThanOrEqual } from 'typeorm';
 import { Propagation, Transactional } from 'typeorm-transactional';
 import { CreateAlarmRequest } from './dto/create-alarm.request.dto';
+import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmConfigRepository } from './repositories/alarm-config.repository';
 import { AlarmStatus } from './vo/enum';
 
@@ -18,7 +19,10 @@ export class AlarmService {
   @Interval(60_000)
   async cron() {
     // 실행
-    await this.fireAndForget();
+    const alarms = await this.fireAndForget();
+    alarms.forEach((alarm) => {
+      void this.run(alarm);
+    });
   }
 
   async register(request: CreateAlarmRequest) {
@@ -29,40 +33,43 @@ export class AlarmService {
     return this.alarmConfigRepository.delete(id);
   }
 
-  @Transactional({ propagation: Propagation.REQUIRES_NEW })
   async fireAndForget() {
     const now = dayjs().startOf('minute');
     const alarms = await this.alarmConfigRepository.findBy({
       status: AlarmStatus.PENDING,
       doneAt: LessThanOrEqual(now),
     });
-    // # TODO: 각 등록자에게 어떻게 보낼지
-    await Promise.all(
-      alarms.map(async (alarm) => {
-        const targetCommand = alarm.targetCommand;
-        await this.warframeApiService.alarmTarget({
-          target: targetCommand?.target,
-          options: targetCommand?.options,
-        });
-      }),
+    const ids = alarms.map((alarm) => alarm.id);
+
+    // 영원히 pending으로 돌아가지 않은 상태에 대해서 검증필요
+    await this.alarmConfigRepository.update(
+      { id: In(ids) },
+      { status: AlarmStatus.RUNNING },
     );
 
-    return this.afterFire(alarms.map((alarm) => alarm.id));
+    return alarms;
   }
 
-  async afterFire(alarmIds: string[]) {
-    if (alarmIds.length === 0) return;
+  @Transactional({ propagation: Propagation.REQUIRED })
+  async run(alarm: AlarmConfig) {
+    // # TODO: 각 등록자에게 어떻게 보낼지
+    try {
+      const targetCommand = alarm.targetCommand;
+      await this.warframeApiService.alarmTarget({
+        target: targetCommand.target,
+        options: targetCommand.options,
+      });
 
-    const now = dayjs();
-    const alarms = await this.alarmConfigRepository.findBy({
-      id: In(alarmIds),
-    });
-    for (const alarm of alarms) {
-      const next = alarm.doneAt.add(alarm.intervalValue, 'minute');
-      alarm.doneAt = next.isAfter(now)
-        ? next
-        : now.add(alarm.intervalValue, 'minute');
+      return this.afterFire(alarm);
+    } catch (error) {
+      alarm.error = JSON.stringify(error, Object.getOwnPropertyNames(error));
+      alarm.status = AlarmStatus.FAILED;
+      await this.alarmConfigRepository.save(alarm);
     }
-    await this.alarmConfigRepository.save(alarms);
+  }
+
+  async afterFire(alarm: AlarmConfig) {
+    alarm.setAsDone();
+    await this.alarmConfigRepository.save(alarm);
   }
 }
