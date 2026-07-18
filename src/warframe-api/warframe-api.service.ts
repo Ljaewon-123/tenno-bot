@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { EmbedBuilder } from 'discord.js';
+import { AlarmRequest, TargetCommand } from './enum';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import { ArchonReward, VoidTier } from './world-state/vo/enum';
 import { Fissure } from './world-state/vo/types';
@@ -153,5 +154,20 @@ export class WarframeApiService {
     }
 
     return embed;
+  }
+
+  async alarmTarget(req: AlarmRequest) {
+    switch (req.target) {
+      case TargetCommand.ArchonHunt:
+        return this.worldStateService.archonHunt();
+      case TargetCommand.Sortie:
+        return this.worldStateService.sortie();
+      case TargetCommand.Events:
+        return this.worldStateService.events();
+      case TargetCommand.VoidFissures:
+        return this.worldStateService.voidFissures(req.options);
+      case TargetCommand.VoidTrader:
+        return this.worldStateService.voidTrader();
+    }
   }
 }

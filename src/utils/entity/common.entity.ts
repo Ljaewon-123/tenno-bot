@@ -1,4 +1,4 @@
-import { IsDate, IsString } from 'class-validator';
+import { IsString, ValidateBy, ValidationOptions } from 'class-validator';
 import dayjs, { Dayjs } from 'dayjs';
 import {
   Column,
@@ -8,30 +8,51 @@ import {
   UpdateDateColumn,
   ValueTransformer,
 } from 'typeorm';
+import { ColumnCommonOptions } from 'typeorm/decorator/options/ColumnCommonOptions.js';
 import { ulid } from 'ulid';
 
 const dayjsTransformer: ValueTransformer = {
   to: (value: Dayjs) => value.toISOString(),
-  from: (value: string) => dayjs(value),
+  from: (value: string | null) => (value ? dayjs(value) : null),
 };
 
-export class CommonEntity {
+export const DateColumn = (options?: ColumnCommonOptions) => {
+  return Column({
+    ...options,
+    type: 'text',
+    transformer: dayjsTransformer,
+  });
+};
+
+export const IsDayjs = (options?: ValidationOptions) =>
+  ValidateBy(
+    {
+      name: 'isDayjs',
+      validator: {
+        validate: (value) => dayjs.isDayjs(value) && value.isValid(),
+        defaultMessage: () => '$property must be a valid Dayjs object',
+      },
+    },
+    options,
+  );
+
+export abstract class CommonEntity {
   @IsString()
   @PrimaryColumn()
   id: string = ulid();
 
-  @IsDate()
+  @IsDayjs()
   @CreateDateColumn({ type: 'text', transformer: dayjsTransformer })
   createdAt: Dayjs;
 
-  @IsDate()
+  @IsDayjs()
   @UpdateDateColumn({ type: 'text', transformer: dayjsTransformer })
   updatedAt: Dayjs;
 }
 
-export class CommonWithGuild extends CommonEntity {
+export abstract class CommonWithGuild extends CommonEntity {
   @IsString()
-  @Column({ unique: true })
+  @Column()
   @Index()
   guildId: string;
 }

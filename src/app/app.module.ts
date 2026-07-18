@@ -1,3 +1,4 @@
+import { AlarmModule } from '@/alarm/alarm.module';
 import { AppConfig } from '@/config/config.service';
 import { NodeEnv } from '@/config/enum';
 import { SlashCommandModule } from '@/slash-command/slash-command.module';
@@ -56,6 +57,7 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
     }),
     SlashCommandModule,
     UserContextModule,
+    AlarmModule,
   ],
   providers: [
     {
