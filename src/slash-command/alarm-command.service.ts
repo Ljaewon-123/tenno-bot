@@ -33,7 +33,7 @@ export class AlarmCommandService {
 
   @SlashCommand({
     name: 'register-sortie-alarm',
-    description: 'Register a daily Sortie reset alarm (9AM KST)',
+    description: 'Register a daily Sortie reset alarm (16:00 UTC)',
   })
   async registerSortieAlarm(@Context() [interaction]: SlashCommandContext) {
     return this.registerResetAlarm(interaction, TargetCommand.Sortie);
@@ -41,7 +41,7 @@ export class AlarmCommandService {
 
   @SlashCommand({
     name: 'register-archon-alarm',
-    description: 'Register a weekly Archon Hunt reset alarm (Monday 9AM KST)',
+    description: 'Register a weekly Archon Hunt reset alarm (Monday 00:00 UTC)',
   })
   async registerArchonAlarm(@Context() [interaction]: SlashCommandContext) {
     return this.registerResetAlarm(interaction, TargetCommand.ArchonHunt);
@@ -56,18 +56,18 @@ export class AlarmCommandService {
       return interaction.reply({ content: 'This command is guild-only.' });
     }
 
-    // 아콘 헌트는 매주 월요일, 출격은 매일 리셋
+    // 아콘 헌트는 매주 월요일 00:00 UTC, 출격은 매일 16:00 UTC 리셋
     const isWeekly = target === TargetCommand.ArchonHunt;
     const now = dayjs.utc();
     let fireAt = isWeekly
       ? now.startOf('week').add(1, 'day') // 이번 주 월요일 00:00 UTC
-      : now.startOf('day').add(1, 'day');
-    if (!fireAt.isAfter(now)) fireAt = fireAt.add(7, 'day');
+      : now.startOf('day').add(16, 'hour'); // 오늘 16:00 UTC
+    if (!fireAt.isAfter(now)) fireAt = fireAt.add(isWeekly ? 7 : 1, 'day');
 
     const alarm = new AlarmConfig();
     alarm.guildId = interaction.guildId;
     alarm.name = `${target} reset`;
-    alarm.description = `Fires every ${isWeekly ? 'Monday' : 'day'} at 9AM KST`;
+    alarm.description = `Fires every ${isWeekly ? 'Monday at 00:00' : 'day at 16:00'} UTC`;
     alarm.intervalValue = (isWeekly ? 7 : 1) * 24 * 60;
     alarm.targetCommand = { target };
     alarm.timezone = resolveTimezone(interaction.locale);
