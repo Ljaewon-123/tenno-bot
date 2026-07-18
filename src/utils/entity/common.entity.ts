@@ -12,7 +12,7 @@ import { ColumnCommonOptions } from 'typeorm/decorator/options/ColumnCommonOptio
 import { ulid } from 'ulid';
 
 const dayjsTransformer: ValueTransformer = {
-  to: (value: Dayjs) => value.toISOString(),
+  to: (value: Dayjs | null | undefined) => value?.toISOString() ?? null,
   from: (value: string | null) => (value ? dayjs(value) : null),
 };
 

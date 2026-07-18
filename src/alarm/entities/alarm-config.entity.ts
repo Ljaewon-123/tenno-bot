@@ -4,13 +4,7 @@ import {
   IsDayjs,
 } from '@/utils/entity/common.entity';
 import { Expose, Type } from 'class-transformer';
-import {
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  ValidateNested,
-} from 'class-validator';
+import { IsEnum, IsInt, IsString, ValidateNested } from 'class-validator';
 import dayjs from 'dayjs';
 import { Column, Entity } from 'typeorm';
 import { AlarmStatus } from '../vo/enum';
@@ -41,7 +35,6 @@ export class AlarmConfig extends CommonWithGuild {
 
   @ValidateNested()
   @Type(() => TargetCommandAlarm)
-  @IsOptional()
   @Expose()
   @Column({ type: 'simple-json' })
   targetCommand: TargetCommandAlarm;
