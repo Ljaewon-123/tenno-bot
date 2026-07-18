@@ -1,5 +1,5 @@
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import dayjs from 'dayjs';
 import { In, LessThanOrEqual } from 'typeorm';
@@ -19,12 +19,13 @@ export class AlarmService {
   @Interval(60_000)
   async cron() {
     // 실행
-    const alarms = await this.fireAndForget();
+    const alarms = await this.getPendingAlarms();
     alarms.forEach((alarm) => {
       void this.run(alarm);
     });
   }
 
+  /** 업데이트는 어떻게 하지 일단은 지우고 등록 */
   async register(request: CreateAlarmRequest) {
     return this.alarmConfigRepository.save(request);
   }
@@ -33,7 +34,24 @@ export class AlarmService {
     return this.alarmConfigRepository.delete(id);
   }
 
-  async fireAndForget() {
+  async popAlarm(guilidId: string) {
+    const alarms = await this.alarmConfigRepository.findBy({
+      guildId: guilidId,
+    });
+    if (alarms?.length) {
+      throw new NotFoundException(`Alarm with id ${guilidId} not found`);
+    }
+
+    return alarms.map((alarm) => ({
+      id: alarm.id,
+      name: alarm.name,
+      description: alarm.description,
+      intervalValue: alarm.intervalValue,
+      targetCommand: alarm.targetCommand,
+    }));
+  }
+
+  async getPendingAlarms() {
     const now = dayjs().startOf('minute');
     const alarms = await this.alarmConfigRepository.findBy({
       status: AlarmStatus.PENDING,
