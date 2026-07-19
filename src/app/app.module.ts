@@ -63,6 +63,7 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({
+        validateCustomDecorators: true,
         whitelist: true,
         transform: true,
         transformOptions: {

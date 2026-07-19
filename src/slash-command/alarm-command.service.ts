@@ -24,10 +24,20 @@ export class AlarmCommandService {
     @Context() [interaction]: SlashCommandContext,
     @Options() request: CreateAlarmRequest,
   ) {
-    request.timezone = resolveTimezone(interaction.locale, request.timezone);
-    const alarm = await this.alarmService.register(request);
+    if (!interaction.guildId) {
+      return interaction.reply({ content: 'This command is guild-only.' });
+    }
+    const alarm = new AlarmConfig();
+    alarm.guildId = interaction.guildId;
+    alarm.channelId = interaction.channelId;
+    alarm.name = request.name;
+    alarm.description = request.description;
+    alarm.intervalValue = request.intervalValue;
+    alarm.targetCommand = { target: request.target, options: request.options };
+    alarm.timezone = resolveTimezone(interaction.locale, request.timezone);
+    const saved = await this.alarmService.register(alarm);
     return interaction.reply({
-      content: `Register alarm: ${alarm.name}: ${alarm.targetCommand.target} (${alarm.timezone})`,
+      content: `Register alarm: ${saved.name}: ${saved.targetCommand.target} (${saved.timezone})`,
     });
   }
 
@@ -66,6 +76,7 @@ export class AlarmCommandService {
 
     const alarm = new AlarmConfig();
     alarm.guildId = interaction.guildId;
+    alarm.channelId = interaction.channelId;
     alarm.name = `${target} reset`;
     alarm.description = `Fires every ${isWeekly ? 'Monday at 00:00' : 'day at 16:00'} UTC`;
     alarm.intervalValue = (isWeekly ? 7 : 1) * 24 * 60;

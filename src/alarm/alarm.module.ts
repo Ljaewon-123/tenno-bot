@@ -13,6 +13,6 @@ import { AlarmConfigRepository } from './repositories/alarm-config.repository';
     WarframeApiModule,
   ],
   providers: [AlarmService, AlarmConfigRepository],
-  exports: [AlarmService, AlarmConfigRepository],
+  exports: [AlarmService],
 })
 export class AlarmModule {}

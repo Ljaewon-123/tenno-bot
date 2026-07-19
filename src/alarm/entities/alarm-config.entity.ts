@@ -1,3 +1,5 @@
+import type { Dayjs } from '@/utils/dayjs';
+import dayjs from '@/utils/dayjs';
 import {
   CommonWithGuild,
   DateColumn,
@@ -11,10 +13,9 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import dayjs from '@/utils/dayjs';
-import type { Dayjs } from '@/utils/dayjs';
 import { Column, Entity } from 'typeorm';
-import { AlarmStatus, Timezone } from '../vo/enum';
+import { Timezone } from '@/utils/types';
+import { AlarmStatus } from '../vo/enum';
 import { TargetCommandAlarm } from '../vo/target-command.vo';
 
 @Entity()
@@ -28,6 +29,13 @@ export class AlarmConfig extends CommonWithGuild {
   @Expose()
   @Column()
   description: string;
+
+  /** 알람을 등록한 채널 — 발동 시 이 채널로 전송 */
+  @IsOptional()
+  @IsString()
+  @Expose()
+  @Column({ nullable: true, type: 'text' })
+  channelId: string | null = null;
 
   /** Yet only minutes */
   @IsInt()
@@ -63,10 +71,11 @@ export class AlarmConfig extends CommonWithGuild {
   @Column({ nullable: true })
   error: string | null = null;
 
-  setAsDone() {
+  /** 다음 발동 시각으로 밀고 다시 대기 상태로 */
+  reschedule() {
     const now = dayjs();
     const next = this.doneAt.add(this.intervalValue, 'minute');
-    this.status = AlarmStatus.DONE;
+    this.status = AlarmStatus.PENDING;
     this.doneAt = next.isAfter(now)
       ? next
       : now.add(this.intervalValue, 'minute');
