@@ -4,7 +4,7 @@ import { TargetCommand } from '@/warframe-api/enum';
 import { VoidTier } from '@/warframe-api/world-state/vo/enum';
 import { IntegerOption, StringOption } from 'necord';
 
-export class CreateAlarmRequest {
+export class CreateAlarmCommand {
   @StringOption({
     name: 'name',
     description: 'Alarm name',

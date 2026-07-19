@@ -1,5 +1,5 @@
 import { AlarmService } from '@/alarm/alarm.service';
-import { CreateAlarmRequest } from '@/alarm/dto/create-alarm.request.dto';
+import { CreateAlarmCommand } from '@/alarm/dto/create-alarm.command.dto';
 import { AlarmConfig } from '@/alarm/entities/alarm-config.entity';
 import dayjs from '@/utils/dayjs';
 import { resolveTimezone } from '@/utils/timezone';
@@ -22,7 +22,7 @@ export class AlarmCommandService {
   })
   async registerAlarm(
     @Context() [interaction]: SlashCommandContext,
-    @Options() request: CreateAlarmRequest,
+    @Options() request: CreateAlarmCommand,
   ) {
     if (!interaction.guildId) {
       return interaction.reply({ content: 'This command is guild-only.' });
@@ -74,17 +74,16 @@ export class AlarmCommandService {
       : now.startOf('day').add(16, 'hour'); // 오늘 16:00 UTC
     if (!fireAt.isAfter(now)) fireAt = fireAt.add(isWeekly ? 7 : 1, 'day');
 
-    const alarm = new AlarmConfig();
-    alarm.guildId = interaction.guildId;
-    alarm.channelId = interaction.channelId;
-    alarm.name = `${target} reset`;
-    alarm.description = `Fires every ${isWeekly ? 'Monday at 00:00' : 'day at 16:00'} UTC`;
-    alarm.intervalValue = (isWeekly ? 7 : 1) * 24 * 60;
-    alarm.targetCommand = { target };
-    alarm.timezone = resolveTimezone(interaction.locale);
-    alarm.doneAt = fireAt;
-
-    const saved = await this.alarmService.register(alarm);
+    const saved = await this.alarmService.register({
+      guildId: interaction.guildId,
+      channelId: interaction.channelId,
+      name: `${target} reset`,
+      description: `Fires every ${isWeekly ? 'Monday at 00:00' : 'day at 16:00'} UTC`,
+      intervalValue: (isWeekly ? 7 : 1) * 24 * 60,
+      targetCommand: { target },
+      timezone: resolveTimezone(interaction.locale),
+      doneAt: fireAt,
+    });
     return interaction.reply({
       content: `Register alarm: ${saved.name}, first fire <t:${fireAt.unix()}:R>`,
     });

@@ -1,10 +1,11 @@
+import dayjs from '@/utils/dayjs';
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Client } from 'discord.js';
 import { Interval } from '@nestjs/schedule';
-import dayjs from '@/utils/dayjs';
+import { Client } from 'discord.js';
 import { In, LessThanOrEqual } from 'typeorm';
 import { Propagation, Transactional } from 'typeorm-transactional';
+import { CreateAlarm } from './dto/create-alarm.dto';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmConfigRepository } from './repositories/alarm-config.repository';
 import { AlarmStatus } from './vo/enum';
@@ -27,8 +28,9 @@ export class AlarmService {
   }
 
   /** 업데이트는 어떻게 하지 일단은 지우고 등록 */
-  async register(alarm: AlarmConfig) {
-    return this.alarmConfigRepository.save(alarm);
+  async register(alarm: CreateAlarm) {
+    const entity = this.alarmConfigRepository.create(alarm);
+    return this.alarmConfigRepository.save(entity);
   }
 
   async unRegister(id: string) {
