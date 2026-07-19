@@ -1,5 +1,6 @@
 import { AlarmService } from '@/alarm/alarm.service';
 import { CreateAlarmCommand } from '@/alarm/dto/create-alarm.command.dto';
+import { DeleteAlarmCommand } from '@/alarm/dto/delete-alarm.command.dto';
 import dayjs from '@/utils/dayjs';
 import { resolveTimezone } from '@/utils/timezone';
 import { TargetCommand } from '@/warframe-api/enum';
@@ -26,6 +27,7 @@ export class AlarmCommandService {
     if (!interaction.guildId) {
       return interaction.reply({ content: 'This command is guild-only.' });
     }
+    console.log(request, 'dev debug');
     const saved = await this.alarmService.register({
       guildId: interaction.guildId,
       channelId: interaction.channelId,
@@ -94,7 +96,7 @@ export class AlarmCommandService {
   })
   async unRegisterAlarm(
     @Context() [interaction]: SlashCommandContext,
-    @Options() id: string,
+    @Options() { id }: DeleteAlarmCommand,
   ) {
     await this.alarmService.unRegister(id);
     return interaction.reply({
@@ -102,13 +104,17 @@ export class AlarmCommandService {
     });
   }
 
-  async popAlarm(
-    @Context() [interaction]: SlashCommandContext,
-    @Options() guildId: string,
-  ) {
-    const alarms = await this.alarmService.popAlarm(guildId);
+  @SlashCommand({
+    name: 'pop-alarm-list',
+    description: 'showing all alarms list',
+  })
+  async popAlarm(@Context() [interaction]: SlashCommandContext) {
+    if (!interaction.guildId) {
+      return interaction.reply({ content: 'This command is guild-only.' });
+    }
+    const alarms = await this.alarmService.popAlarm(interaction.guildId);
     return interaction.reply({
-      content: `Alarms for guild ${guildId}: ${JSON.stringify(alarms)}`,
+      content: `Alarms for guild ${interaction.guildId}: ${JSON.stringify(alarms)}`,
     });
   }
 }

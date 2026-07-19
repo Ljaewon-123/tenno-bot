@@ -50,11 +50,11 @@ export abstract class CommonEntity {
 
   @IsDayjs()
   @CreateDateColumn({ type: 'text', transformer: dayjsTransformer })
-  createdAt: Dayjs;
+  createdAt: Dayjs = dayjs();
 
   @IsDayjs()
   @UpdateDateColumn({ type: 'text', transformer: dayjsTransformer })
-  updatedAt: Dayjs;
+  updatedAt: Dayjs = dayjs();
 }
 
 export abstract class CommonWithGuildChannel extends CommonEntity {

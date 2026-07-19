@@ -41,7 +41,7 @@ export class AlarmService {
     const alarms = await this.alarmConfigRepository.findBy({
       guildId: guilidId,
     });
-    if (alarms?.length) {
+    if (!alarms?.length) {
       throw new NotFoundException(`Alarm with id ${guilidId} not found`);
     }
 
