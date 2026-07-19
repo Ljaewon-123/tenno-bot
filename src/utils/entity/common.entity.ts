@@ -1,6 +1,12 @@
-import { IsString, ValidateBy, ValidationOptions } from 'class-validator';
-import dayjs from '@/utils/dayjs';
 import type { Dayjs } from '@/utils/dayjs';
+import dayjs from '@/utils/dayjs';
+import { Expose } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  ValidateBy,
+  ValidationOptions,
+} from 'class-validator';
 import {
   Column,
   CreateDateColumn,
@@ -51,9 +57,17 @@ export abstract class CommonEntity {
   updatedAt: Dayjs;
 }
 
-export abstract class CommonWithGuild extends CommonEntity {
+export abstract class CommonWithGuildChannel extends CommonEntity {
   @IsString()
   @Column()
   @Index()
   guildId: string;
+
+  /** 알람을 등록한 채널 — 발동 시 이 채널로 전송 */
+  @IsOptional()
+  @IsString()
+  @Expose()
+  @Index()
+  @Column({ nullable: true, type: 'text' })
+  channelId: string | null = null;
 }

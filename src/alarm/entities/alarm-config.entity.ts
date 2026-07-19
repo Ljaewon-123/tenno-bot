@@ -1,10 +1,11 @@
 import type { Dayjs } from '@/utils/dayjs';
 import dayjs from '@/utils/dayjs';
 import {
-  CommonWithGuild,
+  CommonWithGuildChannel,
   DateColumn,
   IsDayjs,
 } from '@/utils/entity/common.entity';
+import { Timezone } from '@/utils/types';
 import { Expose, Type } from 'class-transformer';
 import {
   IsEnum,
@@ -14,12 +15,11 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Column, Entity } from 'typeorm';
-import { Timezone } from '@/utils/types';
 import { AlarmStatus } from '../vo/enum';
 import { TargetCommandAlarm } from '../vo/target-command.vo';
 
 @Entity()
-export class AlarmConfig extends CommonWithGuild {
+export class AlarmConfig extends CommonWithGuildChannel {
   @IsString()
   @Expose()
   @Column()
@@ -29,13 +29,6 @@ export class AlarmConfig extends CommonWithGuild {
   @Expose()
   @Column()
   description: string;
-
-  /** 알람을 등록한 채널 — 발동 시 이 채널로 전송 */
-  @IsOptional()
-  @IsString()
-  @Expose()
-  @Column({ nullable: true, type: 'text' })
-  channelId: string | null = null;
 
   /** Yet only minutes */
   @IsInt()
