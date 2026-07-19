@@ -27,8 +27,9 @@ export class AlarmConfig extends CommonWithGuildChannel {
 
   @IsString()
   @Expose()
-  @Column()
-  description: string;
+  @IsOptional()
+  @Column({ nullable: true, type: 'text' })
+  description?: string;
 
   /** Yet only minutes */
   @IsInt()
@@ -61,8 +62,8 @@ export class AlarmConfig extends CommonWithGuildChannel {
   doneAt: Dayjs = dayjs();
 
   @IsOptional()
-  @Column({ nullable: true })
-  error: string | null = null;
+  @Column({ type: 'text', nullable: true })
+  error?: string | null = null;
 
   /** 다음 발동 시각으로 밀고 다시 대기 상태로 */
   reschedule() {

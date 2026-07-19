@@ -12,7 +12,8 @@ export class DropTableService {
     private readonly cacheRepository: CacheRepository,
   ) {}
 
-  @Cron(CronExpression.EVERY_WEEK)
+  // @Cron(CronExpression.EVERY_WEEK)
+  @Cron(CronExpression.EVERY_10_SECONDS) // dev mode
   async getAllDropTables() {
     const all = await this.httpJsonService.request(
       HttpMethod.Get,
@@ -21,6 +22,7 @@ export class DropTableService {
     const entity = this.cacheRepository.create({
       cache: JSON.stringify(all),
     });
+    console.log(entity);
     return this.cacheRepository.save(entity);
   }
 

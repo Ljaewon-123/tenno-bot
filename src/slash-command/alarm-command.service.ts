@@ -1,6 +1,5 @@
 import { AlarmService } from '@/alarm/alarm.service';
 import { CreateAlarmCommand } from '@/alarm/dto/create-alarm.command.dto';
-import { AlarmConfig } from '@/alarm/entities/alarm-config.entity';
 import dayjs from '@/utils/dayjs';
 import { resolveTimezone } from '@/utils/timezone';
 import { TargetCommand } from '@/warframe-api/enum';
@@ -27,15 +26,15 @@ export class AlarmCommandService {
     if (!interaction.guildId) {
       return interaction.reply({ content: 'This command is guild-only.' });
     }
-    const alarm = new AlarmConfig();
-    alarm.guildId = interaction.guildId;
-    alarm.channelId = interaction.channelId;
-    alarm.name = request.name;
-    alarm.description = request.description;
-    alarm.intervalValue = request.intervalValue;
-    alarm.targetCommand = { target: request.target, options: request.options };
-    alarm.timezone = resolveTimezone(interaction.locale, request.timezone);
-    const saved = await this.alarmService.register(alarm);
+    const saved = await this.alarmService.register({
+      guildId: interaction.guildId,
+      channelId: interaction.channelId,
+      name: request.name,
+      description: request.description,
+      intervalValue: request.intervalValue,
+      targetCommand: { target: request.target, options: request.options },
+      timezone: resolveTimezone(interaction.locale, request.timezone),
+    });
     return interaction.reply({
       content: `Register alarm: ${saved.name}: ${saved.targetCommand.target} (${saved.timezone})`,
     });
