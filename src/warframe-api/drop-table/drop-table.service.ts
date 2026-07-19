@@ -4,10 +4,15 @@ import { HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from './repositories/cache.repository';
 import { DropTableData } from './types';
+import { CacheKey } from './vo/enum';
 
 // relics/missionRewards/modLocations 등 정적 드랍테이블은 Prime Access 단위(분기~수개월)로만 바뀜.
 // 변경 주기가 예측 불가하므로 주 1회 all.json 통째로 재수집해 Postgres에 덮어쓰는 방식.
 // 효율화하려면 info.json(hash/modified)을 먼저 확인해 변경 시에만 all.json 재수집.
+// 주된 기능은 특정 아이템은 어떤 미션 혹은 어떤 드랍에서 얻을 수있는지가 우선순위
+// 1. 목표 아이템은 특정 성유물 (또는 성유물을 까서 나오는 프라임 부품)
+// 2. 특정 미션, 혹은 특정 몹을 잡아야 드랍되는 모드
+// 3. 특정 미션에서만 얻을수있는 모드 또한 표시 (상승 미션 등등)
 @Injectable()
 export class DropTableService {
   constructor(
@@ -24,6 +29,7 @@ export class DropTableService {
     );
     const entity = this.cacheRepository.create({
       cache: JSON.stringify(all),
+      key: CacheKey.DropTable,
     });
     // console.log(entity);
     return this.cacheRepository.save(entity);
@@ -31,6 +37,17 @@ export class DropTableService {
 
   /** 성유물 */
   // async relics() {
-  //   return this.httpJsonService.request(HttpMethod.Get, 'relics');
+  //   const drop = await this.cacheRepository
+  //     .findOneBy({
+  //       key: CacheKey.DropTable,
+  //     })
+  //     .then((entity) => {
+  //       if (!entity) {
+  //         throw new Error('DropTable cache not found');
+  //       }
+  //       return JSON.parse(entity.cache) as DropTableData;
+  //     });
+
+  //   return drop.relics;
   // }
 }
