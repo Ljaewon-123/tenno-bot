@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
 import dayjs from '@/utils/dayjs';
+import { Injectable } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
+import { DropTableService } from './drop-table/drop-table.service';
+import { DropCategory } from './drop-table/vo/enum';
 import { AlarmRequest, TargetCommand } from './enum';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import { ArchonReward, VoidTier } from './world-state/vo/enum';
@@ -12,6 +14,7 @@ export class WarframeApiService {
   constructor(
     private readonly worldStateService: WorldStateService,
     private readonly wfcdItemsService: WfcdItemsService,
+    private readonly dropTableService: DropTableService,
   ) {}
 
   /** 집정관 */
@@ -154,6 +157,10 @@ export class WarframeApiService {
     }
 
     return embed;
+  }
+
+  async dropSources(itemName: string, category?: DropCategory) {
+    return this.dropTableService.findDropSources(itemName, category);
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */

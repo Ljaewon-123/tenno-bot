@@ -4,8 +4,9 @@ import { Injectable, UseInterceptors } from '@nestjs/common';
 import type { SlashCommandContext } from 'necord';
 import { Context, Options, SlashCommand } from 'necord';
 import { AutoDto } from './dto/auto.dto';
+import { DropCommand } from './dto/drop.command.dto';
 import { TextDto } from './dto/text.dto';
-import { VoidFissures } from './dto/void-fissures.dto';
+import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
 
 @Injectable()
 export class SlashCommandService {
@@ -44,7 +45,7 @@ export class SlashCommandService {
   })
   async voidFissures(
     @Context() [interaction]: SlashCommandContext,
-    @Options() { tier }: VoidFissures,
+    @Options() { tier }: VoidFissuresCommand,
   ) {
     const voidFissures = await this.warframeApi.voidFissures(tier);
     return interaction.reply({ embeds: [voidFissures] });
@@ -57,6 +58,15 @@ export class SlashCommandService {
   async voidTrader(@Context() [interaction]: SlashCommandContext) {
     const voidTrader = await this.warframeApi.voidTrader();
     return interaction.reply({ embeds: [voidTrader] });
+  }
+
+  async dropSources(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { itemName, category }: DropCommand,
+  ) {
+    const dropSources = await this.warframeApi.dropSources(itemName, category);
+    // embed필요
+    return interaction.reply({ content: JSON.stringify(dropSources, null, 2) });
   }
 
   /** example */
