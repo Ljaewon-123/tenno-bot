@@ -2,6 +2,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpJsonService } from '../shared/http-json.service';
+import { DropSourceService } from './drop-source.service';
 import { DropTableService } from './drop-table.service';
 import { Cache } from './entities/cache.entity';
 import { DropSource } from './entities/drop-source.entity';
@@ -15,6 +16,7 @@ import { DropSourceRepository } from './repositories/drop-source.repository';
   ],
   providers: [
     DropTableService,
+    DropSourceService,
     HttpJsonService,
     CacheRepository,
     DropSourceRepository,
