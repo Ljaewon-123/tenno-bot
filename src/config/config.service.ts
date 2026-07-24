@@ -27,6 +27,26 @@ export class AppConfig {
   @Expose()
   @IsInt()
   PORT: number = 3000;
+
+  @Expose()
+  @IsString()
+  PG_HOST: string;
+
+  @Expose()
+  @IsInt()
+  PG_PORT: number;
+
+  @Expose()
+  @IsString()
+  PG_USER: string;
+
+  @Expose()
+  @IsString()
+  PG_PASSWORD: string;
+
+  @Expose()
+  @IsString()
+  PG_DB_NAME: string;
 }
 
 export function loadConfig(): AppConfig {

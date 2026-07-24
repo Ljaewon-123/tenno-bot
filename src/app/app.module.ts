@@ -1,5 +1,6 @@
 import { AlarmModule } from '@/alarm/alarm.module';
 import { AppConfig } from '@/config/config.service';
+import { DatabaseConfig } from '@/config/database.config';
 import { NodeEnv } from '@/config/enum';
 import { SlashCommandModule } from '@/slash-command/slash-command.module';
 import { UserContextModule } from '@/user-context/user-context.module';
@@ -36,10 +37,9 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
       }),
     }),
     TypeOrmModule.forRootAsync({
-      inject: [AppConfig],
-      useFactory: () => ({
-        type: 'better-sqlite3',
-        database: 'db.sqlite',
+      inject: [DatabaseConfig],
+      useFactory: (config: DatabaseConfig) => ({
+        ...config.pgOptions,
         synchronize: true,
         autoLoadEntities: true,
         namingStrategy: new SnakeNamingStrategy(),
