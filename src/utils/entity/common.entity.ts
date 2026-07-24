@@ -20,13 +20,13 @@ import { ulid } from 'ulid';
 
 const dayjsTransformer: ValueTransformer = {
   to: (value: Dayjs | null | undefined) => value?.toISOString() ?? null,
-  from: (value: string | null) => (value ? dayjs(value) : null),
+  from: (value: string | Date | null) => (value ? dayjs(value) : null),
 };
 
 export const DateColumn = (options?: ColumnCommonOptions) => {
   return Column({
     ...options,
-    type: 'text',
+    type: 'timestamptz',
     transformer: dayjsTransformer,
   });
 };
@@ -49,11 +49,11 @@ export abstract class CommonEntity {
   id: string = ulid();
 
   @IsDayjs()
-  @CreateDateColumn({ type: 'text', transformer: dayjsTransformer })
+  @CreateDateColumn({ type: 'timestamptz', transformer: dayjsTransformer })
   createdAt: Dayjs = dayjs();
 
   @IsDayjs()
-  @UpdateDateColumn({ type: 'text', transformer: dayjsTransformer })
+  @UpdateDateColumn({ type: 'timestamptz', transformer: dayjsTransformer })
   updatedAt: Dayjs = dayjs();
 }
 
