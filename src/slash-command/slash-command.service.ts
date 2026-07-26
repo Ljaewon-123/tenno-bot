@@ -60,13 +60,16 @@ export class SlashCommandService {
     return interaction.reply({ embeds: [voidTrader] });
   }
 
+  @SlashCommand({
+    name: 'drop',
+    description: 'Find where an item drops from',
+  })
   async dropSources(
     @Context() [interaction]: SlashCommandContext,
     @Options() { itemName, category }: DropCommand,
   ) {
     const dropSources = await this.warframeApi.dropSources(itemName, category);
-    // embed필요
-    return interaction.reply({ content: JSON.stringify(dropSources, null, 2) });
+    return interaction.reply({ embeds: [dropSources] });
   }
 
   /** example */

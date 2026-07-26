@@ -14,8 +14,8 @@ export class DropCommand {
 
   @Expose()
   @EnumOption({
-    name: 'item',
-    description: 'Get the drop sources of an item',
+    name: 'category',
+    description: 'Filter drop sources by category',
     required: false,
     enum: DropCategory,
   })

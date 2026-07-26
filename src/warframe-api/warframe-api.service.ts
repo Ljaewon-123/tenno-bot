@@ -2,6 +2,7 @@ import dayjs from '@/utils/dayjs';
 import { Injectable } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
 import { DropTableService } from './drop-table/drop-table.service';
+import type { DropSource } from './drop-table/entities/drop-source.entity';
 import { DropCategory } from './drop-table/vo/enum';
 import { AlarmRequest, TargetCommand } from './enum';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
@@ -160,7 +161,40 @@ export class WarframeApiService {
   }
 
   async dropSources(itemName: string, category?: DropCategory) {
-    return this.dropTableService.findDropSources(itemName, category);
+    const sources = await this.dropTableService.findDropSources(
+      itemName,
+      category,
+    );
+
+    const embed = new EmbedBuilder()
+      .setTitle(`Drop Sources - ${itemName}`)
+      .setColor(0x5865f2);
+
+    if (!sources.length) {
+      return embed.setDescription('No drop sources found.');
+    }
+
+    // 부분 일치라 여러 아이템이 잡힐 수 있어 아이템별로 묶는다
+    const byItem = sources.reduce<Record<string, DropSource[]>>(
+      (acc, source) => {
+        (acc[source.itemName] ??= []).push(source);
+        return acc;
+      },
+      {},
+    );
+
+    embed.addFields(
+      Object.entries(byItem)
+        .slice(0, 25)
+        .map(([name, list]) => ({
+          name: name.slice(0, 256),
+          value: list
+            .map((source) => `${source.sourceName} - ${source.chance}%`)
+            .join('\n')
+            .slice(0, 1024),
+        })),
+    );
+    return embed;
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */
