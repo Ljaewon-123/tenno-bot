@@ -26,7 +26,7 @@ export class DropSourceService {
   async rebuildDropSources(all: DropTableData) {
     const rows = this.buildRows(all);
     await this.dropSourceRepository.clear();
-    // ponytail: 전량 삭제 후 재삽입. 주 1회라 충분, 느려지면 diff upsert로
+    // 전량 삭제 후 재삽입. 주 1회라 충분, 느려지면 diff upsert로
     for (let i = 0; i < rows.length; i += 1000) {
       await this.dropSourceRepository.insert(rows.slice(i, i + 1000));
     }

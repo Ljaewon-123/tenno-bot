@@ -122,6 +122,13 @@ export interface ItemByAvatar {
   items: AvatarItem[];
 }
 
+/** GET data/info.json — all.json을 받기 전에 변경 여부만 확인하는 용도. 실제 응답 확인함. */
+export interface DropTableInfo {
+  hash: string;
+  timestamp: number;
+  modified: number;
+}
+
 /** GET data/all.json 전체 응답 */
 export interface DropTableData {
   missionRewards: MissionRewards;

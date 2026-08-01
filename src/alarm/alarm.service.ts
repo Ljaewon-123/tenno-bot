@@ -1,6 +1,6 @@
 import dayjs from '@/utils/dayjs';
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Client } from 'discord.js';
 import { In, LessThanOrEqual } from 'typeorm';
@@ -9,6 +9,9 @@ import { CreateAlarm } from './dto/create-alarm.dto';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmConfigRepository } from './repositories/alarm-config.repository';
 import { AlarmStatus } from './vo/enum';
+
+/** 이 시간을 넘도록 RUNNING인 알람은 프로세스가 죽은 것으로 본다 */
+const STALE_AFTER_MINUTES = 10;
 
 @Injectable()
 export class AlarmService {
@@ -41,9 +44,6 @@ export class AlarmService {
     const alarms = await this.alarmConfigRepository.findBy({
       guildId: guilidId,
     });
-    if (!alarms?.length) {
-      throw new NotFoundException(`Alarm with id ${guilidId} not found`);
-    }
 
     return alarms.map((alarm) => ({
       id: alarm.id,
@@ -51,18 +51,24 @@ export class AlarmService {
       description: alarm.description,
       intervalValue: alarm.intervalValue,
       targetCommand: alarm.targetCommand,
+      doneAt: alarm.doneAt,
     }));
   }
 
   async getPendingAlarms() {
     const now = dayjs().startOf('minute');
-    const alarms = await this.alarmConfigRepository.findBy({
-      status: AlarmStatus.PENDING,
-      doneAt: LessThanOrEqual(now),
-    });
+    const alarms = await this.alarmConfigRepository.findBy([
+      { status: AlarmStatus.PENDING, doneAt: LessThanOrEqual(now) },
+      // 발동 도중 프로세스가 죽으면 RUNNING으로 굳어 다시는 안 돈다.
+      // 한 번 발동이 STALE_AFTER_MINUTES를 넘길 일은 없으므로 그보다 오래 묵은 RUNNING은 좀비로 보고 회수한다.
+      {
+        status: AlarmStatus.RUNNING,
+        updatedAt: LessThanOrEqual(now.subtract(STALE_AFTER_MINUTES, 'minute')),
+      },
+    ]);
     const ids = alarms.map((alarm) => alarm.id);
+    if (!ids.length) return alarms;
 
-    // 영원히 pending으로 돌아가지 않은 상태에 대해서 검증필요
     await this.alarmConfigRepository.update(
       { id: In(ids) },
       { status: AlarmStatus.RUNNING },

@@ -6,7 +6,7 @@ import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
 import { DropSourceService } from './drop-source.service';
 import { DropSourceRepository } from './repositories/drop-source.repository';
-import { DropTableData } from './types';
+import { DropTableData, DropTableInfo } from './types';
 import { DropCategory } from './vo/enum';
 
 // relics/missionRewards/modLocations 등 정적 드랍테이블은 Prime Access 단위(분기~수개월)로만 바뀜.
@@ -28,16 +28,26 @@ export class DropTableService {
   // @Cron(CronExpression.EVERY_10_SECONDS) // dev mode
   @Cron(CronExpression.EVERY_WEEK)
   async getAllDropTables() {
+    const info = await this.httpJsonService.request<DropTableInfo>(
+      HttpMethod.Get,
+      'data/info.json',
+    );
+    const cached = await this.cacheRepository.findOneBy({
+      key: CacheKey.DropTable,
+    });
+    if ((cached?.cache as string | undefined) === info.hash) return;
+
     const all = await this.httpJsonService.request<DropTableData>(
       HttpMethod.Get,
       'data/all.json',
     );
-    const entity = this.cacheRepository.create({
-      cache: JSON.stringify(all),
-      key: CacheKey.DropTable,
-    });
+    await this.dropSourceService.rebuildDropSources(all);
+
+    // 재수집이 성공한 뒤에 해시를 남긴다 — 중간에 터지면 다음 주기에 다시 시도한다
+    const entity =
+      cached ?? this.cacheRepository.create({ key: CacheKey.DropTable });
+    entity.cache = info.hash;
     await this.cacheRepository.save(entity);
-    return this.dropSourceService.rebuildDropSources(all);
   }
 
   /** 역인덱스 검색. 부분 일치, 확률 높은 순 */

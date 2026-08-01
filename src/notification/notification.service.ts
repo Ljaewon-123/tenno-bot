@@ -21,6 +21,30 @@ export class NotificationService {
     private readonly client: Client,
   ) {}
 
+  /** 같은 길드+이벤트는 하나만 — 다시 켜면 수신 채널만 갈아끼운다 */
+  async subscribe(guildId: string, channelId: string, eventType: WatchTarget) {
+    const existing = await this.notificationRepository.findOneBy({
+      guildId,
+      eventType,
+    });
+    const entity =
+      existing ?? this.notificationRepository.create({ guildId, eventType });
+    entity.channelId = channelId;
+    return this.notificationRepository.save(entity);
+  }
+
+  async unsubscribe(guildId: string, eventType: WatchTarget) {
+    const { affected } = await this.notificationRepository.delete({
+      guildId,
+      eventType,
+    });
+    return Boolean(affected);
+  }
+
+  async list(guildId: string) {
+    return this.notificationRepository.findBy({ guildId });
+  }
+
   // 소티(일간)/아콘헌트(주간)는 UTC 00:00 리셋이지만 DE가 몇 분씩 늦추는 일이 있어
   // 시각이 아닌 id 변화로 감지한다. 10분 간격 = 알림 최대 10분 지연, 하루 3×144회 호출.
   @Cron(CronExpression.EVERY_10_MINUTES)

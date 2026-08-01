@@ -7,4 +7,5 @@ export const ALLOWED_PATHS = new Set<string>([
   'pc/fissures',
   'pc/voidTrader',
   'data/all.json',
+  'data/info.json',
 ]);
