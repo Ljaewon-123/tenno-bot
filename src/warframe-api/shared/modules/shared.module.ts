@@ -7,5 +7,6 @@ import { CacheRepository } from './repositories/cache.repository';
 @Module({
   imports: [TypeOrmModule.forFeature([Cache])],
   providers: [CacheRepository],
+  exports: [CacheRepository],
 })
 export class SharedModule {}

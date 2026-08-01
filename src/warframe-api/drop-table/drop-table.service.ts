@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ILike } from 'typeorm';
-import { HttpMethod } from '../shared/enum';
+import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
 import { DropSourceService } from './drop-source.service';
 import { DropSourceRepository } from './repositories/drop-source.repository';
 import { DropTableData } from './types';
-import { CacheKey, DropCategory } from './vo/enum';
+import { DropCategory } from './vo/enum';
 
 // relics/missionRewards/modLocations 등 정적 드랍테이블은 Prime Access 단위(분기~수개월)로만 바뀜.
 // 변경 주기가 예측 불가하므로 주 1회 all.json 통째로 재수집해 Postgres에 덮어쓰는 방식.

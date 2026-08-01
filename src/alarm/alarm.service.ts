@@ -75,7 +75,7 @@ export class AlarmService {
   async run(alarm: AlarmConfig) {
     try {
       const targetCommand = alarm.targetCommand;
-      const embed = await this.warframeApiService.alarmTarget({
+      const embed = await this.warframeApiService.getAlarmTarget({
         target: targetCommand.target,
         options: targetCommand.options,
       });

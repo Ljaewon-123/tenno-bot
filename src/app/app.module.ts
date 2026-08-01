@@ -2,6 +2,7 @@ import { AlarmModule } from '@/alarm/alarm.module';
 import { AppConfig } from '@/config/config.service';
 import { DatabaseConfig } from '@/config/database.config';
 import { NodeEnv } from '@/config/enum';
+import { NotificationModule } from '@/notification/notification.module';
 import { SlashCommandModule } from '@/slash-command/slash-command.module';
 import { UserContextModule } from '@/user-context/user-context.module';
 import {
@@ -58,6 +59,7 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
     SlashCommandModule,
     UserContextModule,
     AlarmModule,
+    NotificationModule,
   ],
   providers: [
     {

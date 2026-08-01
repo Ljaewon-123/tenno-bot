@@ -198,7 +198,7 @@ export class WarframeApiService {
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */
-  async alarmTarget(request: AlarmRequest) {
+  async getAlarmTarget(request: AlarmRequest) {
     switch (request.target) {
       case TargetCommand.ArchonHunt:
         return this.archonHunt();

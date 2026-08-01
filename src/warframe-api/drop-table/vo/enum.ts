@@ -1,7 +1,3 @@
-export enum CacheKey {
-  DropTable = 'drop-table',
-}
-
 /** DropSource.category — all.json의 섹션을 검색 관점으로 묶은 분류 */
 export enum DropCategory {
   /** missionRewards */

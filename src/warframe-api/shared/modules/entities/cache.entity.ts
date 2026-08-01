@@ -1,7 +1,7 @@
 import { CommonEntity } from '@/utils/entity/common.entity';
 import { IsEnum } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';
-import { CacheKey } from '../../../drop-table/vo/enum';
+import { CacheKey } from '../../enum';
 
 @Entity()
 export class Cache extends CommonEntity {
