@@ -9,7 +9,11 @@ import { DropSourceRepository } from './repositories/drop-source.repository';
 
 @Module({
   imports: [
-    HttpModule.register({ baseURL: 'https://drops.warframestat.us' }),
+    // all.json은 수 MB짜리 주간 크론 수집이라 인터랙션 경로보다 넉넉하게 잡는다
+    HttpModule.register({
+      baseURL: 'https://drops.warframestat.us',
+      timeout: 30_000,
+    }),
     TypeOrmModule.forFeature([DropSource]),
   ],
   providers: [

@@ -9,7 +9,7 @@ import {
   UnprocessableEntityException,
   ValidationPipe,
 } from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IntentsBitField } from 'discord.js';
 import { NecordModule } from 'necord';
@@ -21,6 +21,8 @@ import {
 } from 'typeorm-transactional';
 import { ConfigModule } from '../config/config.module';
 import { BotLifecycleHook } from './bot-lifecycle.hook';
+import { CommandExceptionFilter } from './command-exception.filter';
+import { CommandLoggingInterceptor } from './command-logging.interceptor';
 
 @Module({
   imports: [
@@ -73,6 +75,14 @@ import { BotLifecycleHook } from './bot-lifecycle.hook';
           return new UnprocessableEntityException(errors);
         },
       }),
+    },
+    {
+      provide: APP_FILTER,
+      useClass: CommandExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CommandLoggingInterceptor,
     },
     BotLifecycleHook,
   ],

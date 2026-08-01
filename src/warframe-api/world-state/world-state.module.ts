@@ -4,7 +4,12 @@ import { HttpJsonService } from '../shared/http-json.service';
 import { WorldStateService } from './world-state.service';
 
 @Module({
-  imports: [HttpModule.register({ baseURL: 'https://api.warframestat.us' })],
+  imports: [
+    HttpModule.register({
+      baseURL: 'https://api.warframestat.us',
+      timeout: 5000,
+    }),
+  ],
   providers: [WorldStateService, HttpJsonService],
   exports: [WorldStateService],
 })
