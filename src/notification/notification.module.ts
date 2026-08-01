@@ -3,7 +3,6 @@ import { WorldStateModule } from '@/warframe-api/world-state/world-state.module'
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Notification } from './entities/notification.entity';
-import { NotificationCommandService } from './notification-command.service';
 import { NotificationService } from './notification.service';
 import { NotificationRepository } from './repositories/notification.repository';
 
@@ -13,11 +12,7 @@ import { NotificationRepository } from './repositories/notification.repository';
     WarframeApiModule,
     WorldStateModule,
   ],
-  providers: [
-    NotificationService,
-    NotificationCommandService,
-    NotificationRepository,
-  ],
+  providers: [NotificationService, NotificationRepository],
   exports: [NotificationService],
 })
 export class NotificationModule {}

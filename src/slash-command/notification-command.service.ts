@@ -1,21 +1,9 @@
+import { NotificationCommands } from '@/notification/decorators/notification.decorator';
+import { NotificationCommand } from '@/notification/dto/notification.command.dto';
+import { NotificationService } from '@/notification/notification.service';
 import { Injectable } from '@nestjs/common';
-import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
-import {
-  Context,
-  createCommandGroupDecorator,
-  Options,
-  Subcommand,
-  type SlashCommandContext,
-} from 'necord';
-import { NotificationCommand } from './dto/notification.command.dto';
-import { NotificationService } from './notification.service';
-
-export const NotificationCommands = createCommandGroupDecorator({
-  name: 'warframe-notification',
-  description: 'Subscribe this server to Warframe worldstate updates',
-  // 서버 전체에 발송되는 설정이라 관리자만 건드릴 수 있어야 한다
-  defaultMemberPermissions: PermissionFlagsBits.ManageGuild,
-});
+import { EmbedBuilder } from 'discord.js';
+import { Context, Options, Subcommand, type SlashCommandContext } from 'necord';
 
 @NotificationCommands()
 @Injectable()
