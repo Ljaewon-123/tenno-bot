@@ -26,7 +26,7 @@ export class CreateAlarmCommand {
   /** Yet only minutes */
   @Expose()
   @IntegerOption({
-    name: 'interval',
+    name: 'interval-minutes',
     description: 'Repeat interval in minutes',
     required: true,
     min_value: 1,
