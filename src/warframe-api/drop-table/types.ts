@@ -5,7 +5,8 @@ export interface DropReward {
   _id: string;
   itemName: string;
   rarity: string;
-  chance: number;
+  /** 원본에 null로 내려오는 항목이 있음 */
+  chance: number | null;
   /** 바운티류(cetus/solaris/deimos 등)에서만 존재, 예: "Stage 1" */
   stage?: string;
   /** transientRewards에서만 존재, 로테이션 없는 보상은 undefined */
@@ -43,7 +44,7 @@ export interface EnemyModDrop {
   enemyName: string;
   enemyModDropChance: number;
   rarity: string;
-  chance: number;
+  chance: number | null;
 }
 
 export interface ModLocation {
@@ -113,7 +114,7 @@ export interface AvatarItem {
   _id: string;
   item: string;
   rarity: string;
-  chance: number;
+  chance: number | null;
 }
 
 export interface ItemByAvatar {

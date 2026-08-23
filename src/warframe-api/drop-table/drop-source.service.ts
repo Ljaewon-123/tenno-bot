@@ -199,18 +199,12 @@ export class DropSourceService {
   private syndicateRows(syndicates: Syndicates): DropSource[] {
     return Object.entries(syndicates).flatMap(([syndicate, items]) =>
       items.map((item) =>
-        this.row(
-          item.item,
-          DropCategory.Syndicate,
-          syndicate,
-          item.chance ?? 0,
-          {
-            standing: item.standing,
-            cost: item.cost,
-            place: item.place,
-            rarity: item.rarity,
-          },
-        ),
+        this.row(item.item, DropCategory.Syndicate, syndicate, item.chance, {
+          standing: item.standing,
+          cost: item.cost,
+          place: item.place,
+          rarity: item.rarity,
+        }),
       ),
     );
   }
@@ -236,14 +230,15 @@ export class DropSourceService {
     itemName: string,
     category: DropCategory,
     sourceName: string,
-    chance: number,
+    /** 원본에 chance가 null인 항목이 있어 0으로 대체 */
+    chance: number | null,
     metadata: Record<string, any> = {},
   ): DropSource {
     return this.dropSourceRepository.create({
       itemName,
       category,
       sourceName,
-      chance,
+      chance: chance ?? 0,
       metadata,
     });
   }
