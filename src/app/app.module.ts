@@ -42,7 +42,7 @@ import { CommandLoggingInterceptor } from './command-logging.interceptor';
       inject: [DatabaseConfig],
       useFactory: (config: DatabaseConfig) => ({
         ...config.pgOptions,
-        synchronize: true,
+        synchronize: NodeEnv.Production ? false : true,
         autoLoadEntities: true,
         namingStrategy: new SnakeNamingStrategy(),
       }),
