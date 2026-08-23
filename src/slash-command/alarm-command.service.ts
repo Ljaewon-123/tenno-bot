@@ -28,7 +28,7 @@ export class AlarmCommandService {
     @Options() request: CreateAlarmCommand,
   ) {
     if (!interaction.guildId) {
-      return interaction.reply({ content: 'This command is guild-only.' });
+      return interaction.editReply({ content: 'This command is guild-only.' });
     }
     const saved = await this.alarmService.register({
       guildId: interaction.guildId,
@@ -39,7 +39,7 @@ export class AlarmCommandService {
       targetCommand: { target: request.target, options: request.options },
       timezone: resolveTimezone(interaction.locale, request.timezone),
     });
-    return interaction.reply({
+    return interaction.editReply({
       content: `Register alarm: ${saved.name}: ${saved.targetCommand.target} (${saved.timezone})`,
     });
   }
@@ -49,23 +49,28 @@ export class AlarmCommandService {
     @Context() [interaction]: SlashCommandContext,
     @Options() { id }: DeleteAlarmCommand,
   ) {
-    await this.alarmService.unRegister(id);
-    return interaction.reply({
-      content: `Delete alarm with id: ${id}`,
+    if (!interaction.guildId) {
+      return interaction.editReply({ content: 'This command is guild-only.' });
+    }
+    const deleted = await this.alarmService.unRegister(id, interaction.guildId);
+    return interaction.editReply({
+      content: deleted
+        ? `Delete alarm with id: ${id}`
+        : `No alarm with id \`${id}\` in this server.`,
     });
   }
 
   @Subcommand({ name: 'list', description: 'Show alarms in this server' })
   async popAlarm(@Context() [interaction]: SlashCommandContext) {
     if (!interaction.guildId) {
-      return interaction.reply({ content: 'This command is guild-only.' });
+      return interaction.editReply({ content: 'This command is guild-only.' });
     }
     const alarms = await this.alarmService.popAlarm(interaction.guildId);
 
     const embed = new EmbedBuilder().setTitle('Alarms').setColor(0x5865f2);
 
     if (!alarms.length) {
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [embed.setDescription('No alarms registered.')],
       });
     }
@@ -85,6 +90,6 @@ export class AlarmCommandService {
           .slice(0, 1024),
       })),
     );
-    return interaction.reply({ embeds: [embed] });
+    return interaction.editReply({ embeds: [embed] });
   }
 }

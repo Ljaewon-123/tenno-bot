@@ -3,7 +3,7 @@ import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { Injectable } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Client } from 'discord.js';
-import { In, LessThanOrEqual } from 'typeorm';
+import { FindOptionsWhere, In, LessThanOrEqual } from 'typeorm';
 import { Propagation, Transactional } from 'typeorm-transactional';
 import { CreateAlarm } from './dto/create-alarm.dto';
 import { AlarmConfig } from './entities/alarm-config.entity';
@@ -36,8 +36,19 @@ export class AlarmService {
     return this.alarmConfigRepository.save(entity);
   }
 
-  async unRegister(id: string) {
-    return this.alarmConfigRepository.delete(id);
+  /** id는 다른 서버에도 노출될 수 있으므로 반드시 길드로 한 번 더 좁힌다 */
+  async unRegister(id: string, guildId: string) {
+    const { affected } = await this.alarmConfigRepository.delete({
+      id,
+      guildId,
+    });
+    return Boolean(affected);
+  }
+
+  /** 발송 대상이 사라진 알람 정리 — 남겨두면 1분마다 영원히 실패한다 */
+  async cleanup(where: FindOptionsWhere<AlarmConfig>) {
+    const { affected } = await this.alarmConfigRepository.delete(where);
+    return affected ?? 0;
   }
 
   async popAlarm(guilidId: string) {

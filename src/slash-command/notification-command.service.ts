@@ -19,14 +19,14 @@ export class NotificationCommandService {
     @Options() { eventType }: NotificationCommand,
   ) {
     if (!interaction.guildId) {
-      return interaction.reply({ content: 'This command is guild-only.' });
+      return interaction.editReply({ content: 'This command is guild-only.' });
     }
     await this.notificationService.subscribe(
       interaction.guildId,
       interaction.channelId,
       eventType,
     );
-    return interaction.reply({
+    return interaction.editReply({
       content: `Subscribed to \`${eventType}\` in <#${interaction.channelId}>.`,
     });
   }
@@ -37,13 +37,13 @@ export class NotificationCommandService {
     @Options() { eventType }: NotificationCommand,
   ) {
     if (!interaction.guildId) {
-      return interaction.reply({ content: 'This command is guild-only.' });
+      return interaction.editReply({ content: 'This command is guild-only.' });
     }
     const removed = await this.notificationService.unsubscribe(
       interaction.guildId,
       eventType,
     );
-    return interaction.reply({
+    return interaction.editReply({
       content: removed
         ? `Unsubscribed from \`${eventType}\`.`
         : `Not subscribed to \`${eventType}\`.`,
@@ -53,7 +53,7 @@ export class NotificationCommandService {
   @Subcommand({ name: 'list', description: 'Show this server subscriptions' })
   async list(@Context() [interaction]: SlashCommandContext) {
     if (!interaction.guildId) {
-      return interaction.reply({ content: 'This command is guild-only.' });
+      return interaction.editReply({ content: 'This command is guild-only.' });
     }
     const subscriptions = await this.notificationService.list(
       interaction.guildId,
@@ -64,7 +64,7 @@ export class NotificationCommandService {
       .setColor(0x5865f2);
 
     if (!subscriptions.length) {
-      return interaction.reply({
+      return interaction.editReply({
         embeds: [embed.setDescription('No subscriptions yet.')],
       });
     }
@@ -74,6 +74,6 @@ export class NotificationCommandService {
         .map(({ eventType, channelId }) => `\`${eventType}\` → <#${channelId}>`)
         .join('\n'),
     );
-    return interaction.reply({ embeds: [embed] });
+    return interaction.editReply({ embeds: [embed] });
   }
 }

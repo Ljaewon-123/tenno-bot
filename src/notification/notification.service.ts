@@ -6,6 +6,8 @@ import { WorldStateService } from '@/warframe-api/world-state/world-state.servic
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
+import { FindOptionsWhere } from 'typeorm';
+import { Notification } from './entities/notification.entity';
 import { NotificationRepository } from './repositories/notification.repository';
 import { WatchTarget } from './types';
 
@@ -43,6 +45,12 @@ export class NotificationService {
 
   async list(guildId: string) {
     return this.notificationRepository.findBy({ guildId });
+  }
+
+  /** 발송 대상이 사라진 구독 정리 — 봇 추방/채널 삭제 시 */
+  async cleanup(where: FindOptionsWhere<Notification>) {
+    const { affected } = await this.notificationRepository.delete(where);
+    return affected ?? 0;
   }
 
   // 소티(일간)/아콘헌트(주간)는 UTC 00:00 리셋이지만 DE가 몇 분씩 늦추는 일이 있어

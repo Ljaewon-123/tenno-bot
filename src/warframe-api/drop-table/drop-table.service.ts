@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ILike } from 'typeorm';
 import { CacheKey, HttpMethod } from '../shared/enum';
@@ -17,7 +17,9 @@ import { DropCategory } from './vo/enum';
 // 2. 특정 미션, 혹은 특정 몹을 잡아야 드랍되는 모드
 // 3. 특정 미션에서만 얻을수있는 모드 또한 표시 (상승 미션 등등)
 @Injectable()
-export class DropTableService {
+export class DropTableService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(DropTableService.name);
+
   constructor(
     private readonly httpJsonService: HttpJsonService,
     private readonly cacheRepository: CacheRepository,
@@ -25,7 +27,15 @@ export class DropTableService {
     private readonly dropSourceService: DropSourceService,
   ) {}
 
-  // @Cron(CronExpression.EVERY_10_SECONDS) // dev mode
+  // 부팅 시 1회 시딩 — 크론만 있으면 새 DB가 다음 일요일까지 빈 채로 있다.
+  // hash가 같으면 info.json 한 번 찍고 리턴이라 재배포마다 돌아도 싸다.
+  // await 하지 않는다 — all.json 파싱/insert가 끝날 때까지 디스코드 로그인이 막히면 안 된다
+  onApplicationBootstrap() {
+    void this.getAllDropTables().catch((error) =>
+      this.logger.error('drop table 초기 수집 실패', error),
+    );
+  }
+
   @Cron(CronExpression.EVERY_WEEK)
   async getAllDropTables() {
     const info = await this.httpJsonService.request<DropTableInfo>(

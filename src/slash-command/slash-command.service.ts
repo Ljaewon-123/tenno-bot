@@ -15,7 +15,7 @@ export class SlashCommandService {
   })
   async archonHunt(@Context() [interaction]: SlashCommandContext) {
     const archon = await this.warframeApi.archonHunt();
-    return interaction.reply({ embeds: [archon] });
+    return interaction.editReply({ embeds: [archon] });
   }
 
   @SlashCommand({
@@ -24,7 +24,7 @@ export class SlashCommandService {
   })
   async sortie(@Context() [interaction]: SlashCommandContext) {
     const sortie = await this.warframeApi.sortie();
-    return interaction.reply({ embeds: [sortie] });
+    return interaction.editReply({ embeds: [sortie] });
   }
 
   @SlashCommand({
@@ -33,7 +33,7 @@ export class SlashCommandService {
   })
   async events(@Context() [interaction]: SlashCommandContext) {
     const events = await this.warframeApi.events();
-    return interaction.reply({ embeds: [events] });
+    return interaction.editReply({ embeds: [events] });
   }
 
   @SlashCommand({
@@ -45,7 +45,7 @@ export class SlashCommandService {
     @Options() { tier }: VoidFissuresCommand,
   ) {
     const voidFissures = await this.warframeApi.voidFissures(tier);
-    return interaction.reply({ embeds: [voidFissures] });
+    return interaction.editReply({ embeds: [voidFissures] });
   }
 
   @SlashCommand({
@@ -54,7 +54,7 @@ export class SlashCommandService {
   })
   async voidTrader(@Context() [interaction]: SlashCommandContext) {
     const voidTrader = await this.warframeApi.voidTrader();
-    return interaction.reply({ embeds: [voidTrader] });
+    return interaction.editReply({ embeds: [voidTrader] });
   }
 
   @SlashCommand({
@@ -66,6 +66,6 @@ export class SlashCommandService {
     @Options() { itemName, category }: DropCommand,
   ) {
     const dropSources = await this.warframeApi.dropSources(itemName, category);
-    return interaction.reply({ embeds: [dropSources] });
+    return interaction.editReply({ embeds: [dropSources] });
   }
 }
