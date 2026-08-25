@@ -1,20 +1,21 @@
+import { describe, expect, it, vi } from 'vitest';
 import dayjs from '@/utils/dayjs';
 import { WorldStateService } from './world-state.service';
 
 /** 만료 판정이 틀리면 API를 매번 때리거나 낡은 응답을 계속 돌려준다 */
 describe('WorldStateService 캐시', () => {
   const build = (expiresAt: ReturnType<typeof dayjs> | null | undefined) => {
-    const request = jest.fn().mockResolvedValue({ id: 'fresh' });
-    const save = jest.fn();
+    const request = vi.fn().mockResolvedValue({ id: 'fresh' });
+    const save = vi.fn();
     const cacheRepository = {
-      findOneBy: jest
+      findOneBy: vi
         .fn()
         .mockResolvedValue(
           expiresAt === undefined
             ? null
             : { key: 'world-state-sortie', cache: { id: 'cached' }, expiresAt },
         ),
-      create: jest.fn((value: object) => ({ ...value })),
+      create: vi.fn((value: object) => ({ ...value })),
       save,
     };
     const service = new WorldStateService(
