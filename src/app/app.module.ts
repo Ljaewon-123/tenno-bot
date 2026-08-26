@@ -20,11 +20,13 @@ import {
   getDataSourceByName,
 } from 'typeorm-transactional';
 import { ConfigModule } from '../config/config.module';
+import { AppController } from './app.controller';
 import { BotLifecycleHook } from './bot-lifecycle.hook';
 import { CommandExceptionFilter } from './command-exception.filter';
 import { CommandLoggingInterceptor } from './command-logging.interceptor';
 
 @Module({
+  controllers: [AppController],
   imports: [
     ConfigModule,
     NecordModule.forRootAsync({
