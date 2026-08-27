@@ -50,7 +50,7 @@ export class AlarmConfig extends CommonWithGuildChannel {
   @ValidateNested()
   @Type(() => TargetCommandAlarm)
   @Expose()
-  @Column({ type: 'simple-json' })
+  @Column({ type: 'jsonb' })
   targetCommand: TargetCommandAlarm;
 
   @IsDayjs()

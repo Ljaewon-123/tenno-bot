@@ -3,6 +3,7 @@ import { AppConfig } from '@/config/config.service';
 import { DatabaseConfig } from '@/config/database.config';
 import { NodeEnv } from '@/config/enum';
 import { NotificationModule } from '@/notification/notification.module';
+import { PartyModule } from '@/party/party.module';
 import { SlashCommandModule } from '@/slash-command/slash-command.module';
 import {
   Module,
@@ -61,6 +62,7 @@ import { CommandLoggingInterceptor } from './command-logging.interceptor';
     SlashCommandModule,
     AlarmModule,
     NotificationModule,
+    PartyModule,
   ],
   providers: [
     {

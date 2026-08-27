@@ -4,18 +4,8 @@ import { DeleteAlarmCommand } from '@/alarm/dto/delete-alarm.command.dto';
 import { resolveTimezone } from '@/utils/timezone';
 import { Injectable } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
-import {
-  Context,
-  createCommandGroupDecorator,
-  Options,
-  Subcommand,
-  type SlashCommandContext,
-} from 'necord';
-
-export const AlarmCommands = createCommandGroupDecorator({
-  name: 'alarm',
-  description: 'Manage repeating Warframe info alarms',
-});
+import { Context, Options, Subcommand, type SlashCommandContext } from 'necord';
+import { AlarmCommands } from './decorators/alarm-commands.decorator';
 
 @AlarmCommands()
 @Injectable()

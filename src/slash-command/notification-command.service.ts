@@ -1,9 +1,9 @@
-import { NotificationCommands } from '@/notification/decorators/notification.decorator';
 import { NotificationCommand } from '@/notification/dto/notification.command.dto';
 import { NotificationService } from '@/notification/notification.service';
 import { Injectable } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
 import { Context, Options, Subcommand, type SlashCommandContext } from 'necord';
+import { NotificationCommands } from './decorators/notification.decorator';
 
 @NotificationCommands()
 @Injectable()

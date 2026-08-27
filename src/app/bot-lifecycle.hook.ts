@@ -1,5 +1,6 @@
 import { AlarmService } from '@/alarm/alarm.service';
 import { NotificationService } from '@/notification/notification.service';
+import { PartyService } from '@/party/party.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { Context, type ContextOf, On, Once } from 'necord';
 
@@ -10,6 +11,7 @@ export class BotLifecycleHook {
   constructor(
     private readonly alarmService: AlarmService,
     private readonly notificationService: NotificationService,
+    private readonly partyService: PartyService,
   ) {}
 
   @Once('ready')
@@ -38,13 +40,14 @@ export class BotLifecycleHook {
     where: { guildId: string } | { channelId: string },
     label: string,
   ) {
-    const [alarms, notifications] = await Promise.all([
+    const [alarms, notifications, parties] = await Promise.all([
       this.alarmService.cleanup(where),
       this.notificationService.cleanup(where),
+      this.partyService.cleanup(where),
     ]);
-    if (alarms || notifications) {
+    if (alarms || notifications || parties) {
       this.logger.log(
-        `${label} 정리: 알람 ${alarms}건, 구독 ${notifications}건 삭제`,
+        `${label} 정리: 알람 ${alarms}건, 구독 ${notifications}건, 파티 ${parties}건 삭제`,
       );
     }
   }
