@@ -2,7 +2,7 @@ import { CreatePartyCommand } from '@/party/dto/create-party.command.dto';
 import { partyMessage } from '@/party/party.message';
 import { PartyService } from '@/party/party.service';
 import { Injectable } from '@nestjs/common';
-import { EmbedBuilder, messageLink } from 'discord.js';
+import { EmbedBuilder } from 'discord.js';
 import {
   Button,
   ComponentParam,
@@ -38,7 +38,6 @@ export class PartyCommandService {
 
     // 인터랙션 응답 자체가 모집 메시지 — 버튼/크론이 갱신할 수 있게 id를 붙여둔다
     const message = await interaction.editReply(partyMessage(party));
-    await this.partyService.attachMessage(party.id, message.id);
     return message;
   }
 
@@ -64,9 +63,6 @@ export class PartyCommandService {
         value: [
           `${party.mission} · ${party.members.length}/${party.partySize}`,
           `host <@${party.hostUserId}>`,
-          party.channelId && party.messageId
-            ? messageLink(party.channelId, party.messageId, party.guildId)
-            : null,
         ]
           .filter((line): line is string => Boolean(line))
           .join('\n')

@@ -1,12 +1,5 @@
 import { CommonWithGuildChannel } from '@/utils/entity/common.entity';
-import {
-  ArrayMaxSize,
-  IsEnum,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-} from 'class-validator';
+import { ArrayMaxSize, IsEnum, IsString, Max, Min } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';
 import { PartyStatus } from '../vo/enum';
 
@@ -43,10 +36,4 @@ export class Party extends CommonWithGuildChannel {
   @IsString()
   @Column()
   mission: string;
-
-  /** 모집 메시지 — 버튼/만료 크론이 이 메시지를 다시 렌더한다 */
-  @IsOptional()
-  @IsString()
-  @Column({ nullable: true, type: 'text' })
-  messageId: string | null = null;
 }
