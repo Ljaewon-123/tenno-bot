@@ -1,3 +1,4 @@
+import { TargetCommand } from '@/warframe-api/enum';
 import { CacheKey } from '@/warframe-api/shared/enum';
 import { Logger } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -164,8 +165,7 @@ describe('NotificationService 발송', () => {
 
     expect(notificationHistoryRepository.insert).toHaveBeenCalledWith([
       expect.objectContaining({
-        guildId: 'g2',
-        channelId: 'dead',
+        eventType: TargetCommand.Sortie,
         error: expect.stringContaining('Unknown Channel') as string,
       }),
     ]);
