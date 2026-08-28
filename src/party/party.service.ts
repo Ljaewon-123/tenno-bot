@@ -28,7 +28,12 @@ export class PartyService {
       members: [input.hostUserId],
     });
 
-    return this.partyRepository.save(entity);
+    // 1인 1파티 부분 유니크 인덱스 위반(23505)은 500 대신 안내로 바꾼다
+    return this.partyRepository.save(entity).catch((error) => {
+      if ((error as { code?: string })?.code === '23505')
+        throw new BadRequestException('You already have an open party.');
+      throw error;
+    });
   }
 
   async list(guildId: string): Promise<Party[]> {

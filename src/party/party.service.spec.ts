@@ -47,7 +47,7 @@ const build = (overrides: Overrides = {}) => {
 
   const save = overrides.saveError
     ? vi.fn().mockRejectedValue(overrides.saveError)
-    : vi.fn((entity: object) => entity);
+    : vi.fn(async (entity: object) => entity);
   const update = vi.fn();
   const partyRepository = {
     createQueryBuilder: vi.fn(() => qb),
