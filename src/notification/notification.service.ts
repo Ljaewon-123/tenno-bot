@@ -56,7 +56,6 @@ export class NotificationService {
   /** 발송 대상이 사라진 구독 정리 — 봇 추방/채널 삭제 시. 이력도 같이 지운다 */
   async cleanup(where: FindOptionsWhere<Notification>) {
     const { affected } = await this.notificationRepository.delete(where);
-    await this.notificationHistoryRepository.delete(where);
     return affected ?? 0;
   }
 
@@ -156,11 +155,9 @@ export class NotificationService {
     // 이력 저장이 실패해도 발송은 이미 끝났으니 로깅만 하고 넘어간다
     await this.notificationHistoryRepository
       .insert(
-        failures.map(({ notification, reason }) =>
+        failures.map(({ reason }) =>
           // id 기본값이 필드 초기화식이라 create()로 엔티티를 만들어야 채워진다
           this.notificationHistoryRepository.create({
-            guildId: notification.guildId,
-            channelId: notification.channelId,
             eventType,
             error: (reason instanceof Error
               ? reason.message
