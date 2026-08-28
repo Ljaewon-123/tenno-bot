@@ -12,6 +12,8 @@ export class CreateAlarm extends OmitType(AlarmConfig, [
   'reschedule',
   'startedAt',
   'error',
+  'fail',
+  'failedAt',
   'doneAt',
 ]) {
   @IsDayjs()

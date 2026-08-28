@@ -11,6 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IntentsBitField } from 'discord.js';
 import { NecordModule } from 'necord';
@@ -30,6 +31,8 @@ import { CommandLoggingInterceptor } from './command-logging.interceptor';
   controllers: [AppController],
   imports: [
     ConfigModule,
+    // forRoot는 루트에서 한 번만 — 모듈마다 부르면 크론이 중복 등록돼 두 번 발송된다
+    ScheduleModule.forRoot(),
     NecordModule.forRootAsync({
       inject: [AppConfig],
       useFactory: (config: AppConfig) => ({

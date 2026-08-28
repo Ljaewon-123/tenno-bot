@@ -107,8 +107,8 @@ export class AlarmService {
 
       return this.afterFire(alarm);
     } catch (error) {
-      // 실패해도 다음 주기에 재시도 — error에 마지막 실패만 기록
-      alarm.error = JSON.stringify(error, Object.getOwnPropertyNames(error));
+      // 실패해도 다음 주기에 재시도 — 마지막 실패만 기록
+      alarm.fail(error);
       await this.afterFire(alarm);
     }
   }

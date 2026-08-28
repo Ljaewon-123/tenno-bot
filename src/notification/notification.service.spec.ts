@@ -5,7 +5,7 @@ import { NotificationService } from './notification.service';
 
 interface Overrides {
   /** broadcast 대상 구독 목록 */
-  notifications?: { channelId: string | null }[];
+  notifications?: { guildId?: string; channelId: string | null }[];
   /** 조회 자체가 실패하는 채널 — 봇 추방/채널 삭제 */
   deadChannels?: string[];
   /** 월드스테이트 조회 실패를 흉내낼 때 */
@@ -38,8 +38,14 @@ const build = (
       : Promise.resolve({ isSendable: () => true, send }),
   );
   const getAlarmTarget = vi.fn().mockResolvedValue('embed');
+  const notificationHistoryRepository = {
+    create: vi.fn((value: object) => ({ ...value })),
+    insert: vi.fn(),
+    delete: vi.fn().mockResolvedValue({ affected: 0 }),
+  };
   const service = new NotificationService(
     notificationRepository as never,
+    notificationHistoryRepository as never,
     cacheRepository as never,
     {
       sortie: vi.fn().mockResolvedValue({ id: 'sortie-2' }),
@@ -56,6 +62,7 @@ const build = (
     fetch,
     cacheRepository,
     notificationRepository,
+    notificationHistoryRepository,
     getAlarmTarget,
   };
 };
@@ -142,6 +149,34 @@ describe('NotificationService 발송', () => {
 
     expect(send).toHaveBeenCalledTimes(2);
     expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('실패한 채널만 이력으로 남긴다', async () => {
+    const { service, notificationHistoryRepository } = build(changed, {
+      notifications: [
+        { guildId: 'g1', channelId: 'c1' },
+        { guildId: 'g2', channelId: 'dead' },
+      ],
+      deadChannels: ['dead'],
+    });
+
+    await service.detect();
+
+    expect(notificationHistoryRepository.insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        guildId: 'g2',
+        channelId: 'dead',
+        error: expect.stringContaining('Unknown Channel') as string,
+      }),
+    ]);
+  });
+
+  it('전부 성공하면 이력을 남기지 않는다', async () => {
+    const { service, notificationHistoryRepository } = build(changed);
+
+    await service.detect();
+
+    expect(notificationHistoryRepository.insert).not.toHaveBeenCalled();
   });
 
   it('구독이 하나도 없으면 임베드를 만들지 않는다', async () => {

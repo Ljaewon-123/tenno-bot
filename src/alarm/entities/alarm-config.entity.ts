@@ -65,6 +65,17 @@ export class AlarmConfig extends CommonWithGuildChannel {
   @Column({ type: 'text', nullable: true })
   error?: string | null = null;
 
+  @IsOptional()
+  @IsDayjs()
+  @DateColumn({ nullable: true })
+  failedAt?: Dayjs | null = null;
+
+  /** 성공해도 지우지 않는다 — "마지막으로 언제 깨졌나"가 남아야 간헐적 API 실패를 판별할 수 있다 */
+  fail(error: unknown) {
+    this.error = JSON.stringify(error, Object.getOwnPropertyNames(error));
+    this.failedAt = dayjs();
+  }
+
   /** 다음 발동 시각으로 밀고 다시 대기 상태로 */
   reschedule() {
     const now = dayjs();

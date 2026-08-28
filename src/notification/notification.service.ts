@@ -1,3 +1,4 @@
+import dayjs from '@/utils/dayjs';
 import { TargetCommand } from '@/warframe-api/enum';
 import { CacheKey } from '@/warframe-api/shared/enum';
 import { CacheRepository } from '@/warframe-api/shared/modules/repositories/cache.repository';
@@ -6,10 +7,14 @@ import { WorldStateService } from '@/warframe-api/world-state/world-state.servic
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
-import { FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere, LessThanOrEqual } from 'typeorm';
 import { Notification } from './entities/notification.entity';
+import { NotificationHistoryRepository } from './repositories/notification-history.repository';
 import { NotificationRepository } from './repositories/notification.repository';
 import { WatchTarget } from './types';
+
+/** 실패 이력 보관 기간 */
+const HISTORY_RETENTION_DAYS = 30;
 
 @Injectable()
 export class NotificationService {
@@ -17,6 +22,7 @@ export class NotificationService {
 
   constructor(
     private readonly notificationRepository: NotificationRepository,
+    private readonly notificationHistoryRepository: NotificationHistoryRepository,
     private readonly cacheRepository: CacheRepository,
     private readonly worldStateService: WorldStateService,
     private readonly warframeApiService: WarframeApiService,
@@ -47,9 +53,10 @@ export class NotificationService {
     return this.notificationRepository.findBy({ guildId });
   }
 
-  /** 발송 대상이 사라진 구독 정리 — 봇 추방/채널 삭제 시 */
+  /** 발송 대상이 사라진 구독 정리 — 봇 추방/채널 삭제 시. 이력도 같이 지운다 */
   async cleanup(where: FindOptionsWhere<Notification>) {
     const { affected } = await this.notificationRepository.delete(where);
+    await this.notificationHistoryRepository.delete(where);
     return affected ?? 0;
   }
 
@@ -127,13 +134,52 @@ export class NotificationService {
       }),
     );
 
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        this.logger.error(
-          `${eventType} 발송 실패 (channel: ${notifications[index].channelId})`,
-          result.reason,
-        );
-      }
+    const failures = results.flatMap((result, index) =>
+      result.status === 'rejected'
+        ? [
+            {
+              notification: notifications[index],
+              reason: result.reason as unknown,
+            },
+          ]
+        : [],
+    );
+    if (!failures.length) return;
+
+    for (const { notification, reason } of failures) {
+      this.logger.error(
+        `${eventType} 발송 실패 (channel: ${notification.channelId})`,
+        reason,
+      );
+    }
+
+    // 이력 저장이 실패해도 발송은 이미 끝났으니 로깅만 하고 넘어간다
+    await this.notificationHistoryRepository
+      .insert(
+        failures.map(({ notification, reason }) =>
+          // id 기본값이 필드 초기화식이라 create()로 엔티티를 만들어야 채워진다
+          this.notificationHistoryRepository.create({
+            guildId: notification.guildId,
+            channelId: notification.channelId,
+            eventType,
+            error: (reason instanceof Error
+              ? reason.message
+              : (JSON.stringify(reason) ?? 'unknown')
+            ).slice(0, 1000),
+          }),
+        ),
+      )
+      .catch((error) => this.logger.error('발송 실패 이력 저장 실패', error));
+  }
+
+  /** 실패 이력은 30일치만 — 그보다 오래된 건 들여다볼 일이 없다 */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async purgeHistory() {
+    const { affected } = await this.notificationHistoryRepository.delete({
+      createdAt: LessThanOrEqual(
+        dayjs().subtract(HISTORY_RETENTION_DAYS, 'day'),
+      ),
     });
+    if (affected) this.logger.log(`발송 실패 이력 ${affected}건 정리`);
   }
 }
