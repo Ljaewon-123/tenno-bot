@@ -4,12 +4,12 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
 import { FindOptionsWhere } from 'typeorm';
 import { Party } from './entities/party.entity';
-import { PARTY_EXPIRE_HOURS, partyMessage } from './party.message';
+import {
+  PARTY_EXPIRE_HOURS,
+  PartyMessageService,
+} from './party-message.service';
 import { PartyRepository } from './repositories/party.repository';
 import { CreateParty, PartyStatus } from './vo/enum';
-
-/** 1인 1파티 부분 유니크 인덱스 위반 */
-const UNIQUE_VIOLATION = '23505';
 
 @Injectable()
 export class PartyService {
@@ -18,6 +18,7 @@ export class PartyService {
   constructor(
     private readonly partyRepository: PartyRepository,
     private readonly client: Client,
+    private readonly partyMessage: PartyMessageService,
   ) {}
 
   /** members에 host 포함해서 생성 */
@@ -168,7 +169,7 @@ export class PartyService {
     const channel = await this.client.channels.fetch(party.channelId);
     if (!channel?.isTextBased()) return;
     const message = await channel.messages.fetch(party.messageId);
-    await message.edit(partyMessage(party));
+    await message.edit(this.partyMessage.build(party));
   }
 
   /** 조건부 UPDATE가 0행이면 사유를 알려주지 않으므로 매번 다시 읽어 분기한다 */

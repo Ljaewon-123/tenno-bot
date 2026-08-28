@@ -1,5 +1,5 @@
 import { CreatePartyCommand } from '@/party/dto/create-party.command.dto';
-import { partyMessage } from '@/party/party.message';
+import { PartyMessageService } from '@/party/party-message.service';
 import { PartyService } from '@/party/party.service';
 import { Injectable } from '@nestjs/common';
 import { EmbedBuilder } from 'discord.js';
@@ -17,7 +17,10 @@ import { PartyCommands } from './decorators/party-commands.decorator';
 @PartyCommands()
 @Injectable()
 export class PartyCommandService {
-  constructor(private readonly partyService: PartyService) {}
+  constructor(
+    private readonly partyService: PartyService,
+    private readonly partyMessage: PartyMessageService,
+  ) {}
 
   @Subcommand({ name: 'create', description: 'Open a new party' })
   async create(
@@ -37,7 +40,7 @@ export class PartyCommandService {
     });
 
     // 인터랙션 응답 자체가 모집 메시지 — 버튼/크론이 갱신할 수 있게 id를 붙여둔다
-    const message = await interaction.editReply(partyMessage(party));
+    const message = await interaction.editReply(this.partyMessage.build(party));
     await this.partyService.attachMessage(party.id, message.id);
     return message;
   }
@@ -79,7 +82,7 @@ export class PartyCommandService {
     @ComponentParam('id') id: string,
   ) {
     const party = await this.partyService.join(id, interaction.user.id);
-    await interaction.update(partyMessage(party));
+    await interaction.update(this.partyMessage.build(party));
 
     // 임베드 갱신만으론 알림이 안 뜬다 — 정원이 찬 순간만 별개 메시지로 멘션
     if (party.members.length >= party.partySize) {
@@ -95,7 +98,7 @@ export class PartyCommandService {
     @ComponentParam('id') id: string,
   ) {
     const party = await this.partyService.leave(id, interaction.user.id);
-    return interaction.update(partyMessage(party));
+    return interaction.update(this.partyMessage.build(party));
   }
 
   @Button('party/close/:id')
@@ -104,6 +107,6 @@ export class PartyCommandService {
     @ComponentParam('id') id: string,
   ) {
     const party = await this.partyService.close(id, interaction.user.id);
-    return interaction.update(partyMessage(party));
+    return interaction.update(this.partyMessage.build(party));
   }
 }

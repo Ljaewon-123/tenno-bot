@@ -1,8 +1,8 @@
 import dayjs from '@/utils/dayjs';
-import { BadRequestException } from '@nestjs/common';
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Party } from './entities/party.entity';
+import { PartyMessageService } from './party-message.service';
 import { PartyService } from './party.service';
 import { PartyStatus } from './vo/enum';
 
@@ -81,6 +81,7 @@ const build = (overrides: Overrides = {}) => {
     {
       channels: { fetch: fetchChannel },
     } as never,
+    new PartyMessageService(),
   );
   return { service, partyRepository, qb, edit, update, save };
 };
