@@ -1,11 +1,15 @@
+import dayjs from '@/utils/dayjs';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
 import { FindOptionsWhere } from 'typeorm';
-import { Transactional } from 'typeorm-transactional';
 import { Party } from './entities/party.entity';
+import { PARTY_EXPIRE_HOURS, partyMessage } from './party.message';
 import { PartyRepository } from './repositories/party.repository';
 import { CreateParty, PartyStatus } from './vo/enum';
+
+/** 1인 1파티 부분 유니크 인덱스 위반 */
+const UNIQUE_VIOLATION = '23505';
 
 @Injectable()
 export class PartyService {
@@ -18,14 +22,24 @@ export class PartyService {
 
   /** members에 host 포함해서 생성 */
   async create(input: CreateParty): Promise<Party> {
-    const entity = this.partyRepository.create(input);
+    const entity = this.partyRepository.create({
+      ...input,
+      members: [input.hostUserId],
+    });
+
     return this.partyRepository.save(entity);
   }
 
   async list(guildId: string): Promise<Party[]> {
     return this.partyRepository.findBy({
       guildId,
+      status: PartyStatus.OPEN,
     });
+  }
+
+  /** 크론이 임베드를 갱신하려면 메시지 좌표가 필요하다 */
+  async attachMessage(id: string, messageId: string): Promise<void> {
+    await this.partyRepository.update(id, { messageId });
   }
 
   /** 마지막 자리 동시 클릭으로 5/4가 되지 않게*/
@@ -41,8 +55,7 @@ export class PartyService {
       .setParameter('userId', userId)
       .execute();
 
-    const party = await this.partyRepository.findOneBy({ id });
-    if (!party) throw new BadRequestException('Party not found.');
+    const party = await this.get(id);
     if (!affected) {
       throw new BadRequestException(
         party.status !== PartyStatus.OPEN
@@ -56,20 +69,57 @@ export class PartyService {
   }
 
   /** host는 나갈 수 없다 — 마감을 쓰라고 안내 */
-  @Transactional()
   async leave(id: string, userId: string): Promise<Party> {
-    throw new Error('not implemented');
+    const { affected } = await this.partyRepository
+      .createQueryBuilder()
+      .update(Party)
+      .set({ members: () => 'array_remove(members, :userId)' })
+      .where('id = :id', { id })
+      .andWhere('status = :open', { open: PartyStatus.OPEN })
+      .andWhere('host_user_id != :userId')
+      .andWhere(':userId = ANY(members)')
+      .setParameter('userId', userId)
+      .execute();
+
+    const party = await this.get(id);
+    if (!affected) {
+      throw new BadRequestException(
+        party.status !== PartyStatus.OPEN
+          ? 'This party is closed.'
+          : party.hostUserId === userId
+            ? 'The host cannot leave — close the party instead.'
+            : 'You have not joined this party.',
+      );
+    }
+    return party;
   }
 
   /** host만 마감 가능 */
-  @Transactional()
   async close(id: string, userId: string): Promise<Party> {
-    throw new Error('not implemented');
+    const { affected } = await this.partyRepository
+      .createQueryBuilder()
+      .update(Party)
+      .set({ status: PartyStatus.CLOSE })
+      .where('id = :id', { id })
+      .andWhere('status = :open', { open: PartyStatus.OPEN })
+      .andWhere('host_user_id = :userId', { userId })
+      .execute();
+
+    const party = await this.get(id);
+    if (!affected) {
+      throw new BadRequestException(
+        party.status !== PartyStatus.OPEN
+          ? 'This party is already closed.'
+          : 'Only the host can close this party.',
+      );
+    }
+    return party;
   }
 
   /** 추방/채널 삭제 정리 — 남겨두면 만료 크론이 없는 메시지를 영원히 fetch한다 */
   async cleanup(where: FindOptionsWhere<Party>): Promise<number> {
-    throw new Error('not implemented');
+    const { affected } = await this.partyRepository.delete(where);
+    return affected ?? 0;
   }
 
   /**
@@ -79,6 +129,52 @@ export class PartyService {
    */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async expire(): Promise<void> {
-    throw new Error('not implemented');
+    const parties = await this.partyRepository
+      .createQueryBuilder('party')
+      .where('party.status = :open', { open: PartyStatus.OPEN })
+      .andWhere('party.createdAt < :deadline', {
+        deadline: dayjs().subtract(PARTY_EXPIRE_HOURS, 'hour').toISOString(),
+      })
+      .getMany();
+    if (!parties.length) return;
+
+    await this.partyRepository.update(
+      parties.map(({ id }) => id),
+      { status: PartyStatus.CLOSE },
+    );
+    this.logger.log(`만료 파티 ${parties.length}건 마감`);
+
+    // DB는 이미 닫혔다 — 디스코드 갱신은 실패해도 다음 크론이 재시도하지 않는 best effort
+    const results = await Promise.allSettled(
+      parties.map(async (party) => {
+        party.status = PartyStatus.CLOSE;
+        await this.refresh(party);
+      }),
+    );
+
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        this.logger.error(
+          `파티 ${parties[index].id} 임베드 갱신 실패`,
+          result.reason,
+        );
+      }
+    });
+  }
+
+  /** 상태가 바뀐 파티의 원본 모집 메시지를 다시 그린다 */
+  private async refresh(party: Party): Promise<void> {
+    if (!party.channelId || !party.messageId) return;
+    const channel = await this.client.channels.fetch(party.channelId);
+    if (!channel?.isTextBased()) return;
+    const message = await channel.messages.fetch(party.messageId);
+    await message.edit(partyMessage(party));
+  }
+
+  /** 조건부 UPDATE가 0행이면 사유를 알려주지 않으므로 매번 다시 읽어 분기한다 */
+  private async get(id: string): Promise<Party> {
+    const party = await this.partyRepository.findOneBy({ id });
+    if (!party) throw new BadRequestException('Party not found.');
+    return party;
   }
 }
