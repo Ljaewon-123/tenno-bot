@@ -30,16 +30,9 @@ export class WarframeApiService {
     const image = ArchonImage[archon.boss];
     return (
       new EmbedBuilder()
-        // 보스 엠블럼은 250x90 가로 띠라 큰 슬롯에 넣으면 눕는다.
-        // author 아이콘은 원형 센터 크롭이라 가면 부분만 잘려 나와서 오히려 이쪽이 낫다.
-        .setAuthor({
-          name: archon.boss,
-          iconURL: this.wfcdItemsService.imgUrl(image.boss),
-        })
-        .setTitle('Archon Hunt')
+        .setTitle(`Archon Hunt - ${archon.boss}`)
         .addFields(
           { name: 'Reward Pool', value: archon.rewardPool },
-          { name: 'Reward Shard', value: ArchonReward[archon.boss] },
           { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
           {
             name: 'Missions',
@@ -48,8 +41,13 @@ export class WarframeApiService {
               .join('\n'),
           },
         )
-        // 임베드는 이미지 크기를 못 정한다 — 제일 큰 슬롯에 제일 중요한 걸 둘 뿐
-        .setImage(this.wfcdItemsService.imgUrl(image.shard))
+        // 보스는 바로키와 같은 썸네일(80px) 슬롯 — author 아이콘은 24px 고정이라 못 키운다
+        .setThumbnail(this.wfcdItemsService.imgUrl(image.boss))
+        // 샤드는 하단을 유지하면서 더 작게 — 임베드에서 그게 되는 자리는 footer 아이콘뿐이다
+        .setFooter({
+          text: `Reward Shard: ${ArchonReward[archon.boss]}`,
+          iconURL: this.wfcdItemsService.imgUrl(image.shard),
+        })
         .setColor(0x5865f2)
     );
   }

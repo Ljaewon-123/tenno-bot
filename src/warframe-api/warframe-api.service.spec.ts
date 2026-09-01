@@ -16,7 +16,7 @@ describe('WarframeApiService 임베드 이미지', () => {
     new WarframeApiService(worldState as never, wfcdItemsService, {} as never);
 
   it.each(Object.values(ArchonBoss))(
-    '%s — 큰 슬롯은 해당 색 샤드, 보스 엠블럼은 author 아이콘',
+    '%s — 썸네일은 보스 엠블럼, footer 아이콘은 해당 색 샤드',
     async (boss) => {
       const service = build({
         archonHunt: vi.fn().mockResolvedValue({
@@ -27,13 +27,13 @@ describe('WarframeApiService 임베드 이미지', () => {
         }),
       });
 
-      const { image, author } = (await service.archonHunt()).data;
+      const { thumbnail, footer } = (await service.archonHunt()).data;
       const name = boss.replace('Archon ', '');
-      expect(image?.url).toBe(
-        `https://cdn.warframestat.us/img/ArchonShard${name}.png`,
-      );
-      expect(author?.icon_url).toBe(
+      expect(thumbnail?.url).toBe(
         `https://cdn.warframestat.us/img/${name}Header.png`,
+      );
+      expect(footer?.icon_url).toBe(
+        `https://cdn.warframestat.us/img/ArchonShard${name}.png`,
       );
     },
   );
