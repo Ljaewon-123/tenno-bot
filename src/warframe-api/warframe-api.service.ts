@@ -33,6 +33,7 @@ export class WarframeApiService {
         .setTitle(`Archon Hunt - ${archon.boss}`)
         .addFields(
           { name: 'Reward Pool', value: archon.rewardPool },
+          { name: 'Reward Shard', value: ArchonReward[archon.boss] },
           { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
           {
             name: 'Missions',
@@ -43,11 +44,9 @@ export class WarframeApiService {
         )
         // 보스는 바로키와 같은 썸네일(80px) 슬롯 — author 아이콘은 24px 고정이라 못 키운다
         .setThumbnail(this.wfcdItemsService.imgUrl(image.boss))
-        // 샤드는 하단을 유지하면서 더 작게 — 임베드에서 그게 되는 자리는 footer 아이콘뿐이다
-        .setFooter({
-          text: `Reward Shard: ${ArchonReward[archon.boss]}`,
-          iconURL: this.wfcdItemsService.imgUrl(image.shard),
-        })
+        // 큰 슬롯은 원본 해상도대로 그려진다(상한 아래일 때). 샤드는 256px라 폭을 다 먹지 않는다.
+        // 더 줄이려면 리사이즈한 파일을 우리가 들고 attachment로 붙이는 수밖에 없다.
+        .setImage(this.wfcdItemsService.imgUrl(image.shard))
         .setColor(0x5865f2)
     );
   }
