@@ -26,11 +26,16 @@ export class WfcdItemsService {
     return i18nBundle?.[uniqueName]?.[locale];
   }
 
+  /** imageName -> CDN URL. 아이템으로 잡히지 않는 고정 이미지(보스/샤드/NPC)도 같은 CDN을 탄다 */
+  imgUrl(imageName: string): string {
+    return `${this.CDN_BASE_URL}/${imageName}`;
+  }
+
   /** uniqueName의 아이템 이미지 CDN URL 조회 (없으면 undefined) */
   findItemImg(uniqueName: string): string | undefined {
     const item = this.findItem(uniqueName);
     if (!item?.imageName) return undefined;
-    return `${this.CDN_BASE_URL}/${item.imageName}`;
+    return this.imgUrl(item.imageName);
   }
 
   /** locale이 주어지면 이름/설명 등을 번역본으로 덮어쓴 아이템 조회, 없으면 기본 언어 그대로 */

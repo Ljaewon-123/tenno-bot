@@ -6,7 +6,12 @@ import type { DropSource } from './drop-table/entities/drop-source.entity';
 import { DropCategory } from './drop-table/vo/enum';
 import { AlarmRequest, TargetCommand } from './enum';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
-import { ArchonReward, VoidTier } from './world-state/vo/enum';
+import {
+  ArchonImage,
+  ArchonReward,
+  VOID_TRADER_IMAGE,
+  VoidTier,
+} from './world-state/vo/enum';
 import { Fissure } from './world-state/vo/types';
 import { WorldStateService } from './world-state/world-state.service';
 
@@ -22,21 +27,27 @@ export class WarframeApiService {
   async archonHunt() {
     const archon = await this.worldStateService.archonHunt();
     const expiryTimestamp = dayjs(archon.expiry).unix();
-    return new EmbedBuilder()
-      .setTitle('Archon Hunt')
-      .setDescription(`Boss: ${archon.boss}`)
-      .addFields(
-        { name: 'Reward Pool', value: archon.rewardPool },
-        { name: 'Reward Shard', value: ArchonReward[archon.boss] },
-        { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
-        {
-          name: 'Missions',
-          value: archon.missions
-            .map((mission) => `${mission.node} - ${mission.type}`)
-            .join('\n'),
-        },
-      )
-      .setColor(0x5865f2);
+    const image = ArchonImage[archon.boss];
+    return (
+      new EmbedBuilder()
+        .setTitle('Archon Hunt')
+        .setDescription(`Boss: ${archon.boss}`)
+        .addFields(
+          { name: 'Reward Pool', value: archon.rewardPool },
+          { name: 'Reward Shard', value: ArchonReward[archon.boss] },
+          { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
+          {
+            name: 'Missions',
+            value: archon.missions
+              .map((mission) => `${mission.node} - ${mission.type}`)
+              .join('\n'),
+          },
+        )
+        // 임베드 이미지 슬롯은 2개뿐 — 큰 쪽(image)이 보스, 상단 썸네일이 보상 샤드
+        .setImage(this.wfcdItemsService.imgUrl(image.boss))
+        .setThumbnail(this.wfcdItemsService.imgUrl(image.shard))
+        .setColor(0x5865f2)
+    );
   }
   /** 출격 (소티) */
   async sortie() {
@@ -139,6 +150,8 @@ export class WarframeApiService {
         name: isActive ? 'Departs' : 'Arrives',
         value: `<t:${nextTimestamp}:R>`,
       })
+      // 큰 쪽(image)은 항상 바로 본인, 상단 썸네일은 아래에서 인벤토리 대표 아이템으로 채운다
+      .setImage(this.wfcdItemsService.imgUrl(VOID_TRADER_IMAGE))
       .setColor(0x5865f2);
 
     if (isActive && trader.inventory.length) {
@@ -150,7 +163,7 @@ export class WarframeApiService {
           .slice(0, 1024),
       });
 
-      // 임베드는 썸네일 하나만 넣을 수 있어서 인벤토리 첫 아이템 이미지로 대표
+      // 남은 슬롯이 썸네일 하나뿐이라 인벤토리 첫 아이템 이미지로 대표
       const thumbnailUrl = this.wfcdItemsService.findItemImg(
         trader.inventory[0].uniqueName,
       );
