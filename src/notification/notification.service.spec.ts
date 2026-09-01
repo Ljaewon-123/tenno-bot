@@ -52,6 +52,11 @@ const build = (
       sortie: vi.fn().mockResolvedValue({ id: 'sortie-2' }),
       archonHunt: vi.fn().mockResolvedValue({ id: 'archon-1' }),
       events: vi.fn().mockResolvedValue([{ id: 'event-1', expired: false }]),
+      // 기본값은 "아직 안 온 상태" — 커서가 비어 다른 테스트의 발송 수에 끼어들지 않는다
+      voidTrader: vi.fn().mockResolvedValue({
+        activation: '2999-01-01T00:00:00Z',
+        expiry: '2999-01-03T00:00:00Z',
+      }),
       ...overrides.worldState,
     } as never,
     { getAlarmTarget } as never,
@@ -108,6 +113,39 @@ describe('NotificationService.detect', () => {
     await service.detect();
 
     expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('바로 키티어는 도착했을 때만 발송하고 스케줄만 바뀐 건 무시한다', async () => {
+    const active = {
+      activation: '2020-01-01T00:00:00Z',
+      expiry: '2999-01-01T00:00:00Z',
+    };
+    const seeded = {
+      [CacheKey.LastSortieId]: ['sortie-2'],
+      [CacheKey.LastArchonHuntId]: ['archon-1'],
+      [CacheKey.LastEventsId]: ['event-1'],
+    };
+
+    // 안 와 있는 동안은 커서가 비어 아무리 돌아도 조용하다
+    const away = build({ ...seeded, [CacheKey.LastVoidTraderId]: [] });
+    await away.service.detect();
+    expect(away.send).not.toHaveBeenCalled();
+
+    // 도착 순간 한 번
+    const arrived = build(
+      { ...seeded, [CacheKey.LastVoidTraderId]: [] },
+      { worldState: { voidTrader: vi.fn().mockResolvedValue(active) } },
+    );
+    await arrived.service.detect();
+    expect(arrived.send).toHaveBeenCalledTimes(1);
+
+    // 머무는 동안 10분마다 도배하지 않는다
+    const staying = build(
+      { ...seeded, [CacheKey.LastVoidTraderId]: [active.activation] },
+      { worldState: { voidTrader: vi.fn().mockResolvedValue(active) } },
+    );
+    await staying.service.detect();
+    expect(staying.send).not.toHaveBeenCalled();
   });
 
   it('한 엔드포인트가 죽어도 나머지 감시는 계속한다', async () => {

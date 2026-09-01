@@ -78,6 +78,19 @@ export class NotificationService {
           .filter((event) => !event.expired)
           .map((event) => event.id),
       ),
+      // 바로 키티어는 id 변화로 보면 "2주 뒤 도착" 스케줄 갱신에도 알림이 나간다.
+      // 와 있는 동안만 커서를 채워 도착 순간 한 번만 알린다 — 그때 임베드에 인벤토리가 실린다.
+      this.watch(
+        CacheKey.LastVoidTraderId,
+        TargetCommand.VoidTrader,
+        async () => {
+          const trader = await this.worldStateService.voidTrader();
+          const now = dayjs();
+          return now.isAfter(trader.activation) && now.isBefore(trader.expiry)
+            ? [trader.activation]
+            : [];
+        },
+      ),
     ]);
 
     for (const result of results) {
