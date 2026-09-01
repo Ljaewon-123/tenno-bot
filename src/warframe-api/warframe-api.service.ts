@@ -30,8 +30,13 @@ export class WarframeApiService {
     const image = ArchonImage[archon.boss];
     return (
       new EmbedBuilder()
+        // 보스 엠블럼은 250x90 가로 띠라 큰 슬롯에 넣으면 눕는다.
+        // author 아이콘은 원형 센터 크롭이라 가면 부분만 잘려 나와서 오히려 이쪽이 낫다.
+        .setAuthor({
+          name: archon.boss,
+          iconURL: this.wfcdItemsService.imgUrl(image.boss),
+        })
         .setTitle('Archon Hunt')
-        .setDescription(`Boss: ${archon.boss}`)
         .addFields(
           { name: 'Reward Pool', value: archon.rewardPool },
           { name: 'Reward Shard', value: ArchonReward[archon.boss] },
@@ -43,9 +48,8 @@ export class WarframeApiService {
               .join('\n'),
           },
         )
-        // 임베드 이미지 슬롯은 2개뿐 — 큰 쪽(image)이 보스, 상단 썸네일이 보상 샤드
-        .setImage(this.wfcdItemsService.imgUrl(image.boss))
-        .setThumbnail(this.wfcdItemsService.imgUrl(image.shard))
+        // 임베드는 이미지 크기를 못 정한다 — 제일 큰 슬롯에 제일 중요한 걸 둘 뿐
+        .setImage(this.wfcdItemsService.imgUrl(image.shard))
         .setColor(0x5865f2)
     );
   }
@@ -150,8 +154,9 @@ export class WarframeApiService {
         name: isActive ? 'Departs' : 'Arrives',
         value: `<t:${nextTimestamp}:R>`,
       })
-      // 큰 쪽(image)은 항상 바로 본인, 상단 썸네일은 아래에서 인벤토리 대표 아이템으로 채운다
-      .setImage(this.wfcdItemsService.imgUrl(VOID_TRADER_IMAGE))
+      // 바로 본인은 상단 썸네일 — 큰 슬롯에 넣으면 512px 초상화가 임베드를 잡아먹는다.
+      // 썸네일은 80px 고정이라 크기 조절 대신 슬롯을 바꾸는 게 유일한 방법.
+      .setThumbnail(this.wfcdItemsService.imgUrl(VOID_TRADER_IMAGE))
       .setColor(0x5865f2);
 
     if (isActive && trader.inventory.length) {
@@ -163,11 +168,11 @@ export class WarframeApiService {
           .slice(0, 1024),
       });
 
-      // 남은 슬롯이 썸네일 하나뿐이라 인벤토리 첫 아이템 이미지로 대표
-      const thumbnailUrl = this.wfcdItemsService.findItemImg(
+      // 남은 큰 슬롯은 인벤토리 첫 아이템으로 대표 (아이템 이미지가 없는 항목이면 그냥 비운다)
+      const imageUrl = this.wfcdItemsService.findItemImg(
         trader.inventory[0].uniqueName,
       );
-      if (thumbnailUrl) embed.setThumbnail(thumbnailUrl);
+      if (imageUrl) embed.setImage(imageUrl);
     }
 
     return embed;
