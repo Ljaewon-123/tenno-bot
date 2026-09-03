@@ -68,8 +68,8 @@ export const CycleLabel = {
 };
 
 /**
- * pc/archimedeas의 typeKey에서 공백을 지운 값. 슬래시 커맨드 choices로도 그대로 나간다.
- * 게임 내 이름(심층/시간)보다 콘텐츠 위치(Entrati Lab / Hex)가 API 키에 남아있다.
+ * pc/archimedeas의 typeKey에서 공백을 지운 값. API 키는 위치명(LAB/HEX)이라
+ * 유저에게는 choices·임베드 모두 ArchimedeaLabel의 인게임 명칭으로만 노출한다.
  */
 export enum ArchimedeaType {
   Deep = 'CT_LAB',
