@@ -222,12 +222,18 @@ export class WarframeApiService {
   private itemDetail(item?: {
     type?: string;
     description?: string;
+    baseDrain?: number;
+    fusionLimit?: number;
     levelStats?: { stats: string[] }[];
   }) {
-    const maxRank = item?.levelStats?.at(-1)?.stats;
-    if (maxRank?.length)
-      return [item?.type, ...maxRank].filter(Boolean).join('\n');
-    return item?.description;
+    const levelStats = item?.levelStats;
+    const maxRank = levelStats?.at(-1)?.stats;
+    if (!levelStats || !maxRank?.length) return item?.description;
+
+    // 최대 랭크 수치라는 걸 안 적으면 미강화 수치로 오해한다. 드레인도 랭크당 1씩 오른다
+    const rank = item.fusionLimit ?? levelStats.length - 1;
+    const drain = item.baseDrain == null ? '' : ` · ⚡${item.baseDrain + rank}`;
+    return [`${item.type} · Max Rank ${rank}${drain}`, ...maxRank].join('\n');
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */

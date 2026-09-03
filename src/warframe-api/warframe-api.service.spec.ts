@@ -60,6 +60,8 @@ describe('WarframeApiService 임베드 이미지', () => {
         name: 'Vitality',
         type: 'Warframe Mod',
         imageName: 'HealthMaxMod.jpg',
+        baseDrain: 2,
+        fusionLimit: 10,
         levelStats: [{ stats: ['+9% Health'] }, { stats: ['+100% Health'] }],
       },
     ] as never);
@@ -73,7 +75,7 @@ describe('WarframeApiService 임베드 이미지', () => {
 
     const { description, thumbnail } = (await service.dropSources('vitality'))
       .data;
-    expect(description).toBe('Warframe Mod\n+100% Health');
+    expect(description).toBe('Warframe Mod · Max Rank 10 · ⚡12\n+100% Health');
     expect(thumbnail?.url).toBe(
       'https://cdn.warframestat.us/img/HealthMaxMod.jpg',
     );
