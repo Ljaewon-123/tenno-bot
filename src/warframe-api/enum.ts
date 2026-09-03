@@ -6,6 +6,7 @@ export enum TargetCommand {
   Events = 'events',
   VoidFissures = 'void-fissures',
   VoidTrader = 'void-trader',
+  Cycles = 'cycles',
 }
 
 export type AlarmRequest =
@@ -13,4 +14,5 @@ export type AlarmRequest =
   | { target: TargetCommand.Sortie }
   | { target: TargetCommand.Events }
   | { target: TargetCommand.VoidFissures; options?: VoidTier }
-  | { target: TargetCommand.VoidTrader };
+  | { target: TargetCommand.VoidTrader }
+  | { target: TargetCommand.Cycles };

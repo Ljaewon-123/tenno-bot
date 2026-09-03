@@ -112,3 +112,16 @@ export interface WorldEvent {
   jobs?: unknown[];
   [key: string]: unknown;
 }
+
+/**
+ * pc/{name}Cycle 공통 스키마.
+ * isDay/isWarm/isCorpus처럼 사이클마다 이름이 다른 boolean이 같이 오지만 쓰지 않는다 —
+ * 그걸 쓰는 순간 사이클 수만큼 타입이 갈라진다. state 문자열이면 전부 하나로 처리된다.
+ */
+export interface Cycle {
+  id: string;
+  activation: string;
+  expiry: string;
+  /** day|night, warm|cold, fass|vome */
+  state: string;
+}

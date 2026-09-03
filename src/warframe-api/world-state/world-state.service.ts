@@ -3,10 +3,11 @@ import { Injectable } from '@nestjs/common';
 import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
-import { TTL_SECONDS } from './constants';
-import { VoidTier } from './vo/enum';
+import { CYCLE_CACHE_KEY, TTL_SECONDS } from './constants';
+import { CycleName, VoidTier } from './vo/enum';
 import {
   ArchonHunt,
+  Cycle,
   Fissure,
   Sortie,
   VoidTrader,
@@ -48,6 +49,11 @@ export class WorldStateService {
   /** 보이드 상인 (바로 키티어) */
   async voidTrader(): Promise<VoidTrader> {
     return this.get(CacheKey.WorldStateVoidTrader, 'pc/voidTrader');
+  }
+
+  /** 오픈월드 낮/밤 사이클 */
+  async cycle(name: CycleName): Promise<Cycle> {
+    return this.get(CYCLE_CACHE_KEY[name], `pc/${name}Cycle`);
   }
 
   /**

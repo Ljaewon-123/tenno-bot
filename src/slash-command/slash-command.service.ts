@@ -58,6 +58,15 @@ export class SlashCommandService {
     return interaction.editReply({ embeds: [voidTrader] });
   }
 
+  @SlashCommand({
+    name: 'cycles',
+    description: 'Get the current open world day/night cycles',
+  })
+  async cycles(@Context() [interaction]: SlashCommandContext) {
+    const cycles = await this.warframeApi.cycles();
+    return interaction.editReply({ embeds: [cycles] });
+  }
+
   @UseInterceptors(DropItemAutocompleteInterceptor)
   @SlashCommand({
     name: 'drop',

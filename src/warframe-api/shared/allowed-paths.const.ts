@@ -6,6 +6,9 @@ export const ALLOWED_PATHS = new Set<string>([
   'pc/events',
   'pc/fissures',
   'pc/voidTrader',
+  'pc/cetusCycle',
+  'pc/vallisCycle',
+  'pc/cambionCycle',
   'data/all.json',
   'data/info.json',
 ]);

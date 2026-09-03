@@ -46,3 +46,20 @@ export const ArchonImage = {
 
 /** 보이드 상인 본인 이미지 — 아이템이 아니라 글리프 이미지를 쓴다 */
 export const VOID_TRADER_IMAGE = 'BaroKiteerAvatar.png';
+
+/**
+ * 시간대가 게임플레이를 바꾸는 오픈월드만. 지구(pc/earthCycle)는 조명만 바뀌어 뺐다.
+ * 값이 그대로 `pc/{name}Cycle` 경로가 된다.
+ */
+export enum CycleName {
+  Cetus = 'cetus',
+  Vallis = 'vallis',
+  Cambion = 'cambion',
+}
+
+/** 임베드에는 허브 이름(Cetus/Fortuna)이 아니라 오픈월드 이름을 쓴다 */
+export const CycleLabel = {
+  [CycleName.Cetus]: 'Plains of Eidolon',
+  [CycleName.Vallis]: 'Orb Vallis',
+  [CycleName.Cambion]: 'Cambion Drift',
+};

@@ -10,6 +10,8 @@ import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import {
   ArchonImage,
   ArchonReward,
+  CycleLabel,
+  CycleName,
   VOID_TRADER_IMAGE,
   VoidTier,
 } from './world-state/vo/enum';
@@ -174,6 +176,32 @@ export class WarframeApiService {
     return embed;
   }
 
+  /** 오픈월드 낮/밤 사이클 — 셋을 따로 볼 이유가 없어 한 임베드에 모은다 */
+  async cycles() {
+    const names = Object.values(CycleName);
+    // 한 곳이 죽어도 나머지는 보여준다 — 사이클 셋은 서로 무관한 엔드포인트다
+    const results = await Promise.allSettled(
+      names.map(async (name) => this.worldStateService.cycle(name)),
+    );
+
+    return new EmbedBuilder()
+      .setTitle('World Cycles')
+      .setColor(0x5865f2)
+      .addFields(
+        names.map((name, index) => {
+          const result = results[index];
+          return {
+            name: CycleLabel[name],
+            value:
+              result.status === 'fulfilled'
+                ? `**${result.value.state}**\n<t:${dayjs(result.value.expiry).unix()}:R>`
+                : 'unavailable',
+            inline: true,
+          };
+        }),
+      );
+  }
+
   async dropSources(itemName: string, category?: DropCategory) {
     const sources = await this.dropTableService.findDropSources(
       itemName,
@@ -255,6 +283,8 @@ export class WarframeApiService {
         return this.voidFissures(request.options);
       case TargetCommand.VoidTrader:
         return this.voidTrader();
+      case TargetCommand.Cycles:
+        return this.cycles();
     }
   }
 
