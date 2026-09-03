@@ -247,8 +247,8 @@ export class WarframeApiService {
     return embed;
   }
 
-  /** 아르키메디아 (심층/시간) — 옵션이 없으면 둘 다 */
-  async archimedea(type?: ArchimedeaType) {
+  /** 아르키메디아 (심층/시간) — 옵션이 없으면 둘 다, detail이면 편차·위험 설명까지 */
+  async archimedea(type?: ArchimedeaType, detail = false) {
     const archimedeas = await this.worldStateService.archimedeas();
     // typeKey가 "C T_ L A B"처럼 쪼개져 오므로 공백을 지워야 enum과 맞는다
     const keyOf = (archimedea: Archimedea) =>
@@ -267,20 +267,38 @@ export class WarframeApiService {
 
     for (const archimedea of targets) {
       const label = ArchimedeaLabel[keyOf(archimedea)] ?? archimedea.typeKey;
+      // 설명까지 넣으면 미션 3개로 1024자를 넘기므로, detail일 때만 미션당 필드를 쪼갠다
       embed.addFields(
-        {
-          name: label.slice(0, 256),
-          // 편차·위험은 이름만 — 설명까지 넣으면 미션 3개로 1024자를 넘긴다
-          value: archimedea.missions
-            .map(
-              (mission) =>
-                `**${mission.missionType}** · ${mission.deviation.name}\n↳ ${mission.risks
-                  .map((risk) => `${risk.name}${risk.isHard ? ' (hard)' : ''}`)
-                  .join(', ')}`,
-            )
-            .join('\n')
-            .slice(0, 1024),
-        },
+        ...(detail
+          ? archimedea.missions.map((mission) => ({
+              name: `${label} · ${mission.missionType}`.slice(0, 256),
+              value: [
+                `**${mission.deviation.name}** — ${mission.deviation.description}`,
+                ...mission.risks.map(
+                  (risk) =>
+                    `**${risk.name}${risk.isHard ? ' (elite)' : ''}** — ${risk.description}`,
+                ),
+              ]
+                .join('\n')
+                .slice(0, 1024),
+            }))
+          : [
+              {
+                name: label.slice(0, 256),
+                value: archimedea.missions
+                  .map(
+                    (mission) =>
+                      `**${mission.missionType}** · ${mission.deviation.name}\n↳ ${mission.risks
+                        .map(
+                          (risk) =>
+                            `${risk.name}${risk.isHard ? ' (elite)' : ''}`,
+                        )
+                        .join(', ')}`,
+                  )
+                  .join('\n')
+                  .slice(0, 1024),
+              },
+            ]),
         {
           name: `${label} · Personal Modifiers`.slice(0, 256),
           value: archimedea.personalModifiers

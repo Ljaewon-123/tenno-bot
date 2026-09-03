@@ -146,7 +146,12 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
         missionType: 'Defense',
         deviation: { key: 'd', name: 'Eroding Senses', description: '' },
         risks: [
-          { key: 'r', name: 'Fortified Foes', description: '', isHard: true },
+          {
+            key: 'r',
+            name: 'Fortified Foes',
+            description: 'Enemies gain armor',
+            isHard: true,
+          },
         ],
       },
     ],
@@ -174,6 +179,19 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
 
     const onlyHex = await service.archimedea(ArchimedeaType.Temporal);
     expect(onlyHex.data.fields?.[0].name).toBe('Temporal Archimedea');
-    expect(onlyHex.data.fields?.[0].value).toContain('Fortified Foes (hard)');
+    expect(onlyHex.data.fields?.[0].value).toContain('Fortified Foes (elite)');
+  });
+
+  it('detail이면 미션마다 필드를 쪼개고 편차·위험 설명을 붙인다', async () => {
+    const service = build({
+      archimedeas: vi.fn().mockResolvedValue([archimedea('C T_ L A B')]),
+    });
+
+    const fields = (await service.archimedea(undefined, true)).data.fields;
+    expect(fields?.map((f) => f.name)).toEqual([
+      'Deep Archimedea · Defense',
+      'Deep Archimedea · Personal Modifiers',
+    ]);
+    expect(fields?.[0].value).toContain('**Fortified Foes (elite)** — Enemies');
   });
 });

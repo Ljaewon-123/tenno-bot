@@ -156,7 +156,7 @@ export interface ArchimedeaCondition {
   key: string;
   name: string;
   description: string;
-  /** risks에만 있다. 하드 모드에서만 붙는 조건 */
+  /** risks에만 있다. 엘리트에서만 추가로 붙는 위험 변수 */
   isHard?: boolean;
 }
 

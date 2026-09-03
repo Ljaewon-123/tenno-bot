@@ -92,9 +92,9 @@ export class SlashCommandService {
   })
   async archimedea(
     @Context() [interaction]: SlashCommandContext,
-    @Options() { type }: ArchimedeaCommand,
+    @Options() { type, detail }: ArchimedeaCommand,
   ) {
-    const archimedea = await this.warframeApi.archimedea(type);
+    const archimedea = await this.warframeApi.archimedea(type, detail);
     return interaction.editReply({ embeds: [archimedea] });
   }
 

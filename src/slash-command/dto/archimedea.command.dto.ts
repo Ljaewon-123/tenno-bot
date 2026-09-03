@@ -3,7 +3,7 @@ import {
   ArchimedeaType,
 } from '@/warframe-api/world-state/vo/enum';
 import { Expose } from 'class-transformer';
-import { StringOption } from 'necord';
+import { BooleanOption, StringOption } from 'necord';
 
 export class ArchimedeaCommand {
   @Expose()
@@ -18,4 +18,12 @@ export class ArchimedeaCommand {
     })),
   })
   type?: ArchimedeaType;
+
+  @Expose()
+  @BooleanOption({
+    name: 'detail',
+    description: 'Show what each deviation and risk variable does',
+    required: false,
+  })
+  detail?: boolean;
 }
