@@ -6,6 +6,9 @@ export const ALLOWED_PATHS = new Set<string>([
   'pc/events',
   'pc/fissures',
   'pc/voidTrader',
+  'pc/nightwave',
+  // 심층/시간 아르키메디아가 한 배열로 같이 온다 — 단독 엔드포인트는 없다
+  'pc/archimedeas',
   'pc/cetusCycle',
   'pc/vallisCycle',
   'pc/cambionCycle',

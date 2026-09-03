@@ -6,9 +6,11 @@ import { CacheRepository } from '../shared/modules/repositories/cache.repository
 import { CYCLE_CACHE_KEY, TTL_SECONDS } from './constants';
 import { CycleName, VoidTier } from './vo/enum';
 import {
+  Archimedea,
   ArchonHunt,
   Cycle,
   Fissure,
+  Nightwave,
   Sortie,
   VoidTrader,
   WorldEvent,
@@ -49,6 +51,16 @@ export class WorldStateService {
   /** 보이드 상인 (바로 키티어) */
   async voidTrader(): Promise<VoidTrader> {
     return this.get(CacheKey.WorldStateVoidTrader, 'pc/voidTrader');
+  }
+
+  /** 나이트웨이브 (인게임 명칭은 바뀌었지만 API 경로는 그대로) */
+  async nightwave(): Promise<Nightwave> {
+    return this.get(CacheKey.WorldStateNightwave, 'pc/nightwave');
+  }
+
+  /** 아르키메디아 — 심층/시간이 한 배열로 온다 */
+  async archimedeas(): Promise<Archimedea[]> {
+    return this.get(CacheKey.WorldStateArchimedeas, 'pc/archimedeas');
   }
 
   /** 오픈월드 낮/밤 사이클 */

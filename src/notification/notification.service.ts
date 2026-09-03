@@ -91,6 +91,20 @@ export class NotificationService {
             : [];
         },
       ),
+      // 나이트웨이브는 시즌 id가 아니라 챌린지 id 묶음으로 본다 — 시즌은 몇 달에 한 번뿐이다
+      this.watch(CacheKey.LastNightwaveId, TargetCommand.Nightwave, async () =>
+        (await this.worldStateService.nightwave()).activeChallenges
+          .filter((challenge) => !challenge.isDaily)
+          .map((challenge) => challenge.id),
+      ),
+      this.watch(
+        CacheKey.LastArchimedeaId,
+        TargetCommand.Archimedea,
+        async () =>
+          (await this.worldStateService.archimedeas()).map(
+            (archimedea) => archimedea.id,
+          ),
+      ),
     ]);
 
     for (const result of results) {

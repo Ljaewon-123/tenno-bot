@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { WarframeApiService } from './warframe-api.service';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
-import { ArchonBoss } from './world-state/vo/enum';
+import { ArchimedeaType, ArchonBoss } from './world-state/vo/enum';
 
 /**
  * 이미지 URL이 비면 디스코드가 조용히 안 그리고 끝나서 눈으로는 회귀를 못 잡는다.
@@ -94,5 +94,86 @@ describe('WarframeApiService 임베드 이미지', () => {
     const { description, image } = (await service.dropSources('vitality')).data;
     expect(image?.url).toBe('https://wiki.warframe.com/images/VitalityMod.png');
     expect(description).toBeUndefined();
+  });
+});
+
+describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
+  const build = (worldState: object) =>
+    new WarframeApiService(worldState as never, {} as never, {} as never);
+
+  const challenge = (over: object) => ({
+    id: 'c',
+    activation: '2000-01-01T00:00:00Z',
+    expiry: '2099-01-01T00:00:00Z',
+    isDaily: false,
+    isElite: false,
+    isPermanent: false,
+    title: 'T',
+    desc: 'D',
+    reputation: 1000,
+    ...over,
+  });
+
+  it('만료된 챌린지는 빼고 일일/주간/엘리트로 나눈다', async () => {
+    const service = build({
+      nightwave: vi.fn().mockResolvedValue({
+        season: 18,
+        expiry: '2099-01-01T00:00:00Z',
+        activeChallenges: [
+          challenge({ isDaily: true }),
+          challenge({}),
+          challenge({ isElite: true }),
+          challenge({ expiry: '2000-01-02T00:00:00Z' }),
+        ],
+      }),
+    });
+
+    const { title, fields } = (await service.nightwave()).data;
+    expect(title).toBe('Nightwave - Season 18');
+    expect(fields?.map((field) => field.name)).toEqual([
+      'Daily (1)',
+      'Weekly (1)',
+      'Elite Weekly (1)',
+    ]);
+  });
+
+  const archimedea = (typeKey: string) => ({
+    id: typeKey,
+    expiry: '2099-01-01T00:00:00Z',
+    typeKey,
+    missions: [
+      {
+        missionType: 'Defense',
+        deviation: { key: 'd', name: 'Eroding Senses', description: '' },
+        risks: [
+          { key: 'r', name: 'Fortified Foes', description: '', isHard: true },
+        ],
+      },
+    ],
+    personalModifiers: [{ key: 'm', name: 'Dull Blades', description: '-50%' }],
+  });
+
+  it('공백이 섞인 typeKey를 라벨로 옮기고 타입으로 거른다', async () => {
+    const service = build({
+      archimedeas: vi
+        .fn()
+        .mockResolvedValue([
+          archimedea('C T_ L A B'),
+          archimedea('C T_ H E X'),
+        ]),
+    });
+
+    expect(
+      (await service.archimedea()).data.fields?.map((f) => f.name),
+    ).toEqual([
+      'Deep Archimedea',
+      'Deep Archimedea · Personal Modifiers',
+      'Temporal Archimedea',
+      'Temporal Archimedea · Personal Modifiers',
+    ]);
+
+    const onlyHex = await service.archimedea(ArchimedeaType.Temporal);
+    expect(onlyHex.data.fields?.[0].name).toBe('Temporal Archimedea');
+    expect(onlyHex.data.fields?.[0].value).toContain('Fortified Foes (hard)');
   });
 });

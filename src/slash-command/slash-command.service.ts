@@ -2,6 +2,7 @@ import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { Injectable, UseInterceptors } from '@nestjs/common';
 import type { SlashCommandContext } from 'necord';
 import { Context, Options, SlashCommand } from 'necord';
+import { ArchimedeaCommand } from './dto/archimedea.command.dto';
 import { DropCommand } from './dto/drop.command.dto';
 import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
 import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor';
@@ -65,6 +66,36 @@ export class SlashCommandService {
   async cycles(@Context() [interaction]: SlashCommandContext) {
     const cycles = await this.warframeApi.cycles();
     return interaction.editReply({ embeds: [cycles] });
+  }
+
+  @SlashCommand({
+    name: 'nightwave',
+    description: 'Get the current Nightwave challenges',
+  })
+  async nightwave(@Context() [interaction]: SlashCommandContext) {
+    const nightwave = await this.warframeApi.nightwave();
+    return interaction.editReply({ embeds: [nightwave] });
+  }
+
+  /** 인게임에서 이름이 Shockwave로 바뀌어 둘 다 찾을 수 있게 별칭을 남긴다 */
+  @SlashCommand({
+    name: 'shockwave',
+    description: 'Get the current Nightwave challenges (alias of /nightwave)',
+  })
+  async shockwave(@Context() context: SlashCommandContext) {
+    return this.nightwave(context);
+  }
+
+  @SlashCommand({
+    name: 'archimedea',
+    description: 'Get the current Deep and Temporal Archimedea',
+  })
+  async archimedea(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { type }: ArchimedeaCommand,
+  ) {
+    const archimedea = await this.warframeApi.archimedea(type);
+    return interaction.editReply({ embeds: [archimedea] });
   }
 
   @UseInterceptors(DropItemAutocompleteInterceptor)

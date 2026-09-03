@@ -125,3 +125,55 @@ export interface Cycle {
   /** day|night, warm|cold, fass|vome */
   state: string;
 }
+
+/** pc/nightwave activeChallenges 배열의 원소 */
+export interface NightwaveChallenge {
+  id: string;
+  activation: string;
+  expiry: string;
+  isDaily: boolean;
+  isElite: boolean;
+  isPermanent: boolean;
+  title: string;
+  desc: string;
+  reputation: number;
+}
+
+/** pc/nightwave 응답 스키마 (인게임 명칭이 바뀌어도 경로/필드는 그대로다) */
+export interface Nightwave {
+  id: string;
+  activation: string;
+  expiry: string;
+  season: number;
+  /** 내부 시즌 태그, 예: "Radio Legion Intermission16 Syndicate" — 사람에게 보여줄 이름은 아니다 */
+  tag: string;
+  phase: number;
+  activeChallenges: NightwaveChallenge[];
+}
+
+/** 아르키메디아 미션의 편차/위험 요소 — 스키마가 같아 한 타입으로 쓴다 */
+export interface ArchimedeaCondition {
+  key: string;
+  name: string;
+  description: string;
+  /** risks에만 있다. 하드 모드에서만 붙는 조건 */
+  isHard?: boolean;
+}
+
+export interface ArchimedeaMission {
+  faction: string;
+  missionType: string;
+  deviation: ArchimedeaCondition;
+  risks: ArchimedeaCondition[];
+}
+
+/** pc/archimedeas 배열의 원소 (심층/시간 각 1개) */
+export interface Archimedea {
+  id: string;
+  activation: string;
+  expiry: string;
+  /** WFCD가 단어를 잘못 쪼개 "C T_ L A B"처럼 온다 — 공백을 지우고 ArchimedeaType과 맞춘다 */
+  typeKey: string;
+  missions: ArchimedeaMission[];
+  personalModifiers: ArchimedeaCondition[];
+}

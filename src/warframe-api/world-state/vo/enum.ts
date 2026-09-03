@@ -66,3 +66,17 @@ export const CycleLabel = {
   [CycleName.Vallis]: 'Orb Vallis (Venus)',
   [CycleName.Cambion]: 'Cambion Drift (Deimos)',
 };
+
+/**
+ * pc/archimedeas의 typeKey에서 공백을 지운 값. 슬래시 커맨드 choices로도 그대로 나간다.
+ * 게임 내 이름(심층/시간)보다 콘텐츠 위치(Entrati Lab / Hex)가 API 키에 남아있다.
+ */
+export enum ArchimedeaType {
+  Deep = 'CT_LAB',
+  Temporal = 'CT_HEX',
+}
+
+export const ArchimedeaLabel = {
+  [ArchimedeaType.Deep]: 'Deep Archimedea',
+  [ArchimedeaType.Temporal]: 'Temporal Archimedea',
+};

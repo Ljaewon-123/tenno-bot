@@ -9,6 +9,8 @@ export const WatchTarget = {
   ArchonHunt: TargetCommand.ArchonHunt,
   Events: TargetCommand.Events,
   VoidTrader: TargetCommand.VoidTrader,
+  Nightwave: TargetCommand.Nightwave,
+  Archimedea: TargetCommand.Archimedea,
 } as const;
 
 export type WatchTarget = (typeof WatchTarget)[keyof typeof WatchTarget];

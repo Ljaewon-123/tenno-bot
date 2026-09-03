@@ -8,6 +8,8 @@ import { AlarmRequest, TargetCommand } from './enum';
 import { DropItem } from './wfcd-items/vo/drop-item.interface';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import {
+  ArchimedeaLabel,
+  ArchimedeaType,
   ArchonImage,
   ArchonReward,
   CycleLabel,
@@ -15,7 +17,11 @@ import {
   VOID_TRADER_IMAGE,
   VoidTier,
 } from './world-state/vo/enum';
-import { Fissure } from './world-state/vo/types';
+import {
+  Archimedea,
+  Fissure,
+  NightwaveChallenge,
+} from './world-state/vo/types';
 import { WorldStateService } from './world-state/world-state.service';
 
 @Injectable()
@@ -202,6 +208,91 @@ export class WarframeApiService {
       );
   }
 
+  /** 나이트웨이브 — 일일/주간/엘리트로 나눠 보여준다 */
+  async nightwave() {
+    const nightwave = await this.worldStateService.nightwave();
+    const now = dayjs();
+    // possibleChallenges에는 아직 안 뜬 것까지 들어있고, activeChallenges에도 기간이 지난 게 남는다
+    const active = nightwave.activeChallenges.filter((challenge) =>
+      now.isBefore(challenge.expiry),
+    );
+
+    const embed = new EmbedBuilder()
+      .setTitle(`Nightwave - Season ${nightwave.season}`)
+      .setDescription(`Season ends <t:${dayjs(nightwave.expiry).unix()}:R>`)
+      .setColor(0x5865f2);
+
+    const groups: [string, NightwaveChallenge[]][] = [
+      ['Daily', active.filter((challenge) => challenge.isDaily)],
+      [
+        'Weekly',
+        active.filter((challenge) => !challenge.isDaily && !challenge.isElite),
+      ],
+      ['Elite Weekly', active.filter((challenge) => challenge.isElite)],
+    ];
+
+    for (const [label, challenges] of groups) {
+      if (!challenges.length) continue;
+      embed.addFields({
+        name: `${label} (${challenges.length})`,
+        value: challenges
+          .map(
+            (challenge) =>
+              `**${challenge.title}** · ${challenge.reputation} rep\n${challenge.desc} — <t:${dayjs(challenge.expiry).unix()}:R>`,
+          )
+          .join('\n')
+          .slice(0, 1024),
+      });
+    }
+    return embed;
+  }
+
+  /** 아르키메디아 (심층/시간) — 옵션이 없으면 둘 다 */
+  async archimedea(type?: ArchimedeaType) {
+    const archimedeas = await this.worldStateService.archimedeas();
+    // typeKey가 "C T_ L A B"처럼 쪼개져 오므로 공백을 지워야 enum과 맞는다
+    const keyOf = (archimedea: Archimedea) =>
+      archimedea.typeKey.replace(/\s/g, '') as ArchimedeaType;
+    const targets = type
+      ? archimedeas.filter((archimedea) => keyOf(archimedea) === type)
+      : archimedeas;
+
+    const embed = new EmbedBuilder().setTitle('Archimedea').setColor(0x5865f2);
+
+    if (!targets.length) {
+      return embed.setDescription('No active Archimedea currently.');
+    }
+
+    embed.setDescription(`Resets <t:${dayjs(targets[0].expiry).unix()}:R>`);
+
+    for (const archimedea of targets) {
+      const label = ArchimedeaLabel[keyOf(archimedea)] ?? archimedea.typeKey;
+      embed.addFields(
+        {
+          name: label.slice(0, 256),
+          // 편차·위험은 이름만 — 설명까지 넣으면 미션 3개로 1024자를 넘긴다
+          value: archimedea.missions
+            .map(
+              (mission) =>
+                `**${mission.missionType}** · ${mission.deviation.name}\n↳ ${mission.risks
+                  .map((risk) => `${risk.name}${risk.isHard ? ' (hard)' : ''}`)
+                  .join(', ')}`,
+            )
+            .join('\n')
+            .slice(0, 1024),
+        },
+        {
+          name: `${label} · Personal Modifiers`.slice(0, 256),
+          value: archimedea.personalModifiers
+            .map((modifier) => `**${modifier.name}** — ${modifier.description}`)
+            .join('\n')
+            .slice(0, 1024),
+        },
+      );
+    }
+    return embed;
+  }
+
   async dropSources(itemName: string, category?: DropCategory) {
     const sources = await this.dropTableService.findDropSources(
       itemName,
@@ -285,6 +376,10 @@ export class WarframeApiService {
         return this.voidTrader();
       case TargetCommand.Cycles:
         return this.cycles();
+      case TargetCommand.Nightwave:
+        return this.nightwave();
+      case TargetCommand.Archimedea:
+        return this.archimedea();
     }
   }
 
