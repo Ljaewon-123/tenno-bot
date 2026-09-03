@@ -3,7 +3,10 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder,
+  ContainerBuilder,
+  MessageFlags,
+  SeparatorBuilder,
+  TextDisplayBuilder,
 } from 'discord.js';
 import { Party } from './entities/party.entity';
 import { PartyStatus } from './vo/enum';
@@ -20,31 +23,36 @@ export class PartyMessageService {
 
   build(party: Party) {
     const open = party.status === PartyStatus.OPEN;
-    const embed = new EmbedBuilder()
-      .setTitle(party.name)
-      .setColor(open ? 0x5865f2 : 0x4e5058)
-      .addFields(
-        { name: 'Mission', value: party.mission.slice(0, 1024) },
-        {
-          name: `Members (${party.members.length}/${party.partySize})`,
-          value:
-            party.members.map((userId) => `<@${userId}>`).join('\n') || '없음',
-        },
+    const members = party.members.map((userId) => `<@${userId}>`).join(' ');
+
+    const container = new ContainerBuilder()
+      .setAccentColor(open ? 0x5865f2 : 0x4e5058)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `### ${party.name}\n-# ${party.mission}`.slice(0, 4000),
+        ),
+      )
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          [
+            `**Members** \`${party.members.length}/${party.partySize}\``,
+            members || '-# 아직 아무도 없다',
+            // 3시간 뒤 크론이 조용히 닫으면 "갑자기 닫혔다"로 읽힌다. 디스코드가 뷰어 로컬 시간으로 렌더
+            open
+              ? `-# Closes <t:${this.expiresAt(party).unix()}:R>`
+              : '-# 마감된 파티',
+          ]
+            .join('\n')
+            .slice(0, 4000),
+        ),
       );
 
-    // 3시간 뒤 크론이 조용히 닫으면 "갑자기 닫혔다"로 읽힌다. 디스코드가 뷰어 로컬 시간으로 렌더
-    if (open) {
-      embed.addFields({
-        name: 'Closes',
-        value: `<t:${this.expiresAt(party).unix()}:R>`,
-      });
-    } else {
-      embed.setFooter({ text: '마감된 파티' });
-    }
+    if (open) container.addActionRowComponents(this.buttons(party.id));
 
     return {
-      embeds: [embed],
-      components: open ? [this.buttons(party.id)] : [],
+      components: [container],
+      flags: MessageFlags.IsComponentsV2 as const,
     };
   }
 
