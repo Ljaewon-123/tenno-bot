@@ -15,7 +15,8 @@
     "lint": "eslint \"src/**/*.ts\" --fix",
     "deploy": "git push origin main",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "embed": "ts-node scripts/embed-preview.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

@@ -7,7 +7,7 @@ export default defineConfig({
   // 타입 없는 @Column()이 붙은 엔티티는 import만 해도 ColumnTypeUndefinedError로 터진다
   plugins: [swc.vite({ module: { type: 'es6' } })],
   test: {
-    include: ['src/**/*.spec.ts'],
+    include: ['{src,scripts}/**/*.spec.ts'],
     environment: 'node',
   },
   resolve: {

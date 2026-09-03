@@ -26,5 +26,11 @@
     "alwaysStrict": true,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
+  },
+  // ts-node는 스크립트 실행 전용(scripts/) — nest build(tsc)와 vitest(swc)는 이 섹션을 읽지 않는다
+  "ts-node": {
+    "swc": true,
+    "require": ["tsconfig-paths/register"],
+    "compilerOptions": { "module": "commonjs", "moduleResolution": "node" }
   }
 }
