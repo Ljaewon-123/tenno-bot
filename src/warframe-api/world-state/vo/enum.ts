@@ -57,9 +57,12 @@ export enum CycleName {
   Cambion = 'cambion',
 }
 
-/** 임베드에는 허브 이름(Cetus/Fortuna)이 아니라 오픈월드 이름을 쓴다 */
+/**
+ * 오픈월드 이름 + 행성. 허브 이름(Cetus/Fortuna/Necralisk)은 뺐다 — 셋을 다 적으면 길다.
+ * 행성을 붙이는 이유: 오픈월드 이름보다 "지구/금성/데이모스"로 기억하는 사람이 많다.
+ */
 export const CycleLabel = {
-  [CycleName.Cetus]: 'Plains of Eidolon',
-  [CycleName.Vallis]: 'Orb Vallis',
-  [CycleName.Cambion]: 'Cambion Drift',
+  [CycleName.Cetus]: 'Plains of Eidolon (Earth)',
+  [CycleName.Vallis]: 'Orb Vallis (Venus)',
+  [CycleName.Cambion]: 'Cambion Drift (Deimos)',
 };
