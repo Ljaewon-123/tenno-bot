@@ -196,11 +196,13 @@ export class WarframeApiService {
       {},
     );
 
-    // 임베드 썸네일은 하나뿐이라 첫 아이템 것으로 대표한다 (자동완성으로 고르면 보통 한 개다)
-    const imageUrl = this.wfcdItemsService.findItemImgByName(
-      Object.keys(byItem)[0],
-    );
-    if (imageUrl) embed.setThumbnail(imageUrl);
+    // 썸네일/설명은 하나뿐이라 첫 아이템으로 대표한다 (자동완성으로 고르면 보통 한 개다)
+    const item = this.wfcdItemsService.findItemByName(Object.keys(byItem)[0]);
+    if (item?.imageName) {
+      embed.setThumbnail(this.wfcdItemsService.imgUrl(item.imageName));
+    }
+    const detail = this.itemDetail(item);
+    if (detail) embed.setDescription(detail);
 
     embed.addFields(
       Object.entries(byItem)
@@ -214,6 +216,18 @@ export class WarframeApiService {
         })),
     );
     return embed;
+  }
+
+  /** 모드는 최대 랭크 효과, 그 외 아이템은 설명문. 드랍 임베드 상단 요약용 */
+  private itemDetail(item?: {
+    type?: string;
+    description?: string;
+    levelStats?: { stats: string[] }[];
+  }) {
+    const maxRank = item?.levelStats?.at(-1)?.stats;
+    if (maxRank?.length)
+      return [item?.type, ...maxRank].filter(Boolean).join('\n');
+    return item?.description;
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */

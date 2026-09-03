@@ -39,23 +39,30 @@ export class WfcdItemsService {
   }
 
   /**
-   * 드랍테이블 아이템 이름 -> 이미지 URL. 드랍 이름은 wfcd 아이템명과 정확히 맞지 않는 게 많아
+   * 드랍테이블 아이템 이름 -> 아이템. 드랍 이름은 wfcd 아이템명과 정확히 맞지 않는 게 많아
    * 뒷 단어를 하나씩 떼며 상위 아이템으로 폴백한다 ('Ash Prime Systems Blueprint' -> 'Ash Prime').
    * 부품 이미지는 죄다 GenericWarframePrimeSystem 같은 공용이라 상위 아이템 쪽이 더 쓸모 있다.
    * 성유물 보상 596개 중 592개가 이 방식으로 잡힌다.
    */
-  findItemImgByName(itemName: string): string | undefined {
+  findItemByName(itemName: string) {
     // '2X Forma Blueprint', '1200X Kuva' 같은 수량 접두어는 이름에 없다
     const words = itemName.replace(/^\d+X /, '').split(' ');
     while (words.length) {
       const name = words.join(' ');
+      // 이미지 있는 쪽만 본다 — 'Forma Blueprint'처럼 이미지 없는 동명 항목이 상위 'Forma'를 가린다
       const item = this.wfcdItems.find(
         (candidate) => candidate.name === name && candidate.imageName,
       );
-      if (item?.imageName) return this.imgUrl(item.imageName);
+      if (item) return item;
       words.pop();
     }
     return undefined;
+  }
+
+  /** @see findItemByName */
+  findItemImgByName(itemName: string): string | undefined {
+    const item = this.findItemByName(itemName);
+    return item?.imageName ? this.imgUrl(item.imageName) : undefined;
   }
 
   /** locale이 주어지면 이름/설명 등을 번역본으로 덮어쓴 아이템 조회, 없으면 기본 언어 그대로 */

@@ -53,4 +53,29 @@ describe('WarframeApiService 임베드 이미지', () => {
       'https://cdn.warframestat.us/img/BaroKiteerAvatar.png',
     );
   });
+
+  it('드랍 임베드는 모드 최대 랭크 효과를 설명에 단다', async () => {
+    const items = new WfcdItemsService([
+      {
+        name: 'Vitality',
+        type: 'Warframe Mod',
+        imageName: 'HealthMaxMod.jpg',
+        levelStats: [{ stats: ['+9% Health'] }, { stats: ['+100% Health'] }],
+      },
+    ] as never);
+    const service = new WarframeApiService({} as never, items, {
+      findDropSources: vi
+        .fn()
+        .mockResolvedValue([
+          { itemName: 'Vitality', sourceName: 'Grineer Lancer', chance: 1.01 },
+        ]),
+    } as never);
+
+    const { description, thumbnail } = (await service.dropSources('vitality'))
+      .data;
+    expect(description).toBe('Warframe Mod\n+100% Health');
+    expect(thumbnail?.url).toBe(
+      'https://cdn.warframestat.us/img/HealthMaxMod.jpg',
+    );
+  });
 });
