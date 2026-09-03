@@ -32,7 +32,6 @@ export class WarframeApiService {
       new EmbedBuilder()
         .setTitle(`Archon Hunt - ${archon.boss}`)
         .addFields(
-          { name: 'Reward Pool', value: archon.rewardPool },
           { name: 'Reward Shard', value: ArchonReward[archon.boss] },
           { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
           {
@@ -58,7 +57,6 @@ export class WarframeApiService {
       .setTitle('Sortie')
       .setDescription(`Boss: ${sortie.boss}`)
       .addFields(
-        { name: 'Reward Pool', value: sortie.rewardPool },
         { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
         {
           name: 'Missions',
@@ -198,6 +196,12 @@ export class WarframeApiService {
       {},
     );
 
+    // 임베드 썸네일은 하나뿐이라 첫 아이템 것으로 대표한다 (자동완성으로 고르면 보통 한 개다)
+    const imageUrl = this.wfcdItemsService.findItemImgByName(
+      Object.keys(byItem)[0],
+    );
+    if (imageUrl) embed.setThumbnail(imageUrl);
+
     embed.addFields(
       Object.entries(byItem)
         .slice(0, 25)
@@ -226,5 +230,10 @@ export class WarframeApiService {
       case TargetCommand.VoidTrader:
         return this.voidTrader();
     }
+  }
+
+  /** 드랍 커맨드 오토컴플리트용 아이템 이름 목록 */
+  async searchItemNames(keyword: string) {
+    return this.dropTableService.searchItemNames(keyword);
   }
 }

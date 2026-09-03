@@ -71,4 +71,16 @@ export class DropTableService implements OnApplicationBootstrap {
       take: 50,
     });
   }
+
+  /** 오토컴플리트용 이름 검색. 디스코드 선택지 상한이 25개라 거기서 자른다 */
+  async searchItemNames(keyword: string) {
+    const rows = await this.dropSourceRepository
+      .createQueryBuilder('drop')
+      .select('DISTINCT drop.itemName', 'itemName')
+      .where('drop.itemName ILIKE :keyword', { keyword: `%${keyword}%` })
+      .orderBy('drop.itemName')
+      .limit(25)
+      .getRawMany<{ itemName: string }>();
+    return rows.map((row) => row.itemName);
+  }
 }

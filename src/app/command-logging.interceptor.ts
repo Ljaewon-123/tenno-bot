@@ -24,6 +24,9 @@ export class CommandLoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler) {
     const [interaction] =
       NecordExecutionContext.create(context).getContext<SlashCommandContext>();
+    // 자동완성은 키 입력마다 날아와 로그만 더럽힌다. necord 오토컴플리트 인터셉터로 흘려보낸다
+    if (interaction?.isAutocomplete?.()) return next.handle();
+
     const startedAt = performance.now();
 
     // 실패 로그는 CommandExceptionFilter가 남기므로 성공 경로만 기록한다

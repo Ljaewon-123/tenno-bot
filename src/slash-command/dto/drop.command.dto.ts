@@ -8,6 +8,7 @@ export class DropCommand {
   @StringOption({
     name: 'item',
     description: 'Get the drop sources of an item',
+    autocomplete: true,
     required: true,
   })
   itemName: string;

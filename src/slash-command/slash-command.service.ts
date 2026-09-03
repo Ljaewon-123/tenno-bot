@@ -1,9 +1,10 @@
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UseInterceptors } from '@nestjs/common';
 import type { SlashCommandContext } from 'necord';
 import { Context, Options, SlashCommand } from 'necord';
 import { DropCommand } from './dto/drop.command.dto';
 import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
+import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor';
 
 @Injectable()
 export class SlashCommandService {
@@ -57,6 +58,7 @@ export class SlashCommandService {
     return interaction.editReply({ embeds: [voidTrader] });
   }
 
+  @UseInterceptors(DropItemAutocompleteInterceptor)
   @SlashCommand({
     name: 'drop',
     description: 'Find where an item drops from',
