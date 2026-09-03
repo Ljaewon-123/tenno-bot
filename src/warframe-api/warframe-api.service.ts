@@ -5,6 +5,7 @@ import { DropTableService } from './drop-table/drop-table.service';
 import type { DropSource } from './drop-table/entities/drop-source.entity';
 import { DropCategory } from './drop-table/vo/enum';
 import { AlarmRequest, TargetCommand } from './enum';
+import { DropItem } from './wfcd-items/vo/drop-item.interface';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import {
   ArchonImage,
@@ -198,11 +199,17 @@ export class WarframeApiService {
 
     // 썸네일/설명은 하나뿐이라 첫 아이템으로 대표한다 (자동완성으로 고르면 보통 한 개다)
     const item = this.wfcdItemsService.findItemByName(Object.keys(byItem)[0]);
-    if (item?.imageName) {
-      embed.setThumbnail(this.wfcdItemsService.imgUrl(item.imageName));
+    const modCard = item?.levelStats?.length ? item.wikiaThumbnail : undefined;
+    if (modCard) {
+      // 모드 카드 이미지에 이름·최대 랭크 수치·설명이 전부 박혀 있다. 텍스트로 옮겨 적지 않는다
+      embed.setImage(modCard);
+    } else {
+      if (item?.imageName) {
+        embed.setThumbnail(this.wfcdItemsService.imgUrl(item.imageName));
+      }
+      const detail = this.itemDetail(item);
+      if (detail) embed.setDescription(detail);
     }
-    const detail = this.itemDetail(item);
-    if (detail) embed.setDescription(detail);
 
     embed.addFields(
       Object.entries(byItem)
@@ -218,22 +225,21 @@ export class WarframeApiService {
     return embed;
   }
 
-  /** 모드는 최대 랭크 효과, 그 외 아이템은 설명문. 드랍 임베드 상단 요약용 */
-  private itemDetail(item?: {
-    type?: string;
-    description?: string;
-    baseDrain?: number;
-    fusionLimit?: number;
-    levelStats?: { stats: string[] }[];
-  }) {
+  /** 모드는 최대 랭크 효과, 그 외 아이템은 설명문. 카드 이미지가 없을 때 쓰는 대체 표기 */
+  private itemDetail(item?: DropItem) {
+    // 원문에 <DT_FREEZE_COLOR> 같은 게임 내부 태그가 섞여 있고 디스코드는 그대로 뱉는다
+    const clean = (text: string) => text.replace(/<[^>]+>/g, '');
     const levelStats = item?.levelStats;
     const maxRank = levelStats?.at(-1)?.stats;
-    if (!levelStats || !maxRank?.length) return item?.description;
+    if (!levelStats || !maxRank?.length) {
+      return item?.description && clean(item.description);
+    }
 
-    // 최대 랭크 수치라는 걸 안 적으면 미강화 수치로 오해한다. 드레인도 랭크당 1씩 오른다
+    // 최대 랭크 수치라는 걸 안 적으면 미강화 수치로 오해한다
     const rank = item.fusionLimit ?? levelStats.length - 1;
-    const drain = item.baseDrain == null ? '' : ` · ⚡${item.baseDrain + rank}`;
-    return [`${item.type} · Max Rank ${rank}${drain}`, ...maxRank].join('\n');
+    return clean(
+      [`${item.type} · Rank ${rank}/${rank}`, ...maxRank].join('\n'),
+    );
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */

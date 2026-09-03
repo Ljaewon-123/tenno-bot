@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import Items, { Locale } from '@wfcd/items';
+import { DropItem } from './vo/drop-item.interface';
 import { ItemI18n } from './vo/item-i18n.interface';
 
 @Injectable()
@@ -44,7 +45,7 @@ export class WfcdItemsService {
    * 부품 이미지는 죄다 GenericWarframePrimeSystem 같은 공용이라 상위 아이템 쪽이 더 쓸모 있다.
    * 성유물 보상 596개 중 592개가 이 방식으로 잡힌다.
    */
-  findItemByName(itemName: string) {
+  findItemByName(itemName: string): DropItem | undefined {
     // '2X Forma Blueprint', '1200X Kuva' 같은 수량 접두어는 이름에 없다
     const words = itemName.replace(/^\d+X /, '').split(' ');
     while (words.length) {
@@ -56,7 +57,7 @@ export class WfcdItemsService {
       if (item) return item;
       words.pop();
     }
-    return undefined;
+    return;
   }
 
   /** @see findItemByName */
@@ -68,7 +69,7 @@ export class WfcdItemsService {
   /** locale이 주어지면 이름/설명 등을 번역본으로 덮어쓴 아이템 조회, 없으면 기본 언어 그대로 */
   findItemLocalized(uniqueName: string, locale?: Locale) {
     const item = this.findItem(uniqueName);
-    if (!item) return undefined;
+    if (!item) return;
 
     const translation = locale && this.findLocaleLang(uniqueName, locale);
     return translation ? { ...item, ...translation } : item;

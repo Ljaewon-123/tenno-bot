@@ -54,18 +54,8 @@ describe('WarframeApiService 임베드 이미지', () => {
     );
   });
 
-  it('드랍 임베드는 모드 최대 랭크 효과를 설명에 단다', async () => {
-    const items = new WfcdItemsService([
-      {
-        name: 'Vitality',
-        type: 'Warframe Mod',
-        imageName: 'HealthMaxMod.jpg',
-        baseDrain: 2,
-        fusionLimit: 10,
-        levelStats: [{ stats: ['+9% Health'] }, { stats: ['+100% Health'] }],
-      },
-    ] as never);
-    const service = new WarframeApiService({} as never, items, {
+  const dropService = (item: object) =>
+    new WarframeApiService({} as never, new WfcdItemsService([item] as never), {
       findDropSources: vi
         .fn()
         .mockResolvedValue([
@@ -73,11 +63,36 @@ describe('WarframeApiService 임베드 이미지', () => {
         ]),
     } as never);
 
+  it('카드 이미지가 없는 모드는 최대 랭크 효과를 설명으로 적는다', async () => {
+    const service = dropService({
+      name: 'Vitality',
+      type: 'Warframe Mod',
+      imageName: 'HealthMaxMod.jpg',
+      baseDrain: 2,
+      fusionLimit: 10,
+      levelStats: [{ stats: ['+9% Health'] }, { stats: ['+100% Health'] }],
+    });
+
     const { description, thumbnail } = (await service.dropSources('vitality'))
       .data;
-    expect(description).toBe('Warframe Mod · Max Rank 10 · ⚡12\n+100% Health');
+    expect(description).toBe('Warframe Mod · Rank 10/10\n+100% Health');
     expect(thumbnail?.url).toBe(
       'https://cdn.warframestat.us/img/HealthMaxMod.jpg',
     );
+  });
+
+  /** 카드 이미지에 수치·설명이 다 박혀 있어 텍스트로 중복해 적지 않는다 */
+  it('모드 카드 이미지가 있으면 크게 띄우고 설명은 비운다', async () => {
+    const service = dropService({
+      name: 'Vitality',
+      type: 'Warframe Mod',
+      imageName: 'HealthMaxMod.jpg',
+      wikiaThumbnail: 'https://wiki.warframe.com/images/VitalityMod.png',
+      levelStats: [{ stats: ['+100% <DT_FREEZE_COLOR>Health'] }],
+    });
+
+    const { description, image } = (await service.dropSources('vitality')).data;
+    expect(image?.url).toBe('https://wiki.warframe.com/images/VitalityMod.png');
+    expect(description).toBeUndefined();
   });
 });
