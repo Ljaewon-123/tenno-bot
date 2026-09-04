@@ -23,6 +23,7 @@ export enum CacheKey {
   WorldStateVoidTrader = 'world-state-void-trader',
   WorldStateNightwave = 'world-state-nightwave',
   WorldStateArchimedeas = 'world-state-archimedeas',
+  WorldStateDuviriCycle = 'world-state-duviri-cycle',
   WorldStateCetusCycle = 'world-state-cetus-cycle',
   WorldStateVallisCycle = 'world-state-vallis-cycle',
   WorldStateCambionCycle = 'world-state-cambion-cycle',

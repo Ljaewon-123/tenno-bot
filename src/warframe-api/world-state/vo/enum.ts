@@ -80,3 +80,9 @@ export const ArchimedeaLabel = {
   [ArchimedeaType.Deep]: 'Deep Archimedea',
   [ArchimedeaType.Temporal]: 'Temporal Archimedea',
 };
+
+/** pc/duviriCycle choices의 categoryKey. hard(스틸패스 서킷)만 인카논 제네시스를 준다 */
+export enum CircuitCategory {
+  Normal = 'EXC_NORMAL',
+  Hard = 'EXC_HARD',
+}

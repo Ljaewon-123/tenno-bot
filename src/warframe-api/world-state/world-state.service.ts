@@ -9,6 +9,7 @@ import {
   Archimedea,
   ArchonHunt,
   Cycle,
+  DuviriCycle,
   Fissure,
   Nightwave,
   Sortie,
@@ -61,6 +62,11 @@ export class WorldStateService {
   /** 아르키메디아 — 심층/시간이 한 배열로 온다 */
   async archimedeas(): Promise<Archimedea[]> {
     return this.get(CacheKey.WorldStateArchimedeas, 'pc/archimedeas');
+  }
+
+  /** 두비리 사이클 — 서킷 주간 로테이션(choices)을 여기서 얻는다 */
+  async duviriCycle(): Promise<DuviriCycle> {
+    return this.get(CacheKey.WorldStateDuviriCycle, 'pc/duviriCycle');
   }
 
   /** 오픈월드 낮/밤 사이클 */

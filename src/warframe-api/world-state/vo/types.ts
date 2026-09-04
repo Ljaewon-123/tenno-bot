@@ -1,4 +1,4 @@
-import { ArchonBoss, Enemy, VoidTier } from './enum';
+import { ArchonBoss, CircuitCategory, Enemy, VoidTier } from './enum';
 
 /** 소티/집정관 미션 3개 슬롯 중 하나 */
 export interface SortieVariant {
@@ -176,4 +176,24 @@ export interface Archimedea {
   typeKey: string;
   missions: ArchimedeaMission[];
   personalModifiers: ArchimedeaCondition[];
+}
+
+/** pc/duviriCycle choices 배열의 원소 — hard가 이번 주 스틸패스 서킷(=인카논 제네시스) 목록 */
+export interface CircuitChoice {
+  category: string;
+  categoryKey: CircuitCategory;
+  /** 무기명 또는 워프레임명, 예: ["Braton", "Lato", "Skana"] */
+  choices: string[];
+}
+
+/**
+ * pc/duviriCycle 응답 스키마.
+ * expiry는 2시간짜리 무드 사이클이라 주간 로테이션 만료가 아니다 — 리셋은 따로 계산한다.
+ */
+export interface DuviriCycle {
+  id: string;
+  activation: string;
+  expiry: string;
+  state: string;
+  choices: CircuitChoice[];
 }

@@ -12,6 +12,7 @@ import {
   ArchimedeaType,
   ArchonImage,
   ArchonReward,
+  CircuitCategory,
   CycleLabel,
   CycleName,
   VOID_TRADER_IMAGE,
@@ -308,6 +309,64 @@ export class WarframeApiService {
         },
       );
     }
+    return embed;
+  }
+
+  /** 서킷 로테이션은 매주 월요일 00:00 UTC에 바뀐다 — duviriCycle의 expiry는 2시간짜리 무드 사이클이라 못 쓴다 */
+  private nextCircuitReset() {
+    const now = dayjs.utc();
+    // dayjs 주는 일요일 시작이라 일요일엔 day(1)이 내일, 나머지 요일은 다음 주 월요일(day(8))
+    return now.day(now.day() === 0 ? 1 : 8).startOf('day');
+  }
+
+  /** 퍽·설치 재료는 어느 API에도 없고 위키 표가 유일한 출처다. 페이지명이 곧 `{무기} Incarnon Genesis` */
+  private genesisWikiLink(weapon: string) {
+    const page = encodeURIComponent(weapon.replace(/ /g, '_'));
+    return `[${weapon}](https://wiki.warframe.com/w/${page}_Incarnon_Genesis)`;
+  }
+
+  /**
+   * 이번 주 서킷 로테이션. 스틸패스(hard) 목록이 이번 주에 얻을 수 있는 인카논 제네시스다.
+   * 진화 퍽·설치 재료는 어느 API에도 없다(위키 표가 유일한 출처) — 위키 링크로 넘긴다.
+   */
+  async incarnon() {
+    const { choices } = await this.worldStateService.duviriCycle();
+    const pick = (category: CircuitCategory) =>
+      choices.find((choice) => choice.categoryKey === category)?.choices ?? [];
+    const genesis = pick(CircuitCategory.Hard);
+    const warframes = pick(CircuitCategory.Normal);
+
+    const embed = new EmbedBuilder()
+      .setTitle('Incarnon Genesis - This Week')
+      .setColor(0x5865f2);
+
+    if (!genesis.length) {
+      return embed.setDescription('No Circuit rotation data currently.');
+    }
+
+    embed
+      .setDescription(`Rotation resets <t:${this.nextCircuitReset().unix()}:R>`)
+      .addFields({
+        name: 'Steel Path Circuit',
+        value: genesis
+          .map((weapon) => this.genesisWikiLink(weapon))
+          .join('\n')
+          .slice(0, 1024),
+      });
+
+    if (warframes.length) {
+      embed.addFields({
+        name: 'The Circuit',
+        value: warframes.join(', ').slice(0, 1024),
+      });
+    }
+
+    // 어댑터 아이콘만 CDN에 있다 — 인카논 폼 무기 아트는 wfcd items에 없다(위키 파일뿐)
+    const thumbnail = this.wfcdItemsService.findItemImgByName(
+      `${genesis[0]} Incarnon Genesis`,
+    );
+    if (thumbnail) embed.setThumbnail(thumbnail);
+
     return embed;
   }
 

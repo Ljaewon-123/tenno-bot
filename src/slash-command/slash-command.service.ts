@@ -98,6 +98,15 @@ export class SlashCommandService {
     return interaction.editReply({ embeds: [archimedea] });
   }
 
+  @SlashCommand({
+    name: 'incarnon',
+    description: 'Get this week Incarnon Genesis rotation from the Circuit',
+  })
+  async incarnon(@Context() [interaction]: SlashCommandContext) {
+    const incarnon = await this.warframeApi.incarnon();
+    return interaction.editReply({ embeds: [incarnon] });
+  }
+
   @UseInterceptors(DropItemAutocompleteInterceptor)
   @SlashCommand({
     name: 'drop',

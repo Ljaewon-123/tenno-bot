@@ -195,3 +195,39 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
     expect(fields?.[0].value).toContain('**Fortified Foes (elite)** — Enemies');
   });
 });
+
+describe('WarframeApiService 인카논 로테이션', () => {
+  const duviriCycle = {
+    choices: [
+      { categoryKey: 'EXC_NORMAL', choices: ['Gara', 'Khora'] },
+      { categoryKey: 'EXC_HARD', choices: ['Braton', 'Ack & Brunt'] },
+    ],
+  };
+
+  const service = new WarframeApiService(
+    { duviriCycle: vi.fn().mockResolvedValue(duviriCycle) } as never,
+    new WfcdItemsService({ find: () => undefined } as never),
+    {} as never,
+  );
+
+  it('스틸패스(hard) 목록만 위키 링크로 나가고 노말은 이름만 나간다', async () => {
+    const [genesis, warframes] = (await service.incarnon()).data.fields ?? [];
+
+    // 공백은 언더스코어, 그 외 특수문자는 인코딩해야 위키 페이지에 닿는다
+    expect(genesis.value).toBe(
+      '[Braton](https://wiki.warframe.com/w/Braton_Incarnon_Genesis)\n' +
+        '[Ack & Brunt](https://wiki.warframe.com/w/Ack_%26_Brunt_Incarnon_Genesis)',
+    );
+    expect(warframes.value).toBe('Gara, Khora');
+  });
+
+  it('로테이션이 비면 필드 없이 안내만 남긴다', async () => {
+    const empty = new WarframeApiService(
+      { duviriCycle: vi.fn().mockResolvedValue({ choices: [] }) } as never,
+      {} as never,
+      {} as never,
+    );
+
+    expect((await empty.incarnon()).data.fields).toBeUndefined();
+  });
+});

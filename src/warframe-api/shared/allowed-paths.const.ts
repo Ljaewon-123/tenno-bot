@@ -9,6 +9,8 @@ export const ALLOWED_PATHS = new Set<string>([
   'pc/nightwave',
   // 심층/시간 아르키메디아가 한 배열로 같이 온다 — 단독 엔드포인트는 없다
   'pc/archimedeas',
+  // 서킷(두비리) 주간 로테이션 — 인카논 제네시스 목록이 choices에 들어온다
+  'pc/duviriCycle',
   'pc/cetusCycle',
   'pc/vallisCycle',
   'pc/cambionCycle',
