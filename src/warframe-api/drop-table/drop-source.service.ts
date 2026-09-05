@@ -1,3 +1,4 @@
+import { WfcdItemsService } from '@/warframe-api/wfcd-items/wfcd-items.service';
 import { Injectable } from '@nestjs/common';
 import { Transactional } from 'typeorm-transactional';
 import { DropSource } from './entities/drop-source.entity';
@@ -23,7 +24,10 @@ const EXCLUDED_ITEM = /^Flawed /i;
 /** all.json → drop_source 역인덱스 구축 전담. 검색 API는 DropTableService */
 @Injectable()
 export class DropSourceService {
-  constructor(private readonly dropSourceRepository: DropSourceRepository) {}
+  constructor(
+    private readonly dropSourceRepository: DropSourceRepository,
+    private readonly wfcdItemsService: WfcdItemsService,
+  ) {}
 
   /** all.json을 평탄화해 drop_source 테이블 전체 재구축 */
   @Transactional()
@@ -50,6 +54,7 @@ export class DropSourceService {
       ...this.bountyRows(all),
       ...this.syndicateRows(all.syndicates),
       ...this.avatarRows(all),
+      ...this.traderRows(),
     ].filter((row) => !EXCLUDED_ITEM.test(row.itemName));
   }
 
@@ -227,6 +232,19 @@ export class DropSourceService {
           }),
         ),
       ),
+    );
+  }
+
+  /**
+   * 프라임드 모드는 어느 드랍 테이블에도 없다 — 바로 키티어 두캇 상점 전용이라 all.json이 모른다.
+   * 그런데 유저는 프라임드 기준으로 찾는다. 상점을 출처로 취급해 같은 인덱스에 넣으면
+   * 검색·오토컴플리트가 그대로 따라온다 (확률이 없으므로 chance는 null)
+   */
+  private traderRows(): DropSource[] {
+    return this.wfcdItemsService.findPrimedMods().map((mod) =>
+      this.row(mod.name, DropCategory.Trader, "Baro Ki'Teer", null, {
+        type: 'mod',
+      }),
     );
   }
 

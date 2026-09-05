@@ -2,6 +2,7 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpJsonService } from '../shared/http-json.service';
+import { WfcdItemsModule } from '../wfcd-items/wfcd-items.module';
 import { DropSourceService } from './drop-source.service';
 import { DropTableService } from './drop-table.service';
 import { DropSource } from './entities/drop-source.entity';
@@ -15,6 +16,8 @@ import { DropSourceRepository } from './repositories/drop-source.repository';
       timeout: 30_000,
     }),
     TypeOrmModule.forFeature([DropSource]),
+    // 프라임드 모드는 all.json에 없어 여기서 채운다 — traderRows 참고
+    WfcdItemsModule,
   ],
   providers: [
     DropTableService,

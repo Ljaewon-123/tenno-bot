@@ -67,6 +67,16 @@ export class WfcdItemsService {
     return;
   }
 
+  /**
+   * 바로 키티어 전용 프라임드 모드 전체. 드랍 테이블(all.json)에는 한 줄도 없어서
+   * 드랍 인덱스를 만들 때 여기서 채워 넣는다. 두캇 값은 이 데이터에 없다 — 바로 재고에만 있다
+   */
+  findPrimedMods(): DropItem[] {
+    return [...(this.wfcdItems as unknown as DropItem[])].filter((item) =>
+      item.name?.startsWith('Primed '),
+    );
+  }
+
   /** @see findItemByName */
   findItemImgByName(itemName: string): string | undefined {
     const item = this.findItemByName(itemName);

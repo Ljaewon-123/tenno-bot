@@ -542,6 +542,8 @@ export class WarframeApiService {
     // 카드 이미지에 이름·최대 랭크 수치·설명이 전부 박혀 있다. 텍스트로 옮겨 적지 않는다
     const detail = modCard ? undefined : this.itemDetail(item);
 
+    const prices = await this.traderPrices(sources);
+
     return card({
       title: `Drop Sources · ${itemName}`,
       // 접힌 개수는 그룹마다 다르다 — 여기서 "top 6"을 또 말하면 그룹 줄과 어긋난다
@@ -554,7 +556,7 @@ export class WarframeApiService {
       blocks: [
         [detail],
         ...Object.entries(byItem).map(([name, list]): Block[] => [
-          this.dropGroup(name, list, category),
+          this.dropGroup(name, list, category, prices),
         ]),
       ],
       buttons,
@@ -563,11 +565,31 @@ export class WarframeApiService {
     });
   }
 
+  /**
+   * 바로 두캇 값은 정적 데이터 어디에도 없다 — 그가 실제로 팔고 있는 동안의 재고 응답이 유일한 출처다.
+   * 그래서 방문 중에만 가격이 붙는다. 상점 출처가 없으면 아예 조회하지 않는다
+   */
+  private async traderPrices(sources: DropSource[]) {
+    if (!sources.some((source) => source.category === DropCategory.Trader))
+      return new Map<string, string>();
+
+    const trader = await this.worldStateService
+      .voidTrader()
+      .catch(() => undefined);
+    return new Map(
+      (trader?.inventory ?? []).map((stock) => [
+        stock.item,
+        `${stock.ducats} ducats + ${stock.credits.toLocaleString('en-US')}cr`,
+      ]),
+    );
+  }
+
   /** 확률은 숫자만으로 위계가 안 보인다 — 최고 확률 대비 상대 막대를 붙인다(절대 막대는 1%가 안 보인다) */
   private dropGroup(
     name: string,
     list: DropSource[],
     category?: DropCategory,
+    prices = new Map<string, string>(),
   ): Block {
     const sorted = [...list].sort((a, b) => b.chance - a.chance);
     const best = sorted[0].chance;
@@ -580,6 +602,10 @@ export class WarframeApiService {
           source.category && source.category !== DropCategory.Relic
             ? ` (${source.category})`
             : '';
+        // 상점은 확률이 없어 chance가 0이다 — 막대를 붙이면 "0% 확률"로 읽힌다.
+        // 바로가 와 있으면 두캇 값이, 아니면 아무것도 안 붙는다
+        if (source.category === DropCategory.Trader)
+          return `- 🛒 ${source.sourceName}${tail}${prices.has(name) ? ` · ${prices.get(name)}` : ''}`;
         return `- ${chanceIcon(source.chance)} ${source.sourceName}${tail} ${bar((source.chance / best) * 100)} ${source.chance}%`;
       }),
       more:

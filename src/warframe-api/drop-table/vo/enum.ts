@@ -18,4 +18,6 @@ export enum DropCategory {
   Syndicate = 'syndicate',
   /** resource/sigil/additionalItemByAvatar */
   Avatar = 'avatar',
+  /** 바로 키티어 상점. all.json에 없어 @wfcd/items에서 채운다 — 확률이 아니라 두캇 값이다 */
+  Trader = 'trader',
 }

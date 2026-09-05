@@ -15,6 +15,9 @@ type Row = Omit<DropSource, 'metadata'> & { metadata: Record<string, unknown> };
 
 /** all.json 평탄화가 틀리면 검색 결과에서 아이템이 통째로 사라지거나 DB가 빈 채로 남는다 */
 describe('DropSourceService.rebuildDropSources', () => {
+  /** 바로 상점 행의 출처 — 테스트마다 갈아끼운다 */
+  let primedMods: { name: string }[] = [];
+
   const build = () => {
     const inserted: Row[][] = [];
     const dropSourceRepository = {
@@ -25,7 +28,12 @@ describe('DropSourceService.rebuildDropSources', () => {
       }),
     };
     return {
-      service: new DropSourceService(dropSourceRepository as never),
+      service: new DropSourceService(
+        dropSourceRepository as never,
+        {
+          findPrimedMods: () => primedMods,
+        } as never,
+      ),
       dropSourceRepository,
       inserted,
       // 모든 청크를 하나로 편 결과
@@ -59,6 +67,7 @@ describe('DropSourceService.rebuildDropSources', () => {
 
   let harness: ReturnType<typeof build>;
   beforeEach(() => {
+    primedMods = [];
     harness = build();
   });
 
@@ -171,6 +180,24 @@ describe('DropSourceService.rebuildDropSources', () => {
     );
 
     expect(harness.rows.map((row) => row.itemName)).toEqual(['Pressure Point']);
+  });
+
+  // all.json에 프라임드 모드는 한 줄도 없다 — 이게 없으면 검색·오토컴플리트에서 통째로 빠진다
+  it('프라임드 모드를 바로 키티어 출처로 넣는다', async () => {
+    primedMods = [{ name: 'Primed Pressure Point' }];
+    const local = build();
+
+    await local.service.rebuildDropSources(data());
+
+    expect(local.rows).toEqual([
+      expect.objectContaining({
+        itemName: 'Primed Pressure Point',
+        category: DropCategory.Trader,
+        sourceName: "Baro Ki'Teer",
+        // 확률이 아니라 두캇 값이라 chance가 없다
+        chance: 0,
+      }),
+    ]);
   });
 
   it('바운티/아바타 섹션이 응답에 없어도 터지지 않는다', async () => {
