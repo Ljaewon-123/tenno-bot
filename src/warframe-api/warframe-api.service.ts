@@ -6,6 +6,7 @@ import {
   bold,
   card,
   emptyCard,
+  paged,
   relative,
   subtext,
   type Block,
@@ -42,7 +43,7 @@ import {
 import { WorldStateService } from './world-state/world-state.service';
 
 /** 그룹당 펴는 줄 수. 넘치는 만큼은 "…and N more"로 접는다 — 안 접으면 목록 하나가 40개 한도를 뚫는다 */
-const TOP = { fissure: 2, fissureFiltered: 6, inventory: 8, drop: 6 } as const;
+const TOP = { fissure: 2, fissureFiltered: 6, drop: 6 } as const;
 
 /** 버튼은 컴포넌트가 정하지 않는다 — 어떤 버튼을 붙일지는 커맨드 핸들러가 안다 */
 type Buttons = ButtonBuilder[] | undefined;
@@ -205,7 +206,7 @@ export class WarframeApiService {
   }
 
   /** 보이드 상인 (바로 키티어) — 부재가 대부분의 시간이라 부재 화면이 따로 있다 */
-  async voidTrader(buttons?: Buttons) {
+  async voidTrader(page = 0, buttons?: Buttons) {
     const trader = await this.worldStateService.voidTrader();
     const now = dayjs();
     const active =
@@ -225,7 +226,16 @@ export class WarframeApiService {
         footer: 'Inventory is unknown until he arrives',
       });
 
-    const stock = trader.inventory;
+    // 정렬이 흔들리면 페이지 번호가 의미를 잃는다 — ducats 오름차순 고정
+    const stock = [...trader.inventory].sort((a, b) => a.ducats - b.ducats);
+    // 40종 넘는 재고를 8줄로 자르고 마는 건 목록이 아니라 미끼다 — 나머지를 볼 경로를 같이 준다
+    const view = paged({
+      key: TargetCommand.VoidTrader,
+      items: stock,
+      page,
+      sort: 'cheapest first',
+    });
+
     return card({
       accent: accentFor(trader.expiry),
       title: `${trader.character} · ${trader.location}`,
@@ -235,21 +245,15 @@ export class WarframeApiService {
         [
           {
             // API는 카테고리를 주지 않는다 — 모드/무기로 나누려면 재고마다 아이템 DB를 뒤져야 해서 한 목록으로 둔다
-            lines: stock
-              .slice(0, TOP.inventory)
-              .map(
-                (item) =>
-                  `- ${bold(item.item)} · ${item.ducats}dt / ${item.credits.toLocaleString()}cr`,
-              ),
-            more:
-              stock.length > TOP.inventory
-                ? `…and ${stock.length - TOP.inventory} more`
-                : undefined,
+            lines: view.items.map(
+              (item) =>
+                `- ${bold(item.item)} · ${item.ducats}dt / ${item.credits.toLocaleString()}cr`,
+            ),
           },
         ],
       ],
-      buttons,
-      footer: 'dt = ducats',
+      buttons: [...(view.buttons ?? []), ...(buttons ?? [])],
+      footer: `${view.footer} · dt = ducats`,
     });
   }
 

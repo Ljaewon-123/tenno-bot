@@ -91,6 +91,29 @@ describe('WarframeApiService 카드 이미지', () => {
     expect(text).toContain('Inventory is unknown until he arrives');
   });
 
+  it('재고는 ducats 오름차순 8개씩 끊고 남은 경로를 페이지 표기로 밝힌다', async () => {
+    const service = build({
+      voidTrader: vi.fn().mockResolvedValue({
+        character: "Baro Ki'Teer",
+        location: 'Larunda Relay',
+        activation: '2000-01-01T00:00:00Z',
+        expiry: '2099-09-12T00:00:00Z',
+        inventory: Array.from({ length: 20 }, (_, index) => ({
+          item: `Item ${index}`,
+          // 역순으로 넣어도 싼 것부터 나와야 페이지 번호가 의미를 가진다
+          ducats: (20 - index) * 10,
+          credits: 1000,
+        })),
+      }),
+    });
+
+    const { text } = parts(await service.voidTrader(1));
+    expect(text).toContain('20 items');
+    expect(text).toContain('**Item 11** · 90dt');
+    expect(text).not.toContain('**Item 3**');
+    expect(text).toContain('Page 2 / 3 · cheapest first · dt = ducats');
+  });
+
   const dropService = (item: object) =>
     new WarframeApiService({} as never, new WfcdItemsService([item] as never), {
       findDropSources: vi
