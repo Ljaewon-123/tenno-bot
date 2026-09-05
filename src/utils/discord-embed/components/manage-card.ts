@@ -14,7 +14,7 @@ export type ManageRow = { text: string; button?: ButtonBuilder };
  * Section은 컨테이너당 1-3개고 빌더가 직접 검증한다.
  * 즉 "항목마다 삭제 버튼"은 3개에서 막히고, 이 3이 사실상의 페이지 크기다.
  */
-const SECTION_LIMIT = 3;
+export const SECTION_LIMIT = 3;
 
 /**
  * 원형 D(관리 목록) — /alarm list · /notification list · /party list.
