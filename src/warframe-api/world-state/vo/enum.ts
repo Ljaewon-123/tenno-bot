@@ -86,3 +86,23 @@ export enum CircuitCategory {
   Normal = 'EXC_NORMAL',
   Hard = 'EXC_HARD',
 }
+
+/** 지역 아이콘. V2에는 3열 격자가 없어 세로 스택뿐이라, 줄머리 이모지가 유일한 구분 장치다 */
+export const CycleIcon = {
+  [CycleName.Cetus]: '☀️',
+  [CycleName.Vallis]: '🔥',
+  [CycleName.Cambion]: '🟣',
+};
+
+/**
+ * API는 현재 state만 준다. 세 사이클 모두 2상태라 다음 상태는 반대쪽으로 정해진다 —
+ * "무엇이 언제 바뀌나"를 한 줄로 합치려면 이게 필요하다. 모르는 state면 화살표를 생략한다.
+ */
+export const CycleNextState: Record<string, string> = {
+  day: 'night',
+  night: 'day',
+  warm: 'cold',
+  cold: 'warm',
+  fass: 'vome',
+  vome: 'fass',
+};

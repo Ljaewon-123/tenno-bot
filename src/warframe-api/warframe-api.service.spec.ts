@@ -1,13 +1,47 @@
+import { ComponentType, type ContainerBuilder } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { WarframeApiService } from './warframe-api.service';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import { ArchimedeaType, ArchonBoss } from './world-state/vo/enum';
 
 /**
- * 이미지 URL이 비면 디스코드가 조용히 안 그리고 끝나서 눈으로는 회귀를 못 잡는다.
- * 알람·구독도 같은 임베드 빌더를 타므로 여기만 지키면 세 경로가 같이 지켜진다.
+ * V2 컨테이너는 슬롯이 아니라 컴포넌트 목록이라 필드 이름으로 못 집는다.
+ * 텍스트를 다 이어붙이고 미디어 URL만 따로 뽑아 본다 — 검사할 것은 "무엇이 적혔나"뿐이다.
  */
-describe('WarframeApiService 임베드 이미지', () => {
+type Media = { media?: { url?: string } };
+type Node = {
+  type: ComponentType;
+  content?: string;
+  components?: { content: string }[];
+  accessory?: Media;
+  items?: Media[];
+};
+
+const parts = (view: ContainerBuilder) => {
+  const children = view.toJSON().components as unknown as Node[];
+  const contents: string[] = [];
+  let thumbnail: string | undefined;
+  let image: string | undefined;
+
+  for (const child of children) {
+    if (child.type === ComponentType.TextDisplay && child.content)
+      contents.push(child.content);
+    if (child.type === ComponentType.Section) {
+      contents.push(...(child.components ?? []).map((text) => text.content));
+      thumbnail = child.accessory?.media?.url;
+    }
+    if (child.type === ComponentType.MediaGallery)
+      image = child.items?.[0].media?.url;
+  }
+
+  return { contents, thumbnail, image, text: contents.join('\n') };
+};
+
+/**
+ * 이미지 URL이 비면 디스코드가 조용히 안 그리고 끝나서 눈으로는 회귀를 못 잡는다.
+ * 알람·구독도 같은 카드 빌더를 타므로 여기만 지키면 세 경로가 같이 지켜진다.
+ */
+describe('WarframeApiService 카드 이미지', () => {
   const wfcdItemsService = new WfcdItemsService({
     find: () => undefined,
   } as never);
@@ -21,37 +55,40 @@ describe('WarframeApiService 임베드 이미지', () => {
       const service = build({
         archonHunt: vi.fn().mockResolvedValue({
           boss,
-          expiry: '2026-09-08T00:00:00Z',
+          expiry: '2099-09-08T00:00:00Z',
           rewardPool: 'Archon Hunt',
           missions: [],
         }),
       });
 
-      const { thumbnail, image } = (await service.archonHunt()).data;
+      const { thumbnail, image } = parts(await service.archonHunt());
       const name = boss.replace('Archon ', '');
-      expect(thumbnail?.url).toBe(
+      expect(thumbnail).toBe(
         `https://cdn.warframestat.us/img/${name}Header.png`,
       );
-      expect(image?.url).toBe(
+      expect(image).toBe(
         `https://cdn.warframestat.us/img/ArchonShard${name}.png`,
       );
     },
   );
 
-  it('보이드 상인은 인벤토리가 비어도 바로 이미지를 단다', async () => {
+  it('바로가 없는 동안은 카운트다운만 남기되 이미지는 유지한다', async () => {
     const service = build({
       voidTrader: vi.fn().mockResolvedValue({
         character: "Baro Ki'Teer",
         location: 'Larunda Relay',
-        activation: '2026-09-10T00:00:00Z',
-        expiry: '2026-09-12T00:00:00Z',
+        activation: '2099-09-10T00:00:00Z',
+        expiry: '2099-09-12T00:00:00Z',
         inventory: [],
       }),
     });
 
-    expect((await service.voidTrader()).data.thumbnail?.url).toBe(
+    const { thumbnail, text } = parts(await service.voidTrader());
+    expect(thumbnail).toBe(
       'https://cdn.warframestat.us/img/BaroKiteerAvatar.png',
     );
+    expect(text).toContain("Baro Ki'Teer is away");
+    expect(text).toContain('Inventory is unknown until he arrives');
   });
 
   const dropService = (item: object) =>
@@ -63,7 +100,7 @@ describe('WarframeApiService 임베드 이미지', () => {
         ]),
     } as never);
 
-  it('카드 이미지가 없는 모드는 최대 랭크 효과를 설명으로 적는다', async () => {
+  it('카드 이미지가 없는 모드는 최대 랭크 효과를 첫 블록으로 적는다', async () => {
     const service = dropService({
       name: 'Vitality',
       type: 'Warframe Mod',
@@ -73,12 +110,9 @@ describe('WarframeApiService 임베드 이미지', () => {
       levelStats: [{ stats: ['+9% Health'] }, { stats: ['+100% Health'] }],
     });
 
-    const { description, thumbnail } = (await service.dropSources('vitality'))
-      .data;
-    expect(description).toBe('Warframe Mod · Rank 10/10\n+100% Health');
-    expect(thumbnail?.url).toBe(
-      'https://cdn.warframestat.us/img/HealthMaxMod.jpg',
-    );
+    const { text, thumbnail } = parts(await service.dropSources('vitality'));
+    expect(text).toContain('Warframe Mod · Rank 10/10\n+100% Health');
+    expect(thumbnail).toBe('https://cdn.warframestat.us/img/HealthMaxMod.jpg');
   });
 
   /** 카드 이미지에 수치·설명이 다 박혀 있어 텍스트로 중복해 적지 않는다 */
@@ -91,9 +125,92 @@ describe('WarframeApiService 임베드 이미지', () => {
       levelStats: [{ stats: ['+100% <DT_FREEZE_COLOR>Health'] }],
     });
 
-    const { description, image } = (await service.dropSources('vitality')).data;
-    expect(image?.url).toBe('https://wiki.warframe.com/images/VitalityMod.png');
-    expect(description).toBeUndefined();
+    const { text, image, thumbnail } = parts(
+      await service.dropSources('vitality'),
+    );
+    expect(image).toBe('https://wiki.warframe.com/images/VitalityMod.png');
+    expect(thumbnail).toBeUndefined();
+    expect(text).not.toContain('Rank');
+  });
+
+  /** 확률은 숫자만으로 위계가 안 보인다 — 최고 확률이 8칸을 다 채운다 */
+  it('막대는 최고 확률 대비 상대값이다', async () => {
+    const service = new WarframeApiService({} as never, wfcdItemsService, {
+      findDropSources: vi.fn().mockResolvedValue([
+        { itemName: 'Braton Prime', sourceName: 'Lith B4', chance: 11.06 },
+        { itemName: 'Braton Prime', sourceName: 'Meso B3', chance: 2.51 },
+      ]),
+    } as never);
+
+    const { text } = parts(await service.dropSources('braton'));
+    expect(text).toContain('- Lith B4 ▰▰▰▰▰▰▰▰ 11.06%');
+    expect(text).toContain('- Meso B3 ▰▰▱▱▱▱▱▱ 2.51%');
+  });
+});
+
+describe('WarframeApiService 균열/사이클', () => {
+  const build = (worldState: object) =>
+    new WarframeApiService(worldState as never, {} as never, {} as never);
+
+  const fissure = (over: object) => ({
+    node: 'Ukko (Jupiter)',
+    missionType: 'Survival',
+    tier: 'Axi',
+    expiry: '2099-01-01T00:00:00Z',
+    expired: false,
+    isHard: false,
+    ...over,
+  });
+
+  it('티어당 2줄만 펴고 항목 0개인 티어는 마지막 한 줄로 합친다', async () => {
+    const service = build({
+      voidFissures: vi
+        .fn()
+        .mockResolvedValue([
+          fissure({ tier: 'Lith', node: 'Hepit (Void)' }),
+          fissure({ tier: 'Axi', isHard: true }),
+          fissure({ tier: 'Axi', node: 'Mot (Void)' }),
+          fissure({ tier: 'Axi', node: 'Cerberus (Pluto)' }),
+        ]),
+    });
+
+    const { text } = parts(await service.voidFissures());
+    expect(text).toContain('**Lith 1**');
+    expect(text).toContain('**Axi 3**');
+    expect(text).toContain('· **SP**');
+    expect(text).toContain('-# …and 1 more');
+    expect(text).toContain('-# Meso · Neo · Requiem · Omnia — none');
+  });
+
+  it('필터를 걸고 0개면 필터를 지우라고 말한다', async () => {
+    const service = build({ voidFissures: vi.fn().mockResolvedValue([]) });
+
+    const { text } = parts(await service.voidFissures('Requiem' as never));
+    expect(text).toContain('Nothing matches `tier:Requiem`');
+    expect(text).toContain('-# Drop the filter to see every tier');
+  });
+
+  /** 통째로 에러 화면을 띄우면 멀쩡한 둘까지 잃는다 */
+  it('사이클은 한 지역이 죽어도 자리를 남기고 실패 개수를 밝힌다', async () => {
+    const service = build({
+      cycle: vi
+        .fn()
+        .mockResolvedValueOnce({ state: 'day', expiry: '2099-01-01T02:00:00Z' })
+        .mockResolvedValueOnce({
+          state: 'warm',
+          expiry: '2099-01-01T01:00:00Z',
+        })
+        .mockRejectedValueOnce(new Error('down')),
+    });
+
+    const { text } = parts(await service.cycles());
+    // 임박한 순 — 금성(1시간)이 지구(2시간)보다 위, 실패한 데이모스는 맨 아래
+    expect(text).toContain('🔥 **Orb Vallis (Venus)** warm → cold');
+    expect(text.indexOf('Orb Vallis')).toBeLessThan(
+      text.indexOf('Plains of Eidolon'),
+    );
+    expect(text).toContain('⚠️ **Cambion Drift (Deimos)** unavailable');
+    expect(text).toContain('-# 1 of 3 regions failed to load');
   });
 });
 
@@ -128,13 +245,11 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
       }),
     });
 
-    const { title, fields } = (await service.nightwave()).data;
-    expect(title).toBe('Nightwave - Season 18');
-    expect(fields?.map((field) => field.name)).toEqual([
-      'Daily (1)',
-      'Weekly (1)',
-      'Elite Weekly (1)',
-    ]);
+    const { text } = parts(await service.nightwave());
+    expect(text).toContain('## Nightwave · Season 18');
+    expect(text).toContain('**Daily 1**');
+    expect(text).toContain('**Weekly 1**');
+    expect(text).toContain('**Elite Weekly 1**');
   });
 
   const archimedea = (typeKey: string) => ({
@@ -144,7 +259,7 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
     missions: [
       {
         missionType: 'Defense',
-        deviation: { key: 'd', name: 'Eroding Senses', description: '' },
+        deviation: { key: 'd', name: 'Eroding Senses', description: 'D' },
         risks: [
           {
             key: 'r',
@@ -168,31 +283,29 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
         ]),
     });
 
-    expect(
-      (await service.archimedea()).data.fields?.map((f) => f.name),
-    ).toEqual([
-      'Deep Archimedea',
-      'Deep Archimedea · Personal Modifiers',
-      'Temporal Archimedea',
-      'Temporal Archimedea · Personal Modifiers',
-    ]);
+    const both = parts(await service.archimedea());
+    expect(both.text).toContain('## Archimedea');
+    expect(both.text).toContain('**Deep Archimedea**');
+    expect(both.text).toContain('**Temporal Archimedea**');
 
-    const onlyHex = await service.archimedea(ArchimedeaType.Temporal);
-    expect(onlyHex.data.fields?.[0].name).toBe('Temporal Archimedea');
-    expect(onlyHex.data.fields?.[0].value).toContain('Fortified Foes (elite)');
+    const onlyHex = parts(await service.archimedea(ArchimedeaType.Temporal));
+    // 하나뿐이면 제목이 이미 말하고 있어 본문에서 라벨을 뺀다
+    expect(onlyHex.text).toContain('## Temporal Archimedea');
+    expect(onlyHex.text).not.toContain('**Temporal Archimedea**');
+    // 엘리트 위험만 굵게 — isHard의 유일한 시각적 쓸모다
+    expect(onlyHex.text).toContain('-# Risks · **Fortified Foes**');
+    expect(onlyHex.text).toContain('-# Bold risks are elite-only');
   });
 
-  it('detail이면 미션마다 필드를 쪼개고 편차·위험 설명을 붙인다', async () => {
+  it('detail이면 편차·위험마다 설명을 붙이고 elite 안내는 뺀다', async () => {
     const service = build({
       archimedeas: vi.fn().mockResolvedValue([archimedea('C T_ L A B')]),
     });
 
-    const fields = (await service.archimedea(undefined, true)).data.fields;
-    expect(fields?.map((f) => f.name)).toEqual([
-      'Deep Archimedea · Defense',
-      'Deep Archimedea · Personal Modifiers',
-    ]);
-    expect(fields?.[0].value).toContain('**Fortified Foes (elite)** — Enemies');
+    const { text } = parts(await service.archimedea(undefined, true));
+    expect(text).toContain('**Eroding Senses**\n-# D');
+    expect(text).toContain('**Fortified Foes** elite\n-# Enemies gain armor');
+    expect(text).not.toContain('Bold risks are elite-only');
   });
 });
 
@@ -211,23 +324,25 @@ describe('WarframeApiService 인카논 로테이션', () => {
   );
 
   it('스틸패스(hard) 목록만 위키 링크로 나가고 노말은 이름만 나간다', async () => {
-    const [genesis, warframes] = (await service.incarnon()).data.fields ?? [];
+    const { text } = parts(await service.incarnon());
 
     // 공백은 언더스코어, 그 외 특수문자는 인코딩해야 위키 페이지에 닿는다
-    expect(genesis.value).toBe(
-      '[Braton](https://wiki.warframe.com/w/Braton_Incarnon_Genesis)\n' +
+    expect(text).toContain(
+      '[Braton](https://wiki.warframe.com/w/Braton_Incarnon_Genesis) · ' +
         '[Ack & Brunt](https://wiki.warframe.com/w/Ack_%26_Brunt_Incarnon_Genesis)',
     );
-    expect(warframes.value).toBe('Gara, Khora');
+    expect(text).toContain('**Normal Circuit · Warframes**\nGara · Khora');
   });
 
-  it('로테이션이 비면 필드 없이 안내만 남긴다', async () => {
+  it('로테이션이 비면 안내만 남긴다', async () => {
     const empty = new WarframeApiService(
       { duviriCycle: vi.fn().mockResolvedValue({ choices: [] }) } as never,
       {} as never,
       {} as never,
     );
 
-    expect((await empty.incarnon()).data.fields).toBeUndefined();
+    const { text } = parts(await empty.incarnon());
+    expect(text).toContain('## No Circuit rotation');
+    expect(text).not.toContain('Steel Path Circuit');
   });
 });

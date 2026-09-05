@@ -1,4 +1,5 @@
 import dayjs from '@/utils/dayjs';
+import { asPush, payload, relative } from '@/utils/discord-embed';
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { Injectable } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
@@ -92,7 +93,7 @@ export class AlarmService {
   async run(alarm: AlarmConfig) {
     try {
       const targetCommand = alarm.targetCommand;
-      const embed = await this.warframeApiService.getAlarmTarget({
+      const view = await this.warframeApiService.getAlarmTarget({
         target: targetCommand.target,
         options: targetCommand.options,
       });
@@ -101,7 +102,17 @@ export class AlarmService {
       if (alarm.channelId) {
         const channel = await this.client.channels.fetch(alarm.channelId);
         if (channel?.isSendable()) {
-          await channel.send({ embeds: [embed] });
+          // 사용자가 부른 게 아니다 — 왜 이게 왔는지를 밝히지 않으면 조회 결과와 구분되지 않는다
+          await channel.send(
+            payload(
+              asPush(
+                view,
+                `🔔 Alarm · ${alarm.name} · every ${alarm.intervalValue} min`,
+                // reschedule은 발송 뒤에 돌아서 doneAt은 아직 이번 발동 시각이다
+                `${alarm.id} · next run ${relative(dayjs().add(alarm.intervalValue, 'minute'))}`,
+              ),
+            ),
+          );
         }
       }
 

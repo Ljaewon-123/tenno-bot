@@ -1,3 +1,4 @@
+import { payload } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
 import { TargetCommand } from '@/warframe-api/enum';
 import { CacheKey } from '@/warframe-api/shared/enum';
@@ -147,7 +148,7 @@ export class NotificationService {
     if (!notifications.length) return;
 
     // 변화가 감지된 순간에만 도는 경로라 임베드용 재호출 1회는 감수한다
-    const embed = await this.warframeApiService.getAlarmTarget({
+    const view = await this.warframeApiService.getAlarmTarget({
       target: eventType,
     });
 
@@ -156,7 +157,7 @@ export class NotificationService {
       notifications.map(async ({ channelId }) => {
         if (!channelId) return;
         const channel = await this.client.channels.fetch(channelId);
-        if (channel?.isSendable()) await channel.send({ embeds: [embed] });
+        if (channel?.isSendable()) await channel.send(payload(view));
       }),
     );
 

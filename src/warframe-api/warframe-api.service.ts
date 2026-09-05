@@ -1,6 +1,18 @@
 import dayjs from '@/utils/dayjs';
+import {
+  Accent,
+  accentFor,
+  bar,
+  bold,
+  card,
+  emptyCard,
+  relative,
+  subtext,
+  type Block,
+  type Line,
+} from '@/utils/discord-embed';
 import { Injectable } from '@nestjs/common';
-import { EmbedBuilder } from 'discord.js';
+import type { ButtonBuilder } from 'discord.js';
 import { DropTableService } from './drop-table/drop-table.service';
 import type { DropSource } from './drop-table/entities/drop-source.entity';
 import { DropCategory } from './drop-table/vo/enum';
@@ -13,17 +25,27 @@ import {
   ArchonImage,
   ArchonReward,
   CircuitCategory,
+  CycleIcon,
   CycleLabel,
   CycleName,
+  CycleNextState,
   VOID_TRADER_IMAGE,
   VoidTier,
 } from './world-state/vo/enum';
 import {
   Archimedea,
+  ArchimedeaCondition,
   Fissure,
   NightwaveChallenge,
+  WorldEvent,
 } from './world-state/vo/types';
 import { WorldStateService } from './world-state/world-state.service';
+
+/** 그룹당 펴는 줄 수. 넘치는 만큼은 "…and N more"로 접는다 — 안 접으면 목록 하나가 40개 한도를 뚫는다 */
+const TOP = { fissure: 2, fissureFiltered: 6, inventory: 8, drop: 6 } as const;
+
+/** 버튼은 컴포넌트가 정하지 않는다 — 어떤 버튼을 붙일지는 커맨드 핸들러가 안다 */
+type Buttons = ButtonBuilder[] | undefined;
 
 @Injectable()
 export class WarframeApiService {
@@ -34,194 +56,265 @@ export class WarframeApiService {
   ) {}
 
   /** 집정관 */
-  async archonHunt() {
+  async archonHunt(buttons?: Buttons) {
     const archon = await this.worldStateService.archonHunt();
-    const expiryTimestamp = dayjs(archon.expiry).unix();
     const image = ArchonImage[archon.boss];
-    return (
-      new EmbedBuilder()
-        .setTitle(`Archon Hunt - ${archon.boss}`)
-        .addFields(
-          { name: 'Reward Shard', value: ArchonReward[archon.boss] },
-          { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
+
+    return card({
+      accent: accentFor(archon.expiry),
+      title: `Archon Hunt · ${archon.boss}`,
+      subtitle: `Resets ${relative(archon.expiry)}`,
+      // 보스는 엠블럼이라 80px 썸네일에서도 읽힌다 — V2에는 Section 액세서리가 유일한 썸네일 자리다
+      thumbnail: this.wfcdItemsService.imgUrl(image.boss),
+      // 샤드는 256px라 큰 슬롯을 써도 폭을 다 먹지 않는다
+      image: this.wfcdItemsService.imgUrl(image.shard),
+      blocks: [
+        [
           {
-            name: 'Missions',
-            value: archon.missions
-              .map((mission) => `${mission.node} - ${mission.type}`)
-              .join('\n'),
+            lines: archon.missions.map(
+              (mission, index) =>
+                `${index + 1} · ${bold(mission.node)} — ${mission.type}`,
+            ),
           },
-        )
-        // 보스는 바로키와 같은 썸네일(80px) 슬롯 — author 아이콘은 24px 고정이라 못 키운다
-        .setThumbnail(this.wfcdItemsService.imgUrl(image.boss))
-        // 큰 슬롯은 원본 해상도대로 그려진다(상한 아래일 때). 샤드는 256px라 폭을 다 먹지 않는다.
-        // 더 줄이려면 리사이즈한 파일을 우리가 들고 attachment로 붙이는 수밖에 없다.
-        .setImage(this.wfcdItemsService.imgUrl(image.shard))
-        .setColor(0x5865f2)
-    );
+        ],
+        [`Reward Shard · ${bold(ArchonReward[archon.boss])}`],
+      ],
+      buttons,
+    });
   }
-  /** 출격 (소티) */
-  async sortie() {
+
+  /** 출격 (소티) — 조건 문장이 미션명보다 길어서 노드/타입이 굵은 줄, 조건이 회색 줄이다 */
+  async sortie(buttons?: Buttons) {
     const sortie = await this.worldStateService.sortie();
-    const expiryTimestamp = dayjs(sortie.expiry).unix();
-    return new EmbedBuilder()
-      .setTitle('Sortie')
-      .setDescription(`Boss: ${sortie.boss}`)
-      .addFields(
-        { name: 'Time Remaining', value: `<t:${expiryTimestamp}:R>` },
-        {
-          name: 'Missions',
-          value: sortie.variants
-            .map(
-              (variant) =>
-                `${variant.node} - ${variant.missionType} (${variant.modifierDescription})`,
-            )
-            .join('\n'),
-        },
-      )
-      .setColor(0x5865f2);
+
+    return card({
+      accent: accentFor(sortie.expiry),
+      title: `Sortie · ${sortie.boss}`,
+      subtitle: `Resets ${relative(sortie.expiry)}`,
+      // 미션 사이는 구분선이 아니라 빈 줄 — 셋은 같은 종류라 위계가 아니라 순서만 있다
+      blocks: [
+        sortie.variants.map((variant, index) => ({
+          lines: [
+            bold(`${index + 1} · ${variant.node} — ${variant.missionType}`),
+            subtext(variant.modifierDescription),
+          ],
+        })),
+      ],
+      buttons,
+    });
   }
 
-  /** 이벤트 */
-  async events() {
+  /** 이벤트 — 평소 0개가 기본 화면이라 빈 상태를 사과문이 아니라 안내로 쓴다 */
+  async events(buttons?: Buttons) {
     const events = await this.worldStateService.events();
-    const activeEvents = events.filter((event) => !event.expired);
+    const active = events.filter((event) => !event.expired);
 
-    const embed = new EmbedBuilder().setTitle('Events').setColor(0x5865f2);
+    if (!active.length)
+      return emptyCard(
+        'No active events',
+        'Operations run a few times a year. Nothing is live right now.',
+        'Use /notification on event:events to get pinged when one starts',
+      );
 
-    if (activeEvents.length === 0) {
-      return embed.setDescription('No active events currently.');
-    }
-
-    embed.addFields(
-      activeEvents.slice(0, 25).map((event) => {
-        const expiryTimestamp = dayjs(event.expiry).unix();
-        const lines = [
-          event.node && `Location: ${event.node}`,
-          event.tooltip,
-          `Time Remaining: <t:${expiryTimestamp}:R>`,
-        ].filter((line): line is string => Boolean(line));
-
-        return {
-          name: event.description.slice(0, 256),
-          value: lines.join('\n').slice(0, 1024),
-        };
-      }),
-    );
-    return embed;
+    return card({
+      accent: accentFor(active[0].expiry),
+      title: `Active Events · ${active.length}`,
+      // 이벤트는 종류마다 페이로드가 달라 없는 필드는 "N/A"가 아니라 아예 빼는 게 유일한 안전책
+      blocks: active.map((event) => [
+        {
+          heading: event.description,
+          lines: [
+            [event.node, `ends ${relative(event.expiry)}`]
+              .filter(Boolean)
+              .join(' · '),
+            this.scoreLine(event),
+            event.rewardTypes?.length
+              ? `Rewards: ${event.rewardTypes.join(' · ')}`
+              : undefined,
+            event.tooltip && subtext(event.tooltip),
+          ],
+        },
+      ]),
+      buttons,
+    });
   }
 
-  /** 보이드 균열 */
-  async voidFissures(options?: VoidTier) {
+  /** 이벤트는 "얼마나 남았나"보다 "얼마나 찼나"가 행동을 만든다 */
+  private scoreLine(event: WorldEvent): Line {
+    const { currentScore, maximumScore } = event;
+    if (!currentScore || !maximumScore) return undefined;
+    return `${bar((currentScore / maximumScore) * 100)} ${currentScore.toLocaleString()} / ${maximumScore.toLocaleString()}`;
+  }
+
+  /** 보이드 균열 — 티어가 6개라 그룹당 상위 몇 줄만 펴고 접는다 */
+  async voidFissures(options?: VoidTier, buttons?: Buttons) {
     const fissures = await this.worldStateService.voidFissures(options);
-    const activeByTier = fissures
-      .filter((fissure) => !fissure.expired)
-      .reduce<Record<string, Fissure[]>>((acc, fissure) => {
-        (acc[fissure.tier] ??= []).push(fissure);
-        return acc;
-      }, {});
+    const active = fissures.filter((fissure) => !fissure.expired);
 
-    const embed = new EmbedBuilder()
-      .setTitle('Void Fissures')
-      .setColor(0x5865f2);
+    if (!active.length)
+      return emptyCard(
+        'No active fissures',
+        options
+          ? `Nothing matches \`tier:${options}\` right now.`
+          : 'The relays are quiet.',
+        options && 'Drop the filter to see every tier',
+      );
 
+    const byTier = active.reduce<Record<string, Fissure[]>>((acc, fissure) => {
+      (acc[fissure.tier] ??= []).push(fissure);
+      return acc;
+    }, {});
+    // 티어 하나만 보자고 필터를 건 사람에게 2줄만 주면 필터를 건 의미가 없다
+    const top = options ? TOP.fissureFiltered : TOP.fissure;
+
+    const groups: Block[][] = [];
+    const empty: string[] = [];
     for (const tier of Object.values(VoidTier)) {
-      const fissuresInTier = activeByTier[tier];
-      if (!fissuresInTier?.length) continue;
+      const list = (byTier[tier] ?? []).sort((a, b) =>
+        dayjs(a.expiry).diff(b.expiry),
+      );
+      // 항목 0개인 티어는 블록을 만들지 않고 마지막 한 줄로 합친다 — "없음"도 정보다
+      if (!list.length) {
+        empty.push(tier);
+        continue;
+      }
 
-      embed.addFields({
-        name: tier,
-        value: fissuresInTier
-          .map(
+      groups.push([
+        {
+          heading: `${tier} ${list.length}`,
+          lines: list.slice(0, top).map(
             (fissure) =>
-              `${fissure.node} - ${fissure.missionType} (${fissure.enemy})${fissure.isHard ? ' [Steel Path]' : ''}`,
-          )
-          .join('\n')
-          .slice(0, 1024),
-      });
+              `- ${bold(fissure.node)} — ${fissure.missionType}${
+                // Steel Path는 이모지가 아니라 굵은 축약 — 줄 끝의 남은 시간이 밀리지 않는다
+                fissure.isHard ? ` · ${bold('SP')}` : ''
+              } ${relative(fissure.expiry)}`,
+          ),
+          more:
+            list.length > top ? `…and ${list.length - top} more` : undefined,
+        },
+      ]);
     }
-    return embed;
+    if (empty.length) groups.push([subtext(`${empty.join(' · ')} — none`)]);
+
+    return card({
+      title: 'Void Fissures',
+      subtitle: `${active.length} active · soonest first`,
+      blocks: groups,
+      buttons,
+    });
   }
 
-  /** 보이드 상인 (바로 키티어) */
-  async voidTrader() {
+  /** 보이드 상인 (바로 키티어) — 부재가 대부분의 시간이라 부재 화면이 따로 있다 */
+  async voidTrader(buttons?: Buttons) {
     const trader = await this.worldStateService.voidTrader();
     const now = dayjs();
-    const isActive =
+    const active =
       now.isAfter(trader.activation) && now.isBefore(trader.expiry);
-    const nextTimestamp = dayjs(
-      isActive ? trader.expiry : trader.activation,
-    ).unix();
+    // 바로 본인은 썸네일 — 큰 슬롯에 넣으면 512px 초상화가 카드를 잡아먹는다
+    const thumbnail = this.wfcdItemsService.imgUrl(VOID_TRADER_IMAGE);
 
-    const embed = new EmbedBuilder()
-      .setTitle(`Void Trader - ${trader.character}`)
-      .setDescription(`Location: ${trader.location}`)
-      .addFields({
-        name: isActive ? 'Departs' : 'Arrives',
-        value: `<t:${nextTimestamp}:R>`,
-      })
-      // 바로 본인은 상단 썸네일 — 큰 슬롯에 넣으면 512px 초상화가 임베드를 잡아먹는다.
-      // 썸네일은 80px 고정이라 크기 조절 대신 슬롯을 바꾸는 게 유일한 방법.
-      .setThumbnail(this.wfcdItemsService.imgUrl(VOID_TRADER_IMAGE))
-      .setColor(0x5865f2);
-
-    if (isActive && trader.inventory.length) {
-      embed.addFields({
-        name: 'Inventory',
-        value: trader.inventory
-          .map((item) => `${item.item} - ${item.ducats}dt / ${item.credits}cr`)
-          .join('\n')
-          .slice(0, 1024),
+    if (!active)
+      return card({
+        // 지금 할 게 없다는 상태다 — 재고가 없으므로 카운트다운 하나만 남긴다
+        accent: Accent.Muted,
+        title: `${trader.character} is away`,
+        subtitle: `Arrives ${relative(trader.activation)} · stays 48 hours`,
+        thumbnail,
+        blocks: [],
+        buttons,
+        footer: 'Inventory is unknown until he arrives',
       });
 
-      // 남은 큰 슬롯은 인벤토리 첫 아이템으로 대표 (아이템 이미지가 없는 항목이면 그냥 비운다)
-      const imageUrl = this.wfcdItemsService.findItemImg(
-        trader.inventory[0].uniqueName,
-      );
-      if (imageUrl) embed.setImage(imageUrl);
-    }
-
-    return embed;
+    const stock = trader.inventory;
+    return card({
+      accent: accentFor(trader.expiry),
+      title: `${trader.character} · ${trader.location}`,
+      subtitle: `Departs ${relative(trader.expiry)} · ${stock.length} items`,
+      thumbnail,
+      blocks: [
+        [
+          {
+            // API는 카테고리를 주지 않는다 — 모드/무기로 나누려면 재고마다 아이템 DB를 뒤져야 해서 한 목록으로 둔다
+            lines: stock
+              .slice(0, TOP.inventory)
+              .map(
+                (item) =>
+                  `- ${bold(item.item)} · ${item.ducats}dt / ${item.credits.toLocaleString()}cr`,
+              ),
+            more:
+              stock.length > TOP.inventory
+                ? `…and ${stock.length - TOP.inventory} more`
+                : undefined,
+          },
+        ],
+      ],
+      buttons,
+      footer: 'dt = ducats',
+    });
   }
 
-  /** 오픈월드 낮/밤 사이클 — 셋을 따로 볼 이유가 없어 한 임베드에 모은다 */
-  async cycles() {
+  /**
+   * 오픈월드 낮/밤 사이클 — 셋을 따로 볼 이유가 없어 한 카드에 모은다.
+   * V2에는 3열 격자가 없다. 대신 임박한 순 세로 스택이라 지역이 늘어도 줄만 늘어난다.
+   */
+  async cycles(buttons?: Buttons) {
     const names = Object.values(CycleName);
-    // 한 곳이 죽어도 나머지는 보여준다 — 사이클 셋은 서로 무관한 엔드포인트다
+    // 한 곳이 죽어도 나머지는 보여준다 — 통째로 에러를 띄우면 멀쩡한 둘까지 잃는다
     const results = await Promise.allSettled(
       names.map(async (name) => this.worldStateService.cycle(name)),
     );
 
-    return new EmbedBuilder()
-      .setTitle('World Cycles')
-      .setColor(0x5865f2)
-      .addFields(
-        names.map((name, index) => {
-          const result = results[index];
-          return {
-            name: CycleLabel[name],
-            value:
-              result.status === 'fulfilled'
-                ? `**${result.value.state}**\n<t:${dayjs(result.value.expiry).unix()}:R>`
-                : 'unavailable',
-            inline: true,
-          };
-        }),
-      );
+    const rows = names
+      .map((name, index) => ({ name, result: results[index] }))
+      .sort((a, b) => {
+        // 실패한 지역은 정렬 기준이 없으므로 항상 뒤로 민다
+        if (a.result.status !== 'fulfilled') return 1;
+        if (b.result.status !== 'fulfilled') return -1;
+        return dayjs(a.result.value.expiry).diff(b.result.value.expiry);
+      });
+
+    const soonest = rows[0]?.result;
+    const failed = rows.filter((row) => row.result.status !== 'fulfilled');
+
+    return card({
+      accent:
+        soonest?.status === 'fulfilled'
+          ? accentFor(soonest.value.expiry)
+          : Accent.Error,
+      title: 'World Cycles',
+      blocks: [
+        [
+          {
+            lines: rows.map(({ name, result }) => {
+              const label = bold(CycleLabel[name]);
+              // 실패한 지역도 자리를 남긴다 — 줄이 사라지면 지역이 없어진 것처럼 읽힌다
+              if (result.status !== 'fulfilled')
+                return `⚠️ ${label} unavailable`;
+
+              const next = CycleNextState[result.value.state];
+              const state = next
+                ? `${result.value.state} → ${next}`
+                : result.value.state;
+              return `${CycleIcon[name]} ${label} ${state} ${relative(result.value.expiry)}`;
+            }),
+          },
+        ],
+      ],
+      buttons,
+      footer:
+        failed.length > 0 &&
+        `${failed.length} of ${rows.length} regions failed to load`,
+    });
   }
 
   /** 나이트웨이브 — 일일/주간/엘리트로 나눠 보여준다 */
-  async nightwave() {
+  async nightwave(buttons?: Buttons) {
     const nightwave = await this.worldStateService.nightwave();
     const now = dayjs();
     // possibleChallenges에는 아직 안 뜬 것까지 들어있고, activeChallenges에도 기간이 지난 게 남는다
     const active = nightwave.activeChallenges.filter((challenge) =>
       now.isBefore(challenge.expiry),
     );
-
-    const embed = new EmbedBuilder()
-      .setTitle(`Nightwave - Season ${nightwave.season}`)
-      .setDescription(`Season ends <t:${dayjs(nightwave.expiry).unix()}:R>`)
-      .setColor(0x5865f2);
 
     const groups: [string, NightwaveChallenge[]][] = [
       ['Daily', active.filter((challenge) => challenge.isDaily)],
@@ -232,24 +325,25 @@ export class WarframeApiService {
       ['Elite Weekly', active.filter((challenge) => challenge.isElite)],
     ];
 
-    for (const [label, challenges] of groups) {
-      if (!challenges.length) continue;
-      embed.addFields({
-        name: `${label} (${challenges.length})`,
-        value: challenges
-          .map(
-            (challenge) =>
-              `**${challenge.title}** · ${challenge.reputation} rep\n${challenge.desc} — <t:${dayjs(challenge.expiry).unix()}:R>`,
-          )
-          .join('\n')
-          .slice(0, 1024),
-      });
-    }
-    return embed;
+    return card({
+      accent: accentFor(nightwave.expiry),
+      title: `Nightwave · Season ${nightwave.season}`,
+      subtitle: `Season ends ${relative(nightwave.expiry)}`,
+      blocks: groups.map(([label, challenges]) => [
+        challenges.length > 0 && {
+          heading: `${label} ${challenges.length}`,
+          lines: challenges.flatMap((challenge) => [
+            `- ${bold(challenge.title)} · ${challenge.reputation} rep`,
+            subtext(`${challenge.desc} — ${relative(challenge.expiry)}`),
+          ]),
+        },
+      ]),
+      buttons,
+    });
   }
 
   /** 아르키메디아 (심층/시간) — 옵션이 없으면 둘 다, detail이면 편차·위험 설명까지 */
-  async archimedea(type?: ArchimedeaType, detail = false) {
+  async archimedea(type?: ArchimedeaType, detail = false, buttons?: Buttons) {
     const archimedeas = await this.worldStateService.archimedeas();
     // typeKey가 "C T_ L A B"처럼 쪼개져 오므로 공백을 지워야 enum과 맞는다
     const keyOf = (archimedea: Archimedea) =>
@@ -258,58 +352,65 @@ export class WarframeApiService {
       ? archimedeas.filter((archimedea) => keyOf(archimedea) === type)
       : archimedeas;
 
-    const embed = new EmbedBuilder().setTitle('Archimedea').setColor(0x5865f2);
-
-    if (!targets.length) {
-      return embed.setDescription('No active Archimedea currently.');
-    }
-
-    embed.setDescription(`Resets <t:${dayjs(targets[0].expiry).unix()}:R>`);
-
-    for (const archimedea of targets) {
-      const label = ArchimedeaLabel[keyOf(archimedea)] ?? archimedea.typeKey;
-      // 설명까지 넣으면 미션 3개로 1024자를 넘기므로, detail일 때만 미션당 필드를 쪼갠다
-      embed.addFields(
-        ...(detail
-          ? archimedea.missions.map((mission) => ({
-              name: `${label} · ${mission.missionType}`.slice(0, 256),
-              value: [
-                `**${mission.deviation.name}** — ${mission.deviation.description}`,
-                ...mission.risks.map(
-                  (risk) =>
-                    `**${risk.name}${risk.isHard ? ' (elite)' : ''}** — ${risk.description}`,
-                ),
-              ]
-                .join('\n')
-                .slice(0, 1024),
-            }))
-          : [
-              {
-                name: label.slice(0, 256),
-                value: archimedea.missions
-                  .map(
-                    (mission) =>
-                      `**${mission.missionType}** · ${mission.deviation.name}\n↳ ${mission.risks
-                        .map(
-                          (risk) =>
-                            `${risk.name}${risk.isHard ? ' (elite)' : ''}`,
-                        )
-                        .join(', ')}`,
-                  )
-                  .join('\n')
-                  .slice(0, 1024),
-              },
-            ]),
-        {
-          name: `${label} · Personal Modifiers`.slice(0, 256),
-          value: archimedea.personalModifiers
-            .map((modifier) => `**${modifier.name}** — ${modifier.description}`)
-            .join('\n')
-            .slice(0, 1024),
-        },
+    if (!targets.length)
+      return emptyCard(
+        'No active Archimedea',
+        'Nothing is running right now.',
+        'It rotates weekly',
       );
+
+    const labelOf = (archimedea: Archimedea) =>
+      ArchimedeaLabel[keyOf(archimedea)] ?? archimedea.typeKey;
+
+    const blocks: Block[][] = [];
+    for (const archimedea of targets) {
+      blocks.push([
+        // 둘 다 나올 때만 어느 쪽인지 밝힌다 — 하나뿐이면 제목이 이미 말하고 있다
+        targets.length > 1 && bold(labelOf(archimedea)),
+        ...archimedea.missions.map((mission, index) => ({
+          heading: `${index + 1} · ${mission.missionType}`,
+          lines: detail
+            ? [mission.deviation, ...mission.risks].flatMap((condition) => [
+                this.conditionName(condition),
+                subtext(condition.description),
+              ])
+            : [
+                `Deviation ${bold(mission.deviation.name)}`,
+                // 엘리트에만 붙는 위험만 굵게 — 미사용이던 isHard의 유일한 시각적 쓸모다
+                subtext(
+                  `Risks · ${mission.risks
+                    .map((risk) => (risk.isHard ? bold(risk.name) : risk.name))
+                    .join(' · ')}`,
+                ),
+              ],
+        })),
+      ]);
+      blocks.push([
+        {
+          heading: `Personal Modifiers · ${archimedea.personalModifiers.length}`,
+          lines: [
+            subtext(
+              archimedea.personalModifiers
+                .map((modifier) => modifier.name)
+                .join(' · '),
+            ),
+          ],
+        },
+      ]);
     }
-    return embed;
+
+    return card({
+      accent: accentFor(targets[0].expiry),
+      title: targets.length === 1 ? labelOf(targets[0]) : 'Archimedea',
+      subtitle: `Resets ${relative(targets[0].expiry)}`,
+      blocks,
+      buttons,
+      footer: !detail && 'Bold risks are elite-only',
+    });
+  }
+
+  private conditionName(condition: ArchimedeaCondition) {
+    return `${bold(condition.name)}${condition.isHard ? ' elite' : ''}`;
   }
 
   /** 서킷 로테이션은 매주 월요일 00:00 UTC에 바뀐다 — duviriCycle의 expiry는 2시간짜리 무드 사이클이라 못 쓴다 */
@@ -329,60 +430,63 @@ export class WarframeApiService {
    * 이번 주 서킷 로테이션. 스틸패스(hard) 목록이 이번 주에 얻을 수 있는 인카논 제네시스다.
    * 진화 퍽·설치 재료는 어느 API에도 없다(위키 표가 유일한 출처) — 위키 링크로 넘긴다.
    */
-  async incarnon() {
+  async incarnon(buttons?: Buttons) {
     const { choices } = await this.worldStateService.duviriCycle();
     const pick = (category: CircuitCategory) =>
       choices.find((choice) => choice.categoryKey === category)?.choices ?? [];
     const genesis = pick(CircuitCategory.Hard);
     const warframes = pick(CircuitCategory.Normal);
 
-    const embed = new EmbedBuilder()
-      .setTitle('Incarnon Genesis - This Week')
-      .setColor(0x5865f2);
+    if (!genesis.length)
+      return emptyCard(
+        'No Circuit rotation',
+        'The weekly rotation has not been published yet.',
+        'It resets Monday 00:00 UTC',
+      );
 
-    if (!genesis.length) {
-      return embed.setDescription('No Circuit rotation data currently.');
-    }
-
-    embed
-      .setDescription(`Rotation resets <t:${this.nextCircuitReset().unix()}:R>`)
-      .addFields({
-        name: 'Steel Path Circuit',
-        value: genesis
-          .map((weapon) => this.genesisWikiLink(weapon))
-          .join('\n')
-          .slice(0, 1024),
-      });
-
-    if (warframes.length) {
-      embed.addFields({
-        name: 'The Circuit',
-        value: warframes.join(', ').slice(0, 1024),
-      });
-    }
-
-    // 어댑터 아이콘만 CDN에 있다 — 인카논 폼 무기 아트는 wfcd items에 없다(위키 파일뿐)
-    const thumbnail = this.wfcdItemsService.findItemImgByName(
-      `${genesis[0]} Incarnon Genesis`,
-    );
-    if (thumbnail) embed.setThumbnail(thumbnail);
-
-    return embed;
+    return card({
+      title: 'Incarnon Genesis · This Week',
+      subtitle: `Rotates ${relative(this.nextCircuitReset())}`,
+      // 어댑터 아이콘만 CDN에 있다 — 인카논 폼 무기 아트는 wfcd items에 없다(위키 파일뿐)
+      thumbnail: this.wfcdItemsService.findItemImgByName(
+        `${genesis[0]} Incarnon Genesis`,
+      ),
+      // 데이터가 문자열 배열 둘뿐이라 세로 목록으로 펴면 정보량 대비 길이가 과하다
+      blocks: [
+        [
+          {
+            heading: 'Steel Path Circuit · Weapons',
+            lines: [
+              genesis.map((weapon) => this.genesisWikiLink(weapon)).join(' · '),
+            ],
+          },
+          warframes.length > 0 && {
+            heading: 'Normal Circuit · Warframes',
+            lines: [warframes.join(' · ')],
+          },
+        ],
+      ],
+      buttons,
+      footer: 'Resets Monday 00:00 UTC',
+    });
   }
 
-  async dropSources(itemName: string, category?: DropCategory) {
+  async dropSources(
+    itemName: string,
+    category?: DropCategory,
+    buttons?: Buttons,
+  ) {
     const sources = await this.dropTableService.findDropSources(
       itemName,
       category,
     );
 
-    const embed = new EmbedBuilder()
-      .setTitle(`Drop Sources - ${itemName}`)
-      .setColor(0x5865f2);
-
-    if (!sources.length) {
-      return embed.setDescription('No drop sources found.');
-    }
+    if (!sources.length)
+      return emptyCard(
+        `No drop sources · ${itemName}`,
+        'Nothing in the drop tables matches that name.',
+        category && `Drop \`category:${category}\` to widen the search`,
+      );
 
     // 부분 일치라 여러 아이템이 잡힐 수 있어 아이템별로 묶는다
     const byItem = sources.reduce<Record<string, DropSource[]>>(
@@ -395,30 +499,50 @@ export class WarframeApiService {
 
     // 썸네일/설명은 하나뿐이라 첫 아이템으로 대표한다 (자동완성으로 고르면 보통 한 개다)
     const item = this.wfcdItemsService.findItemByName(Object.keys(byItem)[0]);
+    // 모드 카드는 세로 3:4라 80px 썸네일에 넣으면 읽히지 않는다 → 큰 슬롯으로 보낸다
     const modCard = item?.levelStats?.length ? item.wikiaThumbnail : undefined;
-    if (modCard) {
-      // 모드 카드 이미지에 이름·최대 랭크 수치·설명이 전부 박혀 있다. 텍스트로 옮겨 적지 않는다
-      embed.setImage(modCard);
-    } else {
-      if (item?.imageName) {
-        embed.setThumbnail(this.wfcdItemsService.imgUrl(item.imageName));
-      }
-      const detail = this.itemDetail(item);
-      if (detail) embed.setDescription(detail);
-    }
+    // 카드 이미지에 이름·최대 랭크 수치·설명이 전부 박혀 있다. 텍스트로 옮겨 적지 않는다
+    const detail = modCard ? undefined : this.itemDetail(item);
 
-    embed.addFields(
-      Object.entries(byItem)
-        .slice(0, 25)
-        .map(([name, list]) => ({
-          name: name.slice(0, 256),
-          value: list
-            .map((source) => `${source.sourceName} - ${source.chance}%`)
-            .join('\n')
-            .slice(0, 1024),
-        })),
-    );
-    return embed;
+    return card({
+      title: `Drop Sources · ${itemName}`,
+      subtitle: `${sources.length} sources · showing top ${TOP.drop} by chance`,
+      thumbnail:
+        !modCard && item?.imageName
+          ? this.wfcdItemsService.imgUrl(item.imageName)
+          : undefined,
+      image: modCard,
+      blocks: [
+        [detail],
+        ...Object.entries(byItem).map(([name, list]): Block[] => [
+          this.dropGroup(name, list),
+        ]),
+      ],
+      buttons,
+      footer: 'Bar is relative to the best source, not absolute',
+    });
+  }
+
+  /** 확률은 숫자만으로 위계가 안 보인다 — 최고 확률 대비 상대 막대를 붙인다(절대 막대는 1%가 안 보인다) */
+  private dropGroup(name: string, list: DropSource[]): Block {
+    const sorted = [...list].sort((a, b) => b.chance - a.chance);
+    const best = sorted[0].chance;
+
+    return {
+      heading: name,
+      lines: sorted.slice(0, TOP.drop).map((source) => {
+        // relic은 이름에 이미 드러나므로 꼬리표를 붙이지 않는다
+        const tail =
+          source.category && source.category !== DropCategory.Relic
+            ? ` (${source.category})`
+            : '';
+        return `- ${source.sourceName}${tail} ${bar((source.chance / best) * 100)} ${source.chance}%`;
+      }),
+      more:
+        sorted.length > TOP.drop
+          ? `…and ${sorted.length - TOP.drop} more`
+          : undefined,
+    };
   }
 
   /** 모드는 최대 랭크 효과, 그 외 아이템은 설명문. 카드 이미지가 없을 때 쓰는 대체 표기 */
@@ -438,7 +562,7 @@ export class WarframeApiService {
     );
   }
 
-  /** 알람용 디스패치 — 슬래시 커맨드와 동일한 임베드를 만든다 */
+  /** 알람용 디스패치 — 슬래시 커맨드와 동일한 카드를 만든다 */
   async getAlarmTarget(request: AlarmRequest) {
     switch (request.target) {
       case TargetCommand.ArchonHunt:

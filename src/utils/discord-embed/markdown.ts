@@ -24,10 +24,11 @@ export const relative = (date: ConfigType) => `<t:${dayjs(date).unix()}:R>`;
 export const at = (date: ConfigType) => `<t:${dayjs(date).unix()}:t>`;
 
 /**
- * "▰▰▰▱▱▱▱▱ 38%" — 8칸 고정 텍스트 배지.
- * 디스코드에 진행바 그래픽은 없다. 칸 수를 데이터에 따라 늘리면 폭이 흔들려 모바일에서 줄이 접힌다.
+ * "▰▰▰▱▱▱▱▱" — 8칸 고정 텍스트 배지. 디스코드에 진행바 그래픽은 없다.
+ * 칸 수를 데이터에 따라 늘리면 폭이 흔들려 모바일에서 줄이 접힌다.
+ * 숫자는 붙이지 않는다 — 옆에 세울 값(실제 확률·점수)은 호출단이 안다.
  */
 export const bar = (percent: number) => {
   const filled = Math.min(8, Math.max(0, Math.round(percent / 12.5)));
-  return `${'▰'.repeat(filled)}${'▱'.repeat(8 - filled)} ${Math.round(percent)}%`;
+  return `${'▰'.repeat(filled)}${'▱'.repeat(8 - filled)}`;
 };

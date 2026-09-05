@@ -1,8 +1,8 @@
 import { CreatePartyCommand } from '@/party/dto/create-party.command.dto';
-import { PartyMessageService } from '@/party/party-message.service';
+import { PartyMessageService, partyLine } from '@/party/party-message.service';
 import { PartyService } from '@/party/party.service';
+import { emptyCard, manageCard, payload } from '@/utils/discord-embed';
 import { Injectable } from '@nestjs/common';
-import { EmbedBuilder } from 'discord.js';
 import {
   Button,
   ComponentParam,
@@ -13,6 +13,7 @@ import {
   type SlashCommandContext,
 } from 'necord';
 import { PartyCommands } from './decorators/party-commands.decorator';
+import { guildOnly } from './guild-only';
 
 @PartyCommands()
 @Injectable()
@@ -27,9 +28,8 @@ export class PartyCommandService {
     @Context() [interaction]: SlashCommandContext,
     @Options() { name, mission, size }: CreatePartyCommand,
   ) {
-    if (!interaction.guildId) {
-      return interaction.editReply({ content: 'This command is guild-only.' });
-    }
+    if (!interaction.guildId) return interaction.editReply(guildOnly());
+
     const party = await this.partyService.create({
       guildId: interaction.guildId,
       channelId: interaction.channelId,
@@ -47,33 +47,30 @@ export class PartyCommandService {
 
   @Subcommand({ name: 'list', description: 'Show open parties' })
   async list(@Context() [interaction]: SlashCommandContext) {
-    if (!interaction.guildId) {
-      return interaction.editReply({ content: 'This command is guild-only.' });
-    }
+    if (!interaction.guildId) return interaction.editReply(guildOnly());
+
     const parties = await this.partyService.list(interaction.guildId);
 
-    const embed = new EmbedBuilder().setTitle('Parties').setColor(0x5865f2);
+    if (!parties.length)
+      return interaction.editReply(
+        payload(
+          emptyCard(
+            'No open parties',
+            'Nobody is recruiting right now.',
+            '/party create to open one',
+          ),
+        ),
+      );
 
-    if (!parties.length) {
-      return interaction.editReply({
-        embeds: [embed.setDescription('No open parties.')],
-      });
-    }
-
-    // 임베드 필드는 25개까지
-    embed.addFields(
-      parties.slice(0, 25).map((party) => ({
-        name: party.name.slice(0, 256),
-        value: [
-          `${party.mission} · ${party.members.length}/${party.partySize}`,
-          `host <@${party.hostUserId}>`,
-        ]
-          .filter((line): line is string => Boolean(line))
-          .join('\n')
-          .slice(0, 1024),
-      })),
+    return interaction.editReply(
+      payload(
+        manageCard({
+          title: `Open Parties · ${parties.length}`,
+          rows: parties.map((party) => ({ text: partyLine(party) })),
+          footer: 'Join from the recruiting message in its own channel',
+        }),
+      ),
     );
-    return interaction.editReply({ embeds: [embed] });
   }
 
   @Button('party/join/:id')
@@ -84,12 +81,8 @@ export class PartyCommandService {
     const party = await this.partyService.join(id, interaction.user.id);
     await interaction.update(this.partyMessage.build(party));
 
-    // 임베드 갱신만으론 알림이 안 뜬다 — 정원이 찬 순간만 별개 메시지로 멘션
-    if (party.members.length >= party.partySize) {
-      await interaction.followUp({
-        content: `파티가 가득 찼습니다! ${party.members.map((userId) => `<@${userId}>`).join(' ')}`,
-      });
-    }
+    if (party.members.length >= party.partySize)
+      await interaction.followUp(this.partyMessage.fullNotice(party));
   }
 
   @Button('party/leave/:id')

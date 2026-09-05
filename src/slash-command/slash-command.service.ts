@@ -1,3 +1,4 @@
+import { payload } from '@/utils/discord-embed';
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { Injectable, UseInterceptors } from '@nestjs/common';
 import type { SlashCommandContext } from 'necord';
@@ -17,7 +18,7 @@ export class SlashCommandService {
   })
   async archonHunt(@Context() [interaction]: SlashCommandContext) {
     const archon = await this.warframeApi.archonHunt();
-    return interaction.editReply({ embeds: [archon] });
+    return interaction.editReply(payload(archon));
   }
 
   @SlashCommand({
@@ -26,7 +27,7 @@ export class SlashCommandService {
   })
   async sortie(@Context() [interaction]: SlashCommandContext) {
     const sortie = await this.warframeApi.sortie();
-    return interaction.editReply({ embeds: [sortie] });
+    return interaction.editReply(payload(sortie));
   }
 
   @SlashCommand({
@@ -35,7 +36,7 @@ export class SlashCommandService {
   })
   async events(@Context() [interaction]: SlashCommandContext) {
     const events = await this.warframeApi.events();
-    return interaction.editReply({ embeds: [events] });
+    return interaction.editReply(payload(events));
   }
 
   @SlashCommand({
@@ -47,7 +48,7 @@ export class SlashCommandService {
     @Options() { tier }: VoidFissuresCommand,
   ) {
     const voidFissures = await this.warframeApi.voidFissures(tier);
-    return interaction.editReply({ embeds: [voidFissures] });
+    return interaction.editReply(payload(voidFissures));
   }
 
   @SlashCommand({
@@ -56,7 +57,7 @@ export class SlashCommandService {
   })
   async voidTrader(@Context() [interaction]: SlashCommandContext) {
     const voidTrader = await this.warframeApi.voidTrader();
-    return interaction.editReply({ embeds: [voidTrader] });
+    return interaction.editReply(payload(voidTrader));
   }
 
   @SlashCommand({
@@ -65,7 +66,7 @@ export class SlashCommandService {
   })
   async cycles(@Context() [interaction]: SlashCommandContext) {
     const cycles = await this.warframeApi.cycles();
-    return interaction.editReply({ embeds: [cycles] });
+    return interaction.editReply(payload(cycles));
   }
 
   @SlashCommand({
@@ -74,7 +75,7 @@ export class SlashCommandService {
   })
   async nightwave(@Context() [interaction]: SlashCommandContext) {
     const nightwave = await this.warframeApi.nightwave();
-    return interaction.editReply({ embeds: [nightwave] });
+    return interaction.editReply(payload(nightwave));
   }
 
   /** 인게임에서 이름이 Shockwave로 바뀌어 둘 다 찾을 수 있게 별칭을 남긴다 */
@@ -95,7 +96,7 @@ export class SlashCommandService {
     @Options() { type, detail }: ArchimedeaCommand,
   ) {
     const archimedea = await this.warframeApi.archimedea(type, detail);
-    return interaction.editReply({ embeds: [archimedea] });
+    return interaction.editReply(payload(archimedea));
   }
 
   @SlashCommand({
@@ -104,7 +105,7 @@ export class SlashCommandService {
   })
   async incarnon(@Context() [interaction]: SlashCommandContext) {
     const incarnon = await this.warframeApi.incarnon();
-    return interaction.editReply({ embeds: [incarnon] });
+    return interaction.editReply(payload(incarnon));
   }
 
   @UseInterceptors(DropItemAutocompleteInterceptor)
@@ -117,6 +118,6 @@ export class SlashCommandService {
     @Options() { itemName, category }: DropCommand,
   ) {
     const dropSources = await this.warframeApi.dropSources(itemName, category);
-    return interaction.editReply({ embeds: [dropSources] });
+    return interaction.editReply(payload(dropSources));
   }
 }

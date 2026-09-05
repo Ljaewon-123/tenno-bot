@@ -1,3 +1,4 @@
+import { card } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AlarmService } from './alarm.service';
@@ -32,7 +33,9 @@ const build = (pending: AlarmConfig[] = []) => {
     create: vi.fn((value: object) => value),
     delete: vi.fn(),
   };
-  const getAlarmTarget = vi.fn().mockResolvedValue('embed');
+  const getAlarmTarget = vi
+    .fn()
+    .mockImplementation(async () => card({ title: 'Sortie', blocks: [] }));
   const fetch = vi.fn(() => Promise.resolve({ isSendable: () => true, send }));
   const service = new AlarmService(
     alarmConfigRepository as never,
@@ -129,7 +132,14 @@ describe('AlarmService.run', () => {
 
     await service.run(alarm);
 
-    expect(send).toHaveBeenCalledWith({ embeds: ['embed'] });
+    // 조회 결과와 같은 카드가 그대로 나가면 채널에서 구분되지 않는다 — 발송임을 맨 위에 밝힌다
+    const [sent] = send.mock.calls[0] as [
+      { components: [{ toJSON: () => { components: { content: string }[] } }] },
+    ];
+    expect(sent.components[0].toJSON().components[0].content).toBe(
+      '-# 🔔 Alarm · sortie · every 60 min',
+    );
+    expect(alarmConfigRepository.save).toHaveBeenCalledWith(alarm);
     expect(alarmConfigRepository.save).toHaveBeenCalledWith(alarm);
     expect(alarm.status).toBe(AlarmStatus.PENDING);
   });
