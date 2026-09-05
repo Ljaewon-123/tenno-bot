@@ -43,6 +43,7 @@ src/
 - 커맨드 옵션 DTO는 `@Expose() + @StringOption/@IntegerOption`. enum 옵션은 `EnumOption` 데코레이터.
 - 임베드 필드는 25개, 필드 name 256자·value 1024자 제한 — 항상 slice 한다.
 - 길드/채널이 사라지면 데이터를 지운다. `BotLifecycleHook`이 `guildDelete`/`channelDelete`에서 각 도메인 `cleanup(where)`를 호출한다. **새 도메인 엔티티를 만들면 `cleanup`을 구현하고 훅에 등록한다.**
+- **임베드를 고치기 전에 `docs/memory/embed-design-gap.md`를 읽는다.** 디자인 산출물과 구현의 차이·이미 결론 난 이탈·남은 구현 목록이 거기 있다. 목업 정본은 `docs/design/discord/project/Discord Embed Forms.dc.html` (핸드오프 폴더 안 사본은 구버전).
 
 ## 스타일
 
