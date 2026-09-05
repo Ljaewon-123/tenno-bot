@@ -3,13 +3,14 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ContainerBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
   MessageFlags,
   SectionBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
   TextDisplayBuilder,
   ThumbnailBuilder,
-  type EmbedBuilder,
 } from 'discord.js';
 import { bold, subtext, title, truncate } from './markdown';
 import { Accent, LIMIT } from './types';
@@ -24,6 +25,7 @@ type Component =
   | TextDisplayBuilder
   | SectionBuilder
   | SeparatorBuilder
+  | MediaGalleryBuilder
   | ActionRowBuilder<ButtonBuilder>;
 type Child = Component | false | null | undefined;
 
@@ -55,6 +57,14 @@ export const section = (
     : built.setButtonAccessory(accessory);
 };
 
+/** 큰 이미지. 모드 카드처럼 세로로 긴 그림은 80px 썸네일에 넣으면 읽히지 않는다 */
+export const image = (url?: string) =>
+  url
+    ? new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(url),
+      )
+    : undefined;
+
 /** 구분선. 계층·순서는 번호 이모지가 아니라 이걸로 표현한다 */
 export const divider = (large = false) =>
   new SeparatorBuilder().setSpacing(
@@ -65,7 +75,14 @@ export const button = (
   customId: string,
   label: string,
   style: ButtonStyle = ButtonStyle.Secondary,
-) => new ButtonBuilder().setCustomId(customId).setLabel(label).setStyle(style);
+  // 정원 마감·빈 파티처럼 "지금은 누르면 안 되는" 상태를 표현하는 유일한 수단
+  disabled = false,
+) =>
+  new ButtonBuilder()
+    .setCustomId(customId)
+    .setLabel(label)
+    .setStyle(style)
+    .setDisabled(disabled);
 
 /** 위키 등 외부 링크. 상호작용이 없어 customId가 없다 */
 export const linkButton = (label: string, url: string) =>
@@ -96,19 +113,36 @@ export const group = (name: string, items: Line[], max = 3) => {
   );
 };
 
+/**
+ * 40개 한도는 중첩까지 합산한다 — 버튼 5개짜리 행은 1개가 아니라 6개다.
+ * 자식 수만 세면 세다가 통과하고 서버가 메시지를 거절한다.
+ */
+const size = (child: Component) => {
+  if (child instanceof ActionRowBuilder) return 1 + child.components.length;
+  if (child instanceof MediaGalleryBuilder) return 1 + child.items.length;
+  // Section = 자기 자신 + TextDisplay 하나 + 액세서리 하나
+  if (child instanceof SectionBuilder) return 3;
+  return 1;
+};
+
 /** 컨테이너 1개 = 메시지 1개. 자식은 넘긴 순서대로 쌓인다 */
 export const container = (accent: Accent, ...children: Child[]) => {
   const kept = present<Component>(children);
+
   // 한도를 넘기면 메시지가 통째로 거절된다 — 넘친 만큼은 버리되 버렸다는 사실은 남긴다
-  const fitted =
-    kept.length > LIMIT.components
-      ? [
-          ...kept.slice(0, LIMIT.components - 1),
-          new TextDisplayBuilder().setContent(
-            subtext(`${kept.length - LIMIT.components + 1} more hidden`),
-          ),
-        ]
-      : kept;
+  const fitted: Component[] = [];
+  let used = 0;
+  for (const child of kept) {
+    used += size(child);
+    if (used > LIMIT.components - 1) break; // 마지막 한 칸은 안내용으로 비워둔다
+    fitted.push(child);
+  }
+  if (fitted.length < kept.length)
+    fitted.push(
+      new TextDisplayBuilder().setContent(
+        subtext(`${kept.length - fitted.length} more hidden`),
+      ),
+    );
 
   return new ContainerBuilder()
     .setAccentColor(accent)
@@ -133,9 +167,10 @@ export const errorState = (headline: string, reason: string, hint?: string) =>
 /**
  * 보낼 수 있는 형태로 감싼다. 플래그를 빼면 컴포넌트가 통째로 무시되고,
  * 이 플래그가 붙으면 content·embeds를 같이 못 보낸다.
- * ponytail: 레거시 EmbedBuilder도 받아 넘긴다 — 커맨드를 하나씩 옮기는 동안만. 다 옮기면 분기를 지운다
  */
-export const payload = (view: ContainerBuilder | EmbedBuilder) =>
-  view instanceof ContainerBuilder
-    ? { components: [view], flags: MessageFlags.IsComponentsV2 }
-    : { embeds: [view] };
+export const payload = (view: ContainerBuilder, ephemeral = false) => ({
+  components: [view],
+  flags: ephemeral
+    ? MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+    : MessageFlags.IsComponentsV2,
+});

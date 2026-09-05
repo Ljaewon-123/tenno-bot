@@ -22,3 +22,12 @@ export const relative = (date: ConfigType) => `<t:${dayjs(date).unix()}:R>`;
 
 /** "오후 11:40" — 주간 초기화처럼 시점이 고정된 값에만 */
 export const at = (date: ConfigType) => `<t:${dayjs(date).unix()}:t>`;
+
+/**
+ * "▰▰▰▱▱▱▱▱ 38%" — 8칸 고정 텍스트 배지.
+ * 디스코드에 진행바 그래픽은 없다. 칸 수를 데이터에 따라 늘리면 폭이 흔들려 모바일에서 줄이 접힌다.
+ */
+export const bar = (percent: number) => {
+  const filled = Math.min(8, Math.max(0, Math.round(percent / 12.5)));
+  return `${'▰'.repeat(filled)}${'▱'.repeat(8 - filled)} ${Math.round(percent)}%`;
+};
