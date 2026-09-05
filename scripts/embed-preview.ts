@@ -11,7 +11,7 @@ import Items from '@wfcd/items';
 import { spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { renderEmbed } from './render-embed';
+import { renderMessage } from './render-embed';
 
 const get = (path: string) =>
   fetch(`https://api.warframestat.us/${path}`).then((res) => res.json());
@@ -38,11 +38,11 @@ const service = new WarframeApiService(
   {} as never,
 );
 
-type EmbedBuild = (...args: string[]) => Promise<{ data: object }>;
+type ViewBuild = (...args: string[]) => Promise<{ toJSON(): object }>;
 
 const [method = 'cycles', ...args] = process.argv.slice(2);
 // apply/call은 strictBindCallApply:false 탓에 any로 떨어진다 — 인덱싱 호출로 this까지 같이 묶는다
-const builders = service as unknown as Record<string, EmbedBuild | undefined>;
+const builders = service as unknown as Record<string, ViewBuild | undefined>;
 
 if (typeof builders[method] !== 'function') {
   const names = Object.getOwnPropertyNames(WarframeApiService.prototype).filter(
@@ -56,10 +56,12 @@ available: ${names.join(', ')}`);
 const OUT = resolve(__dirname, '.embed-preview.html');
 
 void builders[method](...args)
-  .then((embed) => {
-    console.log(JSON.stringify(embed.data, null, 2));
+  .then((view) => {
+    // 컨테이너는 자식이 .data가 아니라 .components에 따로 있다 — toJSON()만 온전한 형태를 준다
+    const json = view.toJSON();
+    console.log(JSON.stringify(json, null, 2));
 
-    writeFileSync(OUT, renderEmbed(embed.data, `${method} ${args.join(' ')}`));
+    writeFileSync(OUT, renderMessage(json, `${method} ${args.join(' ')}`));
     console.log(`
 > ${OUT}`);
 
