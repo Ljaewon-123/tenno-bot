@@ -48,7 +48,7 @@ describe('DropTableService', () => {
 
   describe('getAllDropTables', () => {
     it('hash가 같으면 all.json을 받지 않는다', async () => {
-      const { service, request, dropSourceService } = build('new-hash');
+      const { service, request, dropSourceService } = build('v2:new-hash');
       await service.getAllDropTables();
 
       expect(request).toHaveBeenCalledTimes(1);
@@ -63,8 +63,19 @@ describe('DropTableService', () => {
         relics: [],
       });
       expect(cacheRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ key: CacheKey.DropTable, cache: 'new-hash' }),
+        expect.objectContaining({
+          key: CacheKey.DropTable,
+          cache: 'v2:new-hash',
+        }),
       );
+    });
+
+    it('인덱스 버전만 달라도 재구축한다', async () => {
+      // 필터 규칙을 바꾸면 원본 hash는 그대로여서, 이게 없으면 옛 행이 계속 남는다
+      const { service, dropSourceService } = build('v1:new-hash');
+      await service.getAllDropTables();
+
+      expect(dropSourceService.rebuildDropSources).toHaveBeenCalled();
     });
 
     it('재수집이 실패하면 hash를 남기지 않는다', async () => {

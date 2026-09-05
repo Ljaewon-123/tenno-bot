@@ -16,6 +16,10 @@ import type {
 } from './types';
 import { DropCategory } from './vo/enum';
 
+// 게임에서 제거된 열화판(Flawed) 모드. 정식 모드와 이름이 겹쳐 검색·오토컴플리트에
+// 노이즈만 준다. 인덱스에 아예 넣지 않아 검색 경로 전부에서 한 번에 사라진다.
+const EXCLUDED_ITEM = /^Flawed /i;
+
 /** all.json → drop_source 역인덱스 구축 전담. 검색 API는 DropTableService */
 @Injectable()
 export class DropSourceService {
@@ -46,7 +50,7 @@ export class DropSourceService {
       ...this.bountyRows(all),
       ...this.syndicateRows(all.syndicates),
       ...this.avatarRows(all),
-    ];
+    ].filter((row) => !EXCLUDED_ITEM.test(row.itemName));
   }
 
   private missionRows(missionRewards: MissionRewards): DropSource[] {

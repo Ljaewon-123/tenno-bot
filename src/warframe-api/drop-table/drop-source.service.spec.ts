@@ -160,6 +160,19 @@ describe('DropSourceService.rebuildDropSources', () => {
     ]);
   });
 
+  it('열화판(Flawed) 모드는 인덱스에 넣지 않는다', async () => {
+    await harness.service.rebuildDropSources(
+      data({
+        sortieRewards: [
+          reward({ itemName: 'Flawed Pressure Point' }),
+          reward({ itemName: 'Pressure Point' }),
+        ],
+      }),
+    );
+
+    expect(harness.rows.map((row) => row.itemName)).toEqual(['Pressure Point']);
+  });
+
   it('바운티/아바타 섹션이 응답에 없어도 터지지 않는다', async () => {
     // 필드 하나 빠졌다고 던지면 주 1회 수집 전체가 실패한다
     await expect(harness.service.rebuildDropSources(data())).resolves.toBe(0);

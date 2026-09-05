@@ -16,6 +16,10 @@ import { DropCategory } from './vo/enum';
 // 1. 목표 아이템은 특정 성유물 (또는 성유물을 까서 나오는 프라임 부품)
 // 2. 특정 미션, 혹은 특정 몹을 잡아야 드랍되는 모드
 // 3. 특정 미션에서만 얻을수있는 모드 또한 표시 (상승 미션 등등)
+// 인덱스 구축 규칙(제외 목록·평탄화)을 바꾸면 올린다 — 원본 hash가 그대로여도
+// 재구축이 필요한데, 이걸 hash에 붙여두면 다음 부팅에 알아서 다시 만든다
+const INDEX_VERSION = 'v2';
+
 @Injectable()
 export class DropTableService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DropTableService.name);
@@ -45,7 +49,8 @@ export class DropTableService implements OnApplicationBootstrap {
     const cached = await this.cacheRepository.findOneBy({
       key: CacheKey.DropTable,
     });
-    if ((cached?.cache as string | undefined) === info.hash) return;
+    const stamp = `${INDEX_VERSION}:${info.hash}`;
+    if ((cached?.cache as string | undefined) === stamp) return;
 
     const all = await this.httpJsonService.request<DropTableData>(
       HttpMethod.Get,
@@ -56,7 +61,7 @@ export class DropTableService implements OnApplicationBootstrap {
     // 재수집이 성공한 뒤에 해시를 남긴다 — 중간에 터지면 다음 주기에 다시 시도한다
     const entity =
       cached ?? this.cacheRepository.create({ key: CacheKey.DropTable });
-    entity.cache = info.hash;
+    entity.cache = stamp;
     await this.cacheRepository.save(entity);
   }
 
