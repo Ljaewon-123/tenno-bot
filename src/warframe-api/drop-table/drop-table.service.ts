@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ILike } from 'typeorm';
 import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
@@ -65,16 +64,21 @@ export class DropTableService implements OnApplicationBootstrap {
     await this.cacheRepository.save(entity);
   }
 
-  /** 역인덱스 검색. 부분 일치, 확률 높은 순 */
+  /**
+   * 역인덱스 검색. 부분 일치, 확률 높은 순.
+   * 이름이 정확히 맞는 아이템을 앞으로 뺀다 — 확률만으로 자르면 'Pressure Point'가
+   * 확률 높은 'Necramech Pressure Point' 행에 50칸을 다 뺏겨 통째로 사라진다
+   */
   async findDropSources(itemName: string, category?: DropCategory) {
-    return this.dropSourceRepository.find({
-      where: {
-        itemName: ILike(`%${itemName}%`),
-        ...(category && { category }),
-      },
-      order: { chance: 'DESC' },
-      take: 50,
-    });
+    const query = this.dropSourceRepository
+      .createQueryBuilder('drop')
+      .where('drop.itemName ILIKE :like', { like: `%${itemName}%` })
+      .orderBy('drop.itemName ILIKE :exact', 'DESC')
+      .addOrderBy('drop.chance', 'DESC')
+      .setParameter('exact', itemName)
+      .take(50);
+    if (category) query.andWhere('drop.category = :category', { category });
+    return query.getMany();
   }
 
   /** 오토컴플리트용 이름 검색. 디스코드 선택지 상한이 25개라 거기서 자른다 */

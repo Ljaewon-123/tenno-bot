@@ -3,12 +3,19 @@ import { CacheKey } from '../shared/enum';
 import { DropTableService } from './drop-table.service';
 import { DropCategory } from './vo/enum';
 
-/** findDropSources가 리포지토리에 넘긴 조회 조건 */
-interface CapturedFind {
-  where: { itemName: { value: string }; category?: DropCategory };
-  order: { chance: string };
-  take: number;
-}
+/** 체이닝만 되는 QueryBuilder 흉내. 어떤 절이 붙었는지만 본다 */
+const stubQueryBuilder = () => {
+  const builder = {
+    where: vi.fn(() => builder),
+    andWhere: vi.fn(() => builder),
+    orderBy: vi.fn(() => builder),
+    addOrderBy: vi.fn(() => builder),
+    setParameter: vi.fn(() => builder),
+    take: vi.fn(() => builder),
+    getMany: vi.fn(() => Promise.resolve([])),
+  };
+  return builder;
+};
 
 /** hash 게이트가 틀리면 매주 3MB짜리 all.json을 헛으로 받거나, 반대로 영영 갱신되지 않는다 */
 describe('DropTableService', () => {
@@ -27,8 +34,9 @@ describe('DropTableService', () => {
       create: vi.fn((value: object) => ({ ...value })),
       save: vi.fn(),
     };
+    const queryBuilder = stubQueryBuilder();
     const dropSourceRepository = {
-      find: vi.fn<(options: unknown) => Promise<unknown[]>>(),
+      createQueryBuilder: vi.fn(() => queryBuilder),
     };
     const dropSourceService = { rebuildDropSources: vi.fn() };
     const service = new DropTableService(
@@ -41,7 +49,7 @@ describe('DropTableService', () => {
       service,
       request,
       cacheRepository,
-      dropSourceRepository,
+      queryBuilder,
       dropSourceService,
     };
   };
@@ -90,23 +98,46 @@ describe('DropTableService', () => {
 
   describe('findDropSources', () => {
     it('부분 일치로 찾고 확률 높은 순 50개로 자른다', async () => {
-      const { service, dropSourceRepository } = build();
+      const { service, queryBuilder } = build();
       await service.findDropSources('vauban');
 
-      const options = dropSourceRepository.find.mock
-        .calls[0][0] as CapturedFind;
-      expect(options.where.itemName.value).toBe('%vauban%');
-      expect(options.where.category).toBeUndefined();
-      expect(options).toMatchObject({ order: { chance: 'DESC' }, take: 50 });
+      expect(queryBuilder.where).toHaveBeenCalledWith(expect.any(String), {
+        like: '%vauban%',
+      });
+      expect(queryBuilder.addOrderBy).toHaveBeenCalledWith(
+        'drop.chance',
+        'DESC',
+      );
+      expect(queryBuilder.take).toHaveBeenCalledWith(50);
+      expect(queryBuilder.andWhere).not.toHaveBeenCalled();
+    });
+
+    // 'Necramech Pressure Point'가 확률로 50칸을 다 먹어 'Pressure Point'가 사라졌다
+    it('이름이 정확히 맞는 아이템을 확률보다 먼저 정렬한다', async () => {
+      const { service, queryBuilder } = build();
+      await service.findDropSources('Pressure Point');
+
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+        'drop.itemName ILIKE :exact',
+        'DESC',
+      );
+      expect(queryBuilder.setParameter).toHaveBeenCalledWith(
+        'exact',
+        'Pressure Point',
+      );
+      // orderBy가 addOrderBy보다 먼저 걸려야 정확 일치가 1순위가 된다
+      expect(queryBuilder.orderBy.mock.invocationCallOrder[0]).toBeLessThan(
+        queryBuilder.addOrderBy.mock.invocationCallOrder[0],
+      );
     });
 
     it('카테고리를 주면 조건에 더한다', async () => {
-      const { service, dropSourceRepository } = build();
+      const { service, queryBuilder } = build();
       await service.findDropSources('vauban', DropCategory.Relic);
 
-      const options = dropSourceRepository.find.mock
-        .calls[0][0] as CapturedFind;
-      expect(options.where.category).toBe(DropCategory.Relic);
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(expect.any(String), {
+        category: DropCategory.Relic,
+      });
     });
   });
 });
