@@ -1,6 +1,8 @@
+import { Accent, card } from '@/utils/discord-embed';
 import { TargetCommand } from '@/warframe-api/enum';
 import { CacheKey } from '@/warframe-api/shared/enum';
 import { Logger } from '@nestjs/common';
+import type { ContainerBuilder } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NotificationService } from './notification.service';
 
@@ -38,7 +40,8 @@ const build = (
       ? Promise.reject(new Error('Unknown Channel'))
       : Promise.resolve({ isSendable: () => true, send }),
   );
-  const getAlarmTarget = vi.fn().mockResolvedValue('embed');
+  // asPush가 뷰를 제자리에서 고치므로 mock도 호출마다 새 카드를 줘야 실제 경로와 같아진다
+  const getAlarmTarget = vi.fn(async () => card({ title: 'View', blocks: [] }));
   const notificationHistoryRepository = {
     create: vi.fn((value: object) => ({ ...value })),
     insert: vi.fn(),
@@ -188,6 +191,32 @@ describe('NotificationService 발송', () => {
 
     expect(send).toHaveBeenCalledTimes(2);
     expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  /** 사용자가 부른 게 아니다 — 조회 결과와 같은 모양으로 나가면 채널에서 구분되지 않는다 */
+  it('발송은 왜 왔는지를 밝히는 push 형식으로 나간다', async () => {
+    const { service, send } = build(changed, {
+      notifications: [{ channelId: 'c1' }, { channelId: 'c2' }],
+    });
+
+    await service.detect();
+
+    const [message] = send.mock.calls[0] as [
+      { components: ContainerBuilder[] },
+    ];
+    const json = message.components[0].toJSON() as unknown as {
+      accent_color?: number;
+      components: { content?: string }[];
+    };
+    const headers = json.components.filter(
+      ({ content }) => content === '-# 🔔 Sortie changed',
+    );
+
+    expect(json.components[0].content).toBe('-# 🔔 Sortie changed');
+    expect(json.accent_color).toBe(Accent.Soon);
+    // 헤더를 발송 루프 안에서 붙이면 채널 수만큼 겹쳐 쌓인다
+    expect(headers).toHaveLength(1);
+    expect(send).toHaveBeenCalledTimes(2);
   });
 
   it('실패한 채널만 이력으로 남긴다', async () => {

@@ -1,3 +1,4 @@
+import { errorCard, payload } from '@/utils/discord-embed';
 import {
   ArgumentsHost,
   Catch,
@@ -30,11 +31,25 @@ export class CommandExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    const content = userError
-      ? exception.message
-      : 'Something went wrong while running this command.';
+    // 평문 한 줄은 성공 응답과 같은 모양으로 읽힌다 — 실패는 어느 커맨드에서 나오든 같은 빨강 카드로 통일한다
+    const view = payload(
+      userError
+        ? errorCard(
+            'Cannot run that',
+            exception.message,
+            'Check the options and try again',
+          )
+        : errorCard(
+            'Something went wrong',
+            'The command failed before it could finish.',
+            'Try again in a moment',
+          ),
+    );
     await (interaction.deferred
-      ? interaction.editReply({ content })
-      : interaction.reply({ content, flags: MessageFlags.Ephemeral }));
+      ? interaction.editReply(view)
+      : interaction.reply({
+          ...view,
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+        }));
   }
 }

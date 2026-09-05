@@ -1,4 +1,4 @@
-import { payload } from '@/utils/discord-embed';
+import { asPush, payload } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
 import { TargetCommand } from '@/warframe-api/enum';
 import { CacheKey } from '@/warframe-api/shared/enum';
@@ -12,7 +12,7 @@ import { FindOptionsWhere, LessThanOrEqual } from 'typeorm';
 import { Notification } from './entities/notification.entity';
 import { NotificationHistoryRepository } from './repositories/notification-history.repository';
 import { NotificationRepository } from './repositories/notification.repository';
-import { WatchTarget } from './types';
+import { WatchTarget, WatchTargetLabel } from './types';
 
 /** 실패 이력 보관 기간 */
 const HISTORY_RETENTION_DAYS = 30;
@@ -151,6 +151,13 @@ export class NotificationService {
     const view = await this.warframeApiService.getAlarmTarget({
       target: eventType,
     });
+    // 사용자가 부른 게 아니다 — 왜 이게 왔는지를 밝히지 않으면 조회 결과와 구분되지 않는다.
+    // asPush는 뷰를 제자리에서 고치므로 채널마다 부르면 헤더가 겹쳐 쌓인다 — 발송 루프 밖에서 한 번만
+    asPush(
+      view,
+      `🔔 ${WatchTargetLabel[eventType]} changed`,
+      '/notification off to stop',
+    );
 
     // 채널이 지워졌거나 권한이 빠진 길드 하나 때문에 나머지 발송이 멈추면 안 된다
     const results = await Promise.allSettled(

@@ -3,6 +3,10 @@ import Items, { Locale } from '@wfcd/items';
 import { DropItem } from './vo/drop-item.interface';
 import { ItemI18n } from './vo/item-i18n.interface';
 
+// 게임에서 빠진 열화판/구 입문 모드. name이 정식판과 완전히 같아서(Serration이 셋)
+// 이름으로 찾으면 데이터 순서상 이쪽이 먼저 잡혀 +40% 카드가 나간다. uniqueName 경로로만 구분된다
+const REMOVED_VARIANT = /\/(Beginner|Intermediate)\//;
+
 @Injectable()
 export class WfcdItemsService {
   private readonly CDN_BASE_URL = 'https://cdn.warframestat.us/img';
@@ -52,7 +56,10 @@ export class WfcdItemsService {
       const name = words.join(' ');
       // 이미지 있는 쪽만 본다 — 'Forma Blueprint'처럼 이미지 없는 동명 항목이 상위 'Forma'를 가린다
       const item = this.wfcdItems.find(
-        (candidate) => candidate.name === name && candidate.imageName,
+        (candidate) =>
+          candidate.name === name &&
+          candidate.imageName &&
+          !REMOVED_VARIANT.test(candidate.uniqueName),
       );
       if (item) return item;
       words.pop();

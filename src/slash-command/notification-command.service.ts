@@ -1,6 +1,6 @@
 import { NotificationCommand } from '@/notification/dto/notification.command.dto';
 import { NotificationService } from '@/notification/notification.service';
-import { WatchTarget } from '@/notification/types';
+import { WatchTarget, WatchTargetLabel } from '@/notification/types';
 import { manageCard, okCard, payload, subtext } from '@/utils/discord-embed';
 import { Injectable } from '@nestjs/common';
 import { Context, Options, Subcommand, type SlashCommandContext } from 'necord';
@@ -30,7 +30,7 @@ export class NotificationCommandService {
     return interaction.editReply(
       payload(
         okCard(
-          `Subscribed · ${eventType}`,
+          `Subscribed · ${WatchTargetLabel[eventType]}`,
           `Changes will post in <#${interaction.channelId}>.`,
           'Fires on change, not on a timer',
         ),
@@ -53,8 +53,8 @@ export class NotificationCommandService {
       payload(
         okCard(
           removed
-            ? `Unsubscribed · ${eventType}`
-            : `Already off · ${eventType}`,
+            ? `Unsubscribed · ${WatchTargetLabel[eventType]}`
+            : `Already off · ${WatchTargetLabel[eventType]}`,
           removed
             ? 'This server will stop getting it.'
             : 'This server was not subscribed.',
@@ -84,8 +84,8 @@ export class NotificationCommandService {
             );
             return {
               text: on
-                ? `${target} → <#${on.channelId}>`
-                : subtext(`${target} — off`),
+                ? `${WatchTargetLabel[target]} → <#${on.channelId}>`
+                : subtext(`${WatchTargetLabel[target]} — off`),
             };
           }),
           footer: 'Fires on change, not on a timer · /notification on to add',

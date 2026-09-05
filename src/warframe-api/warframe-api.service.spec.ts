@@ -42,9 +42,7 @@ const parts = (view: ContainerBuilder) => {
  * 알람·구독도 같은 카드 빌더를 타므로 여기만 지키면 세 경로가 같이 지켜진다.
  */
 describe('WarframeApiService 카드 이미지', () => {
-  const wfcdItemsService = new WfcdItemsService({
-    find: () => undefined,
-  } as never);
+  const wfcdItemsService = new WfcdItemsService([] as never);
 
   const build = (worldState: object) =>
     new WarframeApiService(worldState as never, wfcdItemsService, {} as never);
@@ -166,8 +164,45 @@ describe('WarframeApiService 카드 이미지', () => {
     } as never);
 
     const { text } = parts(await service.dropSources('braton'));
-    expect(text).toContain('- Lith B4 ▰▰▰▰▰▰▰▰ 11.06%');
-    expect(text).toContain('- Meso B3 ▰▰▱▱▱▱▱▱ 2.51%');
+    expect(text).toContain('- 🟢 Lith B4 ▰▰▰▰▰▰▰▰ 11.06%');
+    expect(text).toContain('- 🟠 Meso B3 ▰▰▱▱▱▱▱▱ 2.51%');
+  });
+
+  /** 막대는 상대 위계라 둘 다 8칸에 가까워도 실제 확률은 100배 차이일 수 있다 */
+  it('확률 등급 이모지는 절대값으로 갈린다', async () => {
+    const service = new WarframeApiService({} as never, wfcdItemsService, {
+      findDropSources: vi.fn().mockResolvedValue([
+        { itemName: 'X', sourceName: 'A', chance: 5 },
+        { itemName: 'X', sourceName: 'B', chance: 4.99 },
+        { itemName: 'X', sourceName: 'C', chance: 1 },
+        { itemName: 'X', sourceName: 'D', chance: 0.99 },
+      ]),
+    } as never);
+
+    const { text } = parts(await service.dropSources('x'));
+    expect(text).toContain('🟢 A');
+    expect(text).toContain('🟠 B');
+    expect(text).toContain('🟠 C');
+    expect(text).toContain('🔴 D');
+    expect(text).toContain('🟢 ≥5% · 🟠 1-5% · 🔴 <1%');
+  });
+
+  /** 잘렸으면 전체 개수·정렬 기준·나머지를 볼 경로 셋을 같이 준다 — 개수만 주면 막다른 길이다 */
+  it('접힌 줄은 전체 개수와 정렬 기준과 경로를 함께 말한다', async () => {
+    const service = new WarframeApiService({} as never, wfcdItemsService, {
+      findDropSources: vi.fn().mockResolvedValue(
+        Array.from({ length: 8 }, (_, index) => ({
+          itemName: 'Braton Prime',
+          sourceName: `Relic ${index}`,
+          chance: 10 - index,
+        })),
+      ),
+    } as never);
+
+    const { text } = parts(await service.dropSources('braton'));
+    expect(text).toContain(
+      '-# Showing 6 of 8 · highest chance first · add `category:` to /drop item:Braton Prime',
+    );
   });
 });
 
@@ -201,8 +236,13 @@ describe('WarframeApiService 균열/사이클', () => {
     expect(text).toContain('**Lith 1**');
     expect(text).toContain('**Axi 3**');
     expect(text).toContain('· **SP**');
-    expect(text).toContain('-# …and 1 more');
+    // 접었으면 전체 개수·정렬 기준·나머지를 볼 경로를 같이 줘야 막다른 길이 안 된다
+    expect(text).toContain(
+      '-# Showing 2 of 3 · soonest first · /void-fissures tier:Axi',
+    );
     expect(text).toContain('-# Meso · Neo · Requiem · Omnia — none');
+    // 월드스테이트는 캐시를 타므로 실시간 값으로 오해되면 안 된다
+    expect(text).toContain('-# cached 60s');
   });
 
   it('필터를 걸고 0개면 필터를 지우라고 말한다', async () => {
@@ -342,7 +382,7 @@ describe('WarframeApiService 인카논 로테이션', () => {
 
   const service = new WarframeApiService(
     { duviriCycle: vi.fn().mockResolvedValue(duviriCycle) } as never,
-    new WfcdItemsService({ find: () => undefined } as never),
+    new WfcdItemsService([] as never),
     {} as never,
   );
 

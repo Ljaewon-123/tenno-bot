@@ -40,10 +40,22 @@ import {
   NightwaveChallenge,
   WorldEvent,
 } from './world-state/vo/types';
+import { TTL_SECONDS } from './world-state/constants';
 import { WorldStateService } from './world-state/world-state.service';
 
-/** 그룹당 펴는 줄 수. 넘치는 만큼은 "…and N more"로 접는다 — 안 접으면 목록 하나가 40개 한도를 뚫는다 */
+/** 그룹당 펴는 줄 수. 넘치는 만큼은 접는다 — 안 접으면 목록 하나가 40개 한도를 뚫는다 */
 const TOP = { fissure: 2, fissureFiltered: 6, drop: 6 } as const;
+
+/**
+ * 접힌 줄. "…and N more"는 전체가 몇 개고 어디서 나머지를 보는지를 안 말해 막다른 길이 된다 —
+ * (보이는 수 / 전체 수 / 정렬 기준 / 나머지를 볼 경로) 넷을 항상 같이 준다.
+ */
+const foldedLine = (shown: number, total: number, sort: string, path?: Line) =>
+  [`Showing ${shown} of ${total}`, sort, path].filter(Boolean).join(' · ');
+
+/** 막대는 최고 확률 대비 상대 위계라 "흔한 건지"를 못 말한다 — 절대 등급은 이모지 3단으로 (색맹도 형태로 구분된다) */
+const chanceIcon = (chance: number) =>
+  chance >= 5 ? '🟢' : chance >= 1 ? '🟠' : '🔴';
 
 /** 버튼은 컴포넌트가 정하지 않는다 — 어떤 버튼을 붙일지는 커맨드 핸들러가 안다 */
 type Buttons = ButtonBuilder[] | undefined;
@@ -55,6 +67,14 @@ export class WarframeApiService {
     private readonly wfcdItemsService: WfcdItemsService,
     private readonly dropTableService: DropTableService,
   ) {}
+
+  /**
+   * footer는 데이터 신선도 자리다. 월드스테이트는 캐시를 타므로 최대 TTL만큼 옛날 값일 수 있고,
+   * 안 적으면 매번 실시간으로 읽어온 값이라고 오해한다.
+   */
+  private fresh(...extra: Line[]) {
+    return [...extra.filter(Boolean), `cached ${TTL_SECONDS}s`].join(' · ');
+  }
 
   /** 집정관 */
   async archonHunt(buttons?: Buttons) {
@@ -81,6 +101,7 @@ export class WarframeApiService {
         [`Reward Shard · ${bold(ArchonReward[archon.boss])}`],
       ],
       buttons,
+      footer: this.fresh(),
     });
   }
 
@@ -102,6 +123,7 @@ export class WarframeApiService {
         })),
       ],
       buttons,
+      footer: this.fresh(),
     });
   }
 
@@ -137,6 +159,7 @@ export class WarframeApiService {
         },
       ]),
       buttons,
+      footer: this.fresh(),
     });
   }
 
@@ -190,8 +213,16 @@ export class WarframeApiService {
                 fissure.isHard ? ` · ${bold('SP')}` : ''
               } ${relative(fissure.expiry)}`,
           ),
+          // 티어 필터가 나머지를 보는 유일한 경로다 — 접은 자리에서 바로 알려준다
           more:
-            list.length > top ? `…and ${list.length - top} more` : undefined,
+            list.length > top
+              ? foldedLine(
+                  top,
+                  list.length,
+                  'soonest first',
+                  `/void-fissures tier:${tier}`,
+                )
+              : undefined,
         },
       ]);
     }
@@ -202,6 +233,7 @@ export class WarframeApiService {
       subtitle: `${active.length} active · soonest first`,
       blocks: groups,
       buttons,
+      footer: this.fresh(),
     });
   }
 
@@ -223,7 +255,7 @@ export class WarframeApiService {
         thumbnail,
         blocks: [],
         buttons,
-        footer: 'Inventory is unknown until he arrives',
+        footer: this.fresh('Inventory is unknown until he arrives'),
       });
 
     // 정렬이 흔들리면 페이지 번호가 의미를 잃는다 — ducats 오름차순 고정
@@ -253,7 +285,7 @@ export class WarframeApiService {
         ],
       ],
       buttons: [...(view.buttons ?? []), ...(buttons ?? [])],
-      footer: `${view.footer} · dt = ducats`,
+      footer: this.fresh(view.footer, 'dt = ducats'),
     });
   }
 
@@ -305,9 +337,10 @@ export class WarframeApiService {
         ],
       ],
       buttons,
-      footer:
+      footer: this.fresh(
         failed.length > 0 &&
-        `${failed.length} of ${rows.length} regions failed to load`,
+          `${failed.length} of ${rows.length} regions failed to load`,
+      ),
     });
   }
 
@@ -343,6 +376,7 @@ export class WarframeApiService {
         },
       ]),
       buttons,
+      footer: this.fresh(),
     });
   }
 
@@ -409,7 +443,7 @@ export class WarframeApiService {
       subtitle: `Resets ${relative(targets[0].expiry)}`,
       blocks,
       buttons,
-      footer: !detail && 'Bold risks are elite-only',
+      footer: this.fresh(!detail && 'Bold risks are elite-only'),
     });
   }
 
@@ -471,7 +505,7 @@ export class WarframeApiService {
         ],
       ],
       buttons,
-      footer: 'Resets Monday 00:00 UTC',
+      footer: this.fresh('Resets Monday 00:00 UTC'),
     });
   }
 
@@ -510,7 +544,8 @@ export class WarframeApiService {
 
     return card({
       title: `Drop Sources · ${itemName}`,
-      subtitle: `${sources.length} sources · showing top ${TOP.drop} by chance`,
+      // 접힌 개수는 그룹마다 다르다 — 여기서 "top 6"을 또 말하면 그룹 줄과 어긋난다
+      subtitle: `${sources.length} sources · highest chance first`,
       thumbnail:
         !modCard && item?.imageName
           ? this.wfcdItemsService.imgUrl(item.imageName)
@@ -519,16 +554,21 @@ export class WarframeApiService {
       blocks: [
         [detail],
         ...Object.entries(byItem).map(([name, list]): Block[] => [
-          this.dropGroup(name, list),
+          this.dropGroup(name, list, category),
         ]),
       ],
       buttons,
-      footer: 'Bar is relative to the best source, not absolute',
+      // 드랍 테이블은 월드스테이트가 아니라 DB라 신선도 표기 대상이 아니다
+      footer: 'Bar is relative to the best source · 🟢 ≥5% · 🟠 1-5% · 🔴 <1%',
     });
   }
 
   /** 확률은 숫자만으로 위계가 안 보인다 — 최고 확률 대비 상대 막대를 붙인다(절대 막대는 1%가 안 보인다) */
-  private dropGroup(name: string, list: DropSource[]): Block {
+  private dropGroup(
+    name: string,
+    list: DropSource[],
+    category?: DropCategory,
+  ): Block {
     const sorted = [...list].sort((a, b) => b.chance - a.chance);
     const best = sorted[0].chance;
 
@@ -540,11 +580,17 @@ export class WarframeApiService {
           source.category && source.category !== DropCategory.Relic
             ? ` (${source.category})`
             : '';
-        return `- ${source.sourceName}${tail} ${bar((source.chance / best) * 100)} ${source.chance}%`;
+        return `- ${chanceIcon(source.chance)} ${source.sourceName}${tail} ${bar((source.chance / best) * 100)} ${source.chance}%`;
       }),
       more:
         sorted.length > TOP.drop
-          ? `…and ${sorted.length - TOP.drop} more`
+          ? foldedLine(
+              TOP.drop,
+              sorted.length,
+              'highest chance first',
+              // 이미 좁힌 뒤라면 더 좁힐 경로가 없다 — 없는 길을 안내하지 않는다
+              !category && `add \`category:\` to /drop item:${name}`,
+            )
           : undefined,
     };
   }

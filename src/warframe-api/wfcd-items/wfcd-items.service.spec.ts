@@ -28,4 +28,30 @@ describe('WfcdItemsService.findItemImgByName', () => {
   it('못 찾으면 undefined', () => {
     expect(service.findItemImgByName('Kavasa Prime Buckle')).toBeUndefined();
   });
+
+  // 열화판이 데이터에서 먼저 나와, 첫 매치를 집으면 정식 Serration 자리에 +40% 카드가 나갔다
+  it('이름이 같은 열화판/구 입문 모드는 건너뛴다', () => {
+    const dupes = new WfcdItemsService([
+      {
+        name: 'Serration',
+        uniqueName: '/Lotus/Upgrades/Mods/Rifle/Beginner/DamageBeginner',
+        imageName: 'a.jpg',
+        fusionLimit: 3,
+      },
+      {
+        name: 'Serration',
+        uniqueName: '/Lotus/Upgrades/Mods/Rifle/Intermediate/DamageMid',
+        imageName: 'a.jpg',
+        fusionLimit: 5,
+      },
+      {
+        name: 'Serration',
+        uniqueName: '/Lotus/Upgrades/Mods/Rifle/WeaponDamageAmountMod',
+        imageName: 'a.jpg',
+        fusionLimit: 10,
+      },
+    ] as never);
+
+    expect(dupes.findItemByName('Serration')?.fusionLimit).toBe(10);
+  });
 });
