@@ -1,4 +1,4 @@
-import dayjs from '@/utils/dayjs';
+import dayjs, { type Dayjs } from '@/utils/dayjs';
 import {
   Accent,
   accentFor,
@@ -17,7 +17,7 @@ import type { ButtonBuilder } from 'discord.js';
 import { DropTableService } from './drop-table/drop-table.service';
 import type { DropSource } from './drop-table/entities/drop-source.entity';
 import { DropCategory } from './drop-table/vo/enum';
-import { AlarmRequest, TargetCommand } from './enum';
+import { AlarmRequest, RemindTarget, TargetCommand } from './enum';
 import { DropItem } from './wfcd-items/vo/drop-item.interface';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import {
@@ -36,6 +36,7 @@ import {
 import {
   Archimedea,
   ArchimedeaCondition,
+  ArchimedeaMission,
   Fissure,
   NightwaveChallenge,
   WorldEvent,
@@ -381,7 +382,12 @@ export class WarframeApiService {
   }
 
   /** 아르키메디아 (심층/시간) — 옵션이 없으면 둘 다, detail이면 편차·위험 설명까지 */
-  async archimedea(type?: ArchimedeaType, detail = false, buttons?: Buttons) {
+  async archimedea(
+    type?: ArchimedeaType,
+    detail = false,
+    buttons?: Buttons,
+    page = 0,
+  ) {
     const archimedeas = await this.worldStateService.archimedeas();
     // typeKey가 "C T_ L A B"처럼 쪼개져 오므로 공백을 지워야 enum과 맞는다
     const keyOf = (archimedea: Archimedea) =>
@@ -400,6 +406,19 @@ export class WarframeApiService {
     const labelOf = (archimedea: Archimedea) =>
       ArchimedeaLabel[keyOf(archimedea)] ?? archimedea.typeKey;
 
+    // 미션마다 편차1+위험3의 설명문이 붙는 detail은 다 쌓으면 메시지 합 한도를 넘긴다 —
+    // 산출물 4c가 페이징을 요구한 이유고, G8이 실제로 터질 수 있는 유일한 경로다
+    const missions = targets.flatMap((archimedea) =>
+      archimedea.missions.map((mission, index) => ({
+        archimedea,
+        mission,
+        // 종을 넘겨도 미션 번호는 그 종 안에서 1..3이다
+        number: index + 1,
+      })),
+    );
+    if (detail && missions.length)
+      return this.archimedeaDetail({ missions, page, type, labelOf, buttons });
+
     const blocks: Block[][] = [];
     for (const archimedea of targets) {
       blocks.push([
@@ -407,34 +426,18 @@ export class WarframeApiService {
         targets.length > 1 && bold(labelOf(archimedea)),
         ...archimedea.missions.map((mission, index) => ({
           heading: `${index + 1} · ${mission.missionType}`,
-          lines: detail
-            ? [mission.deviation, ...mission.risks].flatMap((condition) => [
-                this.conditionName(condition),
-                subtext(condition.description),
-              ])
-            : [
-                `Deviation ${bold(mission.deviation.name)}`,
-                // 엘리트에만 붙는 위험만 굵게 — 미사용이던 isHard의 유일한 시각적 쓸모다
-                subtext(
-                  `Risks · ${mission.risks
-                    .map((risk) => (risk.isHard ? bold(risk.name) : risk.name))
-                    .join(' · ')}`,
-                ),
-              ],
-        })),
-      ]);
-      blocks.push([
-        {
-          heading: `Personal Modifiers · ${archimedea.personalModifiers.length}`,
           lines: [
+            `Deviation ${bold(mission.deviation.name)}`,
+            // 엘리트에만 붙는 위험만 굵게 — 미사용이던 isHard의 유일한 시각적 쓸모다
             subtext(
-              archimedea.personalModifiers
-                .map((modifier) => modifier.name)
-                .join(' · '),
+              `Risks · ${mission.risks
+                .map((risk) => (risk.isHard ? bold(risk.name) : risk.name))
+                .join(' · ')}`,
             ),
           ],
-        },
+        })),
       ]);
+      blocks.push(this.archimedeaModifiers(archimedea));
     }
 
     return card({
@@ -443,8 +446,77 @@ export class WarframeApiService {
       subtitle: `Resets ${relative(targets[0].expiry)}`,
       blocks,
       buttons,
-      footer: this.fresh(!detail && 'Bold risks are elite-only'),
+      footer: this.fresh('Bold risks are elite-only'),
     });
+  }
+
+  /**
+   * detail은 미션 1개 = 1페이지. 페이지가 어느 종의 것인지는 제목이 말하고,
+   * 개인 수정자는 매 페이지에 남긴다 — 페이지를 넘길 때마다 다시 찾으러 가면 안 된다.
+   */
+  private archimedeaDetail({
+    missions,
+    page,
+    type,
+    labelOf,
+    buttons,
+  }: {
+    missions: {
+      archimedea: Archimedea;
+      mission: ArchimedeaMission;
+      number: number;
+    }[];
+    page: number;
+    type?: ArchimedeaType;
+    labelOf: (archimedea: Archimedea) => string;
+    buttons: Buttons;
+  }) {
+    const view = paged({
+      // 타입을 customId에 실어야 넘긴 페이지에서도 필터가 산다
+      key: `${TargetCommand.Archimedea}/${type ?? 'all'}`,
+      items: missions,
+      page,
+      sort: 'one mission per page',
+      size: 1,
+    });
+    const { archimedea, mission, number } = view.items[0];
+
+    return card({
+      accent: accentFor(archimedea.expiry),
+      title: labelOf(archimedea),
+      subtitle: `Resets ${relative(archimedea.expiry)}`,
+      blocks: [
+        [
+          {
+            heading: `${number} · ${mission.missionType}`,
+            lines: [mission.deviation, ...mission.risks].flatMap(
+              (condition) => [
+                this.conditionName(condition),
+                subtext(condition.description),
+              ],
+            ),
+          },
+        ],
+        this.archimedeaModifiers(archimedea),
+      ],
+      buttons: [...(view.buttons ?? []), ...(buttons ?? [])],
+      footer: this.fresh(view.footer),
+    });
+  }
+
+  private archimedeaModifiers(archimedea: Archimedea): Block[] {
+    return [
+      {
+        heading: `Personal Modifiers · ${archimedea.personalModifiers.length}`,
+        lines: [
+          subtext(
+            archimedea.personalModifiers
+              .map((modifier) => modifier.name)
+              .join(' · '),
+          ),
+        ],
+      },
+    ];
   }
 
   private conditionName(condition: ArchimedeaCondition) {
@@ -657,6 +729,27 @@ export class WarframeApiService {
         return this.nightwave();
       case TargetCommand.Archimedea:
         return this.archimedea();
+    }
+  }
+
+  /**
+   * 🔔 1회용 리마인더가 "언제가 만료 30분 전인가"를 알려면 만료 시각이 필요하다.
+   * 카드를 그릴 때가 아니라 버튼을 누른 순간에만 부르므로 조회 비용이 늘지 않는다
+   * (월드스테이트는 어차피 같은 캐시를 탄다).
+   */
+  async expiryOf(target: RemindTarget): Promise<Dayjs | null> {
+    switch (target) {
+      case TargetCommand.Sortie:
+        return dayjs((await this.worldStateService.sortie()).expiry);
+      case TargetCommand.ArchonHunt:
+        return dayjs((await this.worldStateService.archonHunt()).expiry);
+      case TargetCommand.Archimedea: {
+        // 심층/시간 둘 다 같은 주간 만료지만 로테이션 사이에 빈 배열일 수 있다
+        const expiries = (await this.worldStateService.archimedeas())
+          .map((archimedea) => dayjs(archimedea.expiry))
+          .sort((a, b) => a.diff(b));
+        return expiries[0] ?? null;
+      }
     }
   }
 

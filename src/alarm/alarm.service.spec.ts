@@ -1,5 +1,7 @@
 import { card } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
+import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
+import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AlarmService } from './alarm.service';
 import { AlarmConfig } from './entities/alarm-config.entity';
@@ -26,23 +28,44 @@ const alarmOf = (partial: Partial<AlarmConfig> = {}) =>
 
 const build = (pending: AlarmConfig[] = []) => {
   const send = vi.fn();
+  const dm = vi.fn();
   const alarmConfigRepository = {
     findBy: vi.fn().mockResolvedValue(pending),
+    findOneBy: vi.fn().mockResolvedValue(null),
     update: vi.fn(),
-    save: vi.fn(),
-    create: vi.fn((value: object) => value),
+    save: vi.fn((value: object) => value),
+    create: vi.fn((value: object) => Object.assign(new AlarmConfig(), value)),
     delete: vi.fn(),
   };
   const getAlarmTarget = vi
     .fn()
     .mockImplementation(async () => card({ title: 'Sortie', blocks: [] }));
+  const expiryOf = vi.fn().mockResolvedValue(dayjs(NOW).add(2, 'hour'));
   const fetch = vi.fn(() => Promise.resolve({ isSendable: () => true, send }));
+  const fetchUser = vi.fn(() => Promise.resolve({ send: dm }));
   const service = new AlarmService(
     alarmConfigRepository as never,
-    { getAlarmTarget } as never,
-    { channels: { fetch } } as never,
+    { getAlarmTarget, expiryOf } as never,
+    { channels: { fetch }, users: { fetch: fetchUser } } as never,
   );
-  return { service, alarmConfigRepository, getAlarmTarget, fetch, send };
+  return {
+    service,
+    alarmConfigRepository,
+    getAlarmTarget,
+    expiryOf,
+    fetch,
+    send,
+    fetchUser,
+    dm,
+  };
+};
+
+/** asPush가 맨 위에 꽂는 헤더 한 줄 */
+const headerOf = (call: unknown[]) => {
+  const [sent] = call as [
+    { components: [{ toJSON: () => { components: { content: string }[] } }] },
+  ];
+  return sent.components[0].toJSON().components[0].content;
 };
 
 beforeEach(() => {
@@ -133,13 +156,9 @@ describe('AlarmService.run', () => {
     await service.run(alarm);
 
     // 조회 결과와 같은 카드가 그대로 나가면 채널에서 구분되지 않는다 — 발송임을 맨 위에 밝힌다
-    const [sent] = send.mock.calls[0] as [
-      { components: [{ toJSON: () => { components: { content: string }[] } }] },
-    ];
-    expect(sent.components[0].toJSON().components[0].content).toBe(
+    expect(headerOf(send.mock.calls[0])).toBe(
       '-# 🔔 Alarm · sortie · every 60 min',
     );
-    expect(alarmConfigRepository.save).toHaveBeenCalledWith(alarm);
     expect(alarmConfigRepository.save).toHaveBeenCalledWith(alarm);
     expect(alarm.status).toBe(AlarmStatus.PENDING);
   });
@@ -164,5 +183,137 @@ describe('AlarmService.run', () => {
 
     expect(fetch).not.toHaveBeenCalled();
     expect(alarmConfigRepository.save).toHaveBeenCalledWith(alarm);
+  });
+});
+
+/**
+ * 임베드 🔔 버튼이 만드는 1회용 리마인더. 반복 알람과 두 가지가 다르다 —
+ * 채널이 아니라 누른 사람에게 DM으로 가고, 한 번 쏘면 사라진다.
+ */
+const remindOf = (partial: Partial<AlarmConfig> = {}) =>
+  alarmOf({
+    id: 'r1',
+    intervalValue: null,
+    userId: 'u1',
+    doneAt: dayjs(NOW),
+    ...partial,
+  });
+
+describe('AlarmService.remind', () => {
+  const input = {
+    guildId: 'g1',
+    channelId: 'c1',
+    userId: 'u1',
+    target: RemindTarget.Sortie,
+  };
+
+  it('처음 누르면 만료 30분 전으로 1회용 알람을 만든다', async () => {
+    const { service, alarmConfigRepository, expiryOf } = build();
+    expiryOf.mockResolvedValue(dayjs(NOW).add(2, 'hour'));
+
+    const at = await service.remind(input);
+
+    expect(at?.toISOString()).toBe(dayjs(NOW).add(90, 'minute').toISOString());
+    const [created] = alarmConfigRepository.create.mock.calls[0] as [
+      Partial<AlarmConfig>,
+    ];
+    // intervalValue가 비어 있는 것이 "1회용"의 유일한 표식이다 — 채워지면 영원히 반복된다
+    expect(created.intervalValue).toBeFalsy();
+    expect(created.userId).toBe('u1');
+    expect(created.name).toBe(TargetCommand.Sortie);
+    expect(alarmConfigRepository.save).toHaveBeenCalled();
+  });
+
+  it('다시 누르면 취소한다', async () => {
+    const { service, alarmConfigRepository } = build();
+    alarmConfigRepository.findOneBy.mockResolvedValue(remindOf());
+
+    const at = await service.remind(input);
+
+    expect(at).toBeNull();
+    expect(alarmConfigRepository.delete).toHaveBeenCalledWith({ id: 'r1' });
+    expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('사람마다 따로 잡힌다 — 같은 서버·같은 대상이어도 남의 것을 지우면 안 된다', async () => {
+    const { service, alarmConfigRepository } = build();
+    await service.remind(input);
+
+    expect(alarmConfigRepository.findOneBy).toHaveBeenCalledWith({
+      guildId: 'g1',
+      userId: 'u1',
+      name: TargetCommand.Sortie,
+    });
+  });
+
+  it('남은 시간이 30분보다 짧으면 거부한다', async () => {
+    // 등록하자마자 발동하는 리마인더는 알림이 아니라 소음이다
+    const { service, expiryOf, alarmConfigRepository } = build();
+    expiryOf.mockResolvedValue(dayjs(NOW).add(10, 'minute'));
+
+    await expect(service.remind(input)).rejects.toThrow();
+    expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('만료를 알 수 없으면 거부한다', async () => {
+    const { service, expiryOf, alarmConfigRepository } = build();
+    expiryOf.mockResolvedValue(null);
+
+    await expect(service.remind(input)).rejects.toThrow();
+    expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+  });
+});
+
+describe('AlarmService.run — 1회용', () => {
+  it('누른 사람에게 DM으로 보내고 알람을 지운다', async () => {
+    const alarm = remindOf();
+    const { service, dm, send, alarmConfigRepository } = build();
+
+    await service.run(alarm);
+
+    expect(dm).toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+    // 반복 주기가 없으니 남겨두면 크론이 영원히 훑는다
+    expect(alarmConfigRepository.delete).toHaveBeenCalledWith({ id: 'r1' });
+    expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+    expect(headerOf(dm.mock.calls[0])).toContain('🔔 Reminder');
+    // DM이 막혀 채널로 떨어져도 누구 것인지 알려면 멘션이 본문에 있어야 한다
+    expect(headerOf(dm.mock.calls[0])).toContain('<@u1>');
+  });
+
+  it('DM이 막혀 있으면 등록 채널로 떨구고 지운다', async () => {
+    const alarm = remindOf();
+    const { service, dm, send, alarmConfigRepository } = build();
+    dm.mockRejectedValue(new Error('Cannot send messages to this user'));
+
+    await service.run(alarm);
+
+    expect(send).toHaveBeenCalled();
+    expect(alarmConfigRepository.delete).toHaveBeenCalledWith({ id: 'r1' });
+  });
+
+  it('DM·채널 둘 다 실패해도 지운다', async () => {
+    // 실패한 1회용을 남기면 1분마다 영원히 재시도한다
+    const alarm = remindOf();
+    const { service, dm, send, alarmConfigRepository } = build();
+    dm.mockRejectedValue(new Error('blocked'));
+    send.mockRejectedValue(new Error('channel gone'));
+
+    await expect(service.run(alarm)).resolves.toBeUndefined();
+
+    expect(alarmConfigRepository.delete).toHaveBeenCalledWith({ id: 'r1' });
+  });
+});
+
+describe('AlarmService.popAlarm', () => {
+  it('1회용은 /alarm list에서 제외한다 — 개인 리마인더지 서버 알람이 아니다', async () => {
+    const { service, alarmConfigRepository } = build([]);
+    await service.popAlarm('g1');
+
+    const [where] = alarmConfigRepository.findBy.mock.calls[0] as [
+      { guildId: string; intervalValue: FindOperator<number> },
+    ];
+    expect(where.guildId).toBe('g1');
+    expect(where.intervalValue.type).toBe('not');
   });
 });

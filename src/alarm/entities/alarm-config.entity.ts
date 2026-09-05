@@ -14,7 +14,7 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { AlarmStatus } from '../vo/enum';
 import { TargetCommandAlarm } from '../vo/target-command.vo';
 
@@ -31,11 +31,24 @@ export class AlarmConfig extends CommonWithGuildChannel {
   @Column({ nullable: true, type: 'text' })
   description?: string;
 
-  /** Yet only minutes */
+  /**
+   * 반복 주기(분). 비어 있으면 임베드 🔔 버튼이 만든 1회용 리마인더다.
+   * 이 한 칸이 발송처(DM/채널)·발동 후 처리(삭제/재스케줄)·`/alarm list` 노출 셋을
+   * 동시에 가른다 — 셋이 항상 같이 움직여서 플래그를 따로 두지 않았다.
+   */
   @IsInt()
+  @IsOptional()
   @Expose()
-  @Column()
-  intervalValue: number;
+  @Column({ nullable: true, type: 'int' })
+  intervalValue?: number | null;
+
+  /** 1회용 리마인더를 건 사람 — DM 대상이자 토글 키. 반복 알람에는 없다 */
+  @IsString()
+  @IsOptional()
+  @Expose()
+  @Index()
+  @Column({ nullable: true, type: 'text' })
+  userId?: string | null;
 
   @Column()
   @Expose()
@@ -76,13 +89,12 @@ export class AlarmConfig extends CommonWithGuildChannel {
     this.failedAt = dayjs();
   }
 
-  /** 다음 발동 시각으로 밀고 다시 대기 상태로 */
+  /** 다음 발동 시각으로 밀고 다시 대기 상태로. 1회용은 여기 오지 않는다(발동 후 삭제된다) */
   reschedule() {
     const now = dayjs();
-    const next = this.doneAt.add(this.intervalValue, 'minute');
+    const interval = this.intervalValue ?? 0;
+    const next = this.doneAt.add(interval, 'minute');
     this.status = AlarmStatus.PENDING;
-    this.doneAt = next.isAfter(now)
-      ? next
-      : now.add(this.intervalValue, 'minute');
+    this.doneAt = next.isAfter(now) ? next : now.add(interval, 'minute');
   }
 }

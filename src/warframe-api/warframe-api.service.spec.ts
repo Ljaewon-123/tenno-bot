@@ -370,6 +370,104 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
     expect(text).toContain('**Fortified Foes** elite\n-# Enemies gain armor');
     expect(text).not.toContain('Bold risks are elite-only');
   });
+
+  /**
+   * detail:true를 type 없이 돌리면 2종 × 3미션 × (편차+위험) × 설명문이 한 메시지에 쌓인다.
+   * 규격 한도는 "메시지 합 4000자"인데 코드는 TextDisplay 하나당으로 재고 있어(G8)
+   * 개별로는 통과하고 서버가 메시지를 통째로 400으로 거절한다 — 미션 1개=1페이지가 그 방어다.
+   */
+  describe('detail 페이징', () => {
+    const missionOf = (name: string) => ({
+      missionType: name,
+      deviation: { key: 'd', name: `${name} Deviation`, description: 'D' },
+      risks: [{ key: 'r', name: `${name} Risk`, description: 'R' }],
+    });
+    const threeMissions = (typeKey: string) => ({
+      ...archimedea(typeKey),
+      missions: ['Alpha', 'Beta', 'Gamma'].map(missionOf),
+    });
+    const buildThree = (...keys: string[]) =>
+      build({
+        archimedeas: vi.fn().mockResolvedValue(keys.map(threeMissions)),
+      });
+
+    const buttons = (view: ContainerBuilder) =>
+      (
+        view.toJSON().components as unknown as {
+          type: ComponentType;
+          components?: { custom_id?: string; disabled?: boolean }[];
+        }[]
+      )
+        .filter((child) => child.type === ComponentType.ActionRow)
+        .flatMap((row) => row.components ?? [])
+        .map((child) => [child.custom_id, child.disabled]);
+
+    it('미션 하나만 펴고 나머지는 페이지 버튼으로 넘긴다', async () => {
+      const view = await buildThree('C T_ L A B').archimedea(
+        ArchimedeaType.Deep,
+        true,
+      );
+
+      const { text } = parts(view);
+      expect(text).toContain('**Alpha Deviation**');
+      expect(text).not.toContain('**Beta Deviation**');
+      expect(text).toContain('Page 1 / 3');
+      // 타입을 customId에 실어야 넘긴 페이지에서도 필터가 산다
+      expect(buttons(view)).toEqual([
+        ['archimedea/CT_LAB/page/-1', true],
+        ['archimedea/CT_LAB/page/1', false],
+      ]);
+    });
+
+    it('페이지를 넘기면 그 미션이 나온다', async () => {
+      const { text } = parts(
+        await buildThree('C T_ L A B').archimedea(
+          ArchimedeaType.Deep,
+          true,
+          undefined,
+          1,
+        ),
+      );
+      expect(text).toContain('**Beta Deviation**');
+      expect(text).not.toContain('**Alpha Deviation**');
+      expect(text).toContain('Page 2 / 3');
+    });
+
+    it('타입을 안 걸면 두 종을 이어 붙여 6페이지가 되고 어느 쪽인지 제목이 말한다', async () => {
+      const view = await buildThree('C T_ L A B', 'C T_ H E X').archimedea(
+        undefined,
+        true,
+        undefined,
+        3,
+      );
+
+      const { text } = parts(view);
+      expect(text).toContain('## Temporal Archimedea');
+      expect(text).toContain('Page 4 / 6');
+      expect(buttons(view)[0][0]).toBe('archimedea/all/page/2');
+    });
+
+    it('개인 수정자는 모든 페이지에 남는다 — 미션마다 다시 찾으러 가지 않는다', async () => {
+      const service = buildThree('C T_ L A B');
+      for (const page of [0, 1, 2]) {
+        const { text } = parts(
+          await service.archimedea(ArchimedeaType.Deep, true, undefined, page),
+        );
+        expect(text).toContain('Dull Blades');
+      }
+    });
+
+    it('detail:false는 페이징하지 않는다 — 요약 3줄은 한 카드에 들어간다', async () => {
+      const view = await buildThree('C T_ L A B').archimedea(
+        ArchimedeaType.Deep,
+      );
+
+      const { text } = parts(view);
+      expect(text).toContain('Alpha');
+      expect(text).toContain('Gamma');
+      expect(buttons(view)).toEqual([]);
+    });
+  });
 });
 
 describe('WarframeApiService 인카논 로테이션', () => {
