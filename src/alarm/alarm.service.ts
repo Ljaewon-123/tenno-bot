@@ -18,6 +18,13 @@ const STALE_AFTER_MINUTES = 10;
 /** 🔔 버튼이 거는 1회용 리마인더가 만료 몇 분 전에 오는가 */
 export const REMIND_LEAD_MINUTES = 30;
 
+/**
+ * 서버당 반복 알람 상한. 채널 단위로 걸면 채널을 더 파는 것으로 그냥 우회된다 —
+ * 1분 크론이 매 분 전부 도는 비용을 지는 주체가 서버이므로 셈도 서버로 한다.
+ * 1회용 리마인더는 개인 것이고 대상 enum이 유한해 세지 않는다.
+ */
+export const ALARM_LIMIT_PER_GUILD = 20;
+
 export type RemindInput = {
   guildId: string;
   /** DM이 막혔을 때 떨굴 자리 */
@@ -45,6 +52,15 @@ export class AlarmService {
 
   /** 업데이트는 어떻게 하지 일단은 지우고 등록 */
   async register(alarm: CreateAlarm) {
+    const registered = await this.alarmConfigRepository.countBy({
+      guildId: alarm.guildId,
+      intervalValue: Not(IsNull()),
+    });
+    if (registered >= ALARM_LIMIT_PER_GUILD)
+      throw new BadRequestException(
+        `This server already has ${registered} alarms. Delete one with /alarm delete first.`,
+      );
+
     const entity = this.alarmConfigRepository.create(alarm);
     return this.alarmConfigRepository.save(entity);
   }

@@ -3,7 +3,7 @@ import dayjs from '@/utils/dayjs';
 import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
 import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AlarmService } from './alarm.service';
+import { ALARM_LIMIT_PER_GUILD, AlarmService } from './alarm.service';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmStatus } from './vo/enum';
 
@@ -32,6 +32,7 @@ const build = (pending: AlarmConfig[] = []) => {
   const alarmConfigRepository = {
     findBy: vi.fn().mockResolvedValue(pending),
     findOneBy: vi.fn().mockResolvedValue(null),
+    countBy: vi.fn().mockResolvedValue(0),
     update: vi.fn(),
     save: vi.fn((value: object) => value),
     create: vi.fn((value: object) => Object.assign(new AlarmConfig(), value)),
@@ -302,6 +303,29 @@ describe('AlarmService.run — 1회용', () => {
     await expect(service.run(alarm)).resolves.toBeUndefined();
 
     expect(alarmConfigRepository.delete).toHaveBeenCalledWith({ id: 'r1' });
+  });
+});
+
+describe('AlarmService.register — 개수 제한', () => {
+  it('상한에 닿으면 거절한다', async () => {
+    const { service, alarmConfigRepository } = build([]);
+    alarmConfigRepository.countBy.mockResolvedValue(ALARM_LIMIT_PER_GUILD);
+
+    await expect(service.register(alarmOf() as never)).rejects.toThrow(
+      /already has/,
+    );
+    expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('1회용 리마인더는 상한에 세지 않는다 — 개인 것이다', async () => {
+    const { service, alarmConfigRepository } = build([]);
+    await service.register(alarmOf());
+
+    const [where] = alarmConfigRepository.countBy.mock.calls[0] as [
+      { guildId: string; intervalValue: FindOperator<number> },
+    ];
+    expect(where.guildId).toBe('g1');
+    expect(where.intervalValue.type).toBe('not');
   });
 });
 
