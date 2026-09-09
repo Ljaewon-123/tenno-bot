@@ -88,13 +88,39 @@ const cost = (child: Child) => {
   return 1;
 };
 
+/**
+ * 4000자는 TextDisplay 하나가 아니라 **메시지 합**이다. 개별로만 재면 자식마다 통과하고
+ * 서버가 메시지를 통째로 400으로 거절한다 — 세는 자리는 여기 하나뿐이다.
+ */
+const contentLength = (child: Child) => {
+  const json = child.toJSON() as {
+    content?: string;
+    // Section의 본문은 자기 자신이 아니라 자식 TextDisplay에 있다
+    components?: { content?: string }[];
+  };
+  return (
+    (json.content?.length ?? 0) +
+    (json.components ?? []).reduce(
+      (sum, inner) => sum + (inner.content?.length ?? 0),
+      0,
+    )
+  );
+};
+
+/** 잘렸다는 안내 한 줄이 들어갈 자리 — 칸도 글자도 마지막은 비워둔다 */
+const NOTICE_RESERVE = 64;
+
 /** 컨테이너 1개 = 메시지 1개. 넘친 만큼은 버리되 버렸다는 사실은 남긴다 */
 export const assemble = (accent: Accent, children: Child[]) => {
   const fitted: Child[] = [];
   let used = 0;
+  let chars = 0;
   for (const child of children) {
     used += cost(child);
-    if (used > LIMIT.components - 1) break; // 마지막 한 칸은 안내용으로 비워둔다
+    chars += contentLength(child);
+    // 마지막 한 칸은 안내용으로 비워둔다
+    if (used > LIMIT.components - 1) break;
+    if (chars > LIMIT.content - NOTICE_RESERVE) break;
     fitted.push(child);
   }
   if (fitted.length < children.length)

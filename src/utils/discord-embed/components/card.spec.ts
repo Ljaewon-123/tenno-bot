@@ -81,6 +81,27 @@ describe('card', () => {
     });
   });
 
+  it('4000자는 자식 하나가 아니라 합이다 — 넘기면 잘라내고 남긴다', () => {
+    // 개별로는 전부 통과하는 900자짜리 다섯 = 4500자. 합산을 안 하면 서버가 통째로 400을 준다
+    const components = bodies(
+      card({
+        title: 'T',
+        blocks: Array.from({ length: 5 }, () => ['x'.repeat(900)]),
+      }),
+    );
+
+    expect(components).not.toHaveLength(LIMIT.components);
+    const chars = components.reduce(
+      (sum, child) =>
+        sum + (('content' in child && child.content?.length) || 0),
+      0,
+    );
+    expect(chars).toBeLessThanOrEqual(LIMIT.content);
+    expect(components.at(-1)).toMatchObject({
+      content: subtext('1 more hidden'),
+    });
+  });
+
   it('버튼 행은 1개가 아니라 1 + 버튼 수로 계산된다', () => {
     // 헤더 1 + 블록 2 + 구분선 1 + (행 1 + 버튼 5) = 10칸을 먹는다
     const view = card({

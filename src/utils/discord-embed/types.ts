@@ -22,7 +22,7 @@ export enum Accent {
 export const LIMIT = {
   /** 컨테이너 자식 수 */
   components: 40,
-  /** TextDisplay 하나의 글자 수 */
+  /** 메시지 전체의 글자 수 합. `assemble()`이 자식들을 더해 가며 자른다 */
   content: 4000,
   /** 버튼·셀렉트 customId. 여기에 유저 입력을 실으면 길이를 먼저 재야 한다 */
   customId: 100,
