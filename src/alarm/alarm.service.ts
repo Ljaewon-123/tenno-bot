@@ -183,9 +183,13 @@ export class AlarmService {
     }
   }
 
-  /** 반복 알람은 "언제마다 오는지", 1회용은 "누구 것이고 뭐가 곧 끝나는지"를 밝혀야 한다 */
-  private pushLines(alarm: AlarmConfig): [string, string] {
+  /**
+   * 반복 알람은 "언제마다 오는지", 1회용은 "누구 것이고 뭐가 곧 끝나는지"를 밝혀야 한다.
+   * 세 번째는 잘렸을 때 전체를 볼 경로 — enum 값이 그대로 슬래시 커맨드 이름이다.
+   */
+  private pushLines(alarm: AlarmConfig): [string, string, string] {
     const label = TargetCommandLabel[alarm.targetCommand.target];
+    const path = `/${alarm.targetCommand.target}`;
     if (!alarm.intervalValue)
       return [
         // DM이 막혀 채널로 떨어져도 누구 것인지 알려면 멘션이 본문에 있어야 한다 —
@@ -194,12 +198,14 @@ export class AlarmService {
           alarm.doneAt.add(REMIND_LEAD_MINUTES, 'minute'),
         )}`,
         'One-time reminder you set with 🔔 — press it again to set a new one',
+        path,
       ];
 
     return [
       `🔔 Alarm · ${alarm.name} · every ${alarm.intervalValue} min`,
       // reschedule은 발송 뒤에 돌아서 doneAt은 아직 이번 발동 시각이다
       `${alarm.id} · next run ${relative(dayjs().add(alarm.intervalValue, 'minute'))}`,
+      path,
     ];
   }
 

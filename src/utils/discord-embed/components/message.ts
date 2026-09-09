@@ -66,17 +66,48 @@ export const ephemeral = (view: ContainerBuilder) => ({
 });
 
 /**
+ * 주기적으로 오는 것은 짧아야 한다. 15분마다 6티어 균열 카드를 통째로 던지면
+ * 채널이 스크롤로 덮이고, 그러면 알람 자체를 끄게 된다.
+ */
+const PUSH_MAX_LINES = 12;
+
+/**
  * 조회 뷰를 알람 발송으로 바꾼다. 사용자가 부른 게 아니므로 맨 윗줄에 왜 이게 왔는지를 먼저 밝히고
  * accent를 주황으로 바꾼다 — 이게 없으면 채널에서 조회 결과와 구분되지 않는다.
+ * 길면 뒤를 자른다: `path`(예: `/void-fissures`)를 주면 전체를 볼 경로를 함께 말한다.
  */
 export const asPush = (
   view: ContainerBuilder,
   header: string,
   footer?: string,
+  path?: string,
 ) => {
   view
     .setAccentColor(Accent.Soon)
     .spliceComponents(0, 0, text(subtext(header)));
+
+  // 자식 통째로 센다 — TextDisplay 안을 자르면 굵게·목록 같은 마크다운이 반쪽이 난다
+  const children = view.toJSON().components as { content?: string }[];
+  let lines = 0;
+  const cut = children.findIndex((child) => {
+    lines += child.content?.split('\n').length ?? 1;
+    return lines > PUSH_MAX_LINES;
+  });
+
+  // 0번은 방금 넣은 헤더다 — 그것만으로 넘칠 리는 없지만 잘라내면 왜 왔는지가 사라진다
+  if (cut > 0)
+    view.spliceComponents(
+      cut,
+      children.length - cut,
+      text(
+        subtext(
+          ['Trimmed for the alarm', path && `${path} for the full card`]
+            .filter(Boolean)
+            .join(' · '),
+        ),
+      ),
+    );
+
   if (footer) view.addTextDisplayComponents(text(subtext(footer)));
   return view;
 };

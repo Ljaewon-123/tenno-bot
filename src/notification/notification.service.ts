@@ -157,6 +157,8 @@ export class NotificationService {
       view,
       `🔔 ${WatchTargetLabel[eventType]} changed`,
       '/notification off to stop',
+      // enum 값이 그대로 슬래시 커맨드 이름이다 — 잘렸을 때 전체를 볼 경로
+      `/${eventType}`,
     );
 
     // 채널이 지워졌거나 권한이 빠진 길드 하나 때문에 나머지 발송이 멈추면 안 된다

@@ -153,6 +153,40 @@ describe('asPush', () => {
     });
   });
 
+  /** 15분마다 6티어 균열 카드를 통째로 던지면 채널이 덮이고, 그러면 알람 자체를 끄게 된다 */
+  it('긴 카드는 뒤를 자르고 전체를 볼 경로를 남긴다', () => {
+    const long = card({
+      title: 'Void Fissures',
+      // 티어 6개 × 3줄 = 조회 카드로는 정상, push로는 과하다
+      blocks: Array.from({ length: 6 }, (_, tier) => [
+        { heading: `Tier ${tier}`, lines: ['a', 'b'] },
+      ]),
+    });
+    const full = bodies(long).length;
+
+    const view = asPush(long, '🔔 Alarm', 'next run <t:1:R>', '/void-fissures');
+    const children = bodies(view);
+
+    expect(children.length).toBeLessThan(full);
+    // 왜 왔는지(헤더)와 나머지를 볼 경로는 잘라내도 남아야 한다
+    expect(children[0]).toMatchObject({ content: subtext('🔔 Alarm') });
+    expect(children.at(-2)).toMatchObject({
+      content: subtext(
+        'Trimmed for the alarm · /void-fissures for the full card',
+      ),
+    });
+    expect(children.at(-1)).toMatchObject({
+      content: subtext('next run <t:1:R>'),
+    });
+  });
+
+  it('짧은 카드는 자르지 않는다', () => {
+    const short = card({ title: 'Sortie', blocks: [['a', 'b']] });
+    const full = bodies(short).length;
+
+    expect(bodies(asPush(short, '🔔 Alarm')).length).toBe(full + 1);
+  });
+
   it('플래그가 없으면 컴포넌트가 통째로 무시된다', () => {
     expect(payload(card({ title: 'T', blocks: [] })).flags).toBe(
       MessageFlags.IsComponentsV2,
