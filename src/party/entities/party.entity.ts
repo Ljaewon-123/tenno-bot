@@ -8,7 +8,7 @@ import {
   Min,
 } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';
-import { PartyStatus } from '../vo/enum';
+import { PartyStatus, PartyVisibility } from '../vo/enum';
 
 // user테이블이 따로 없어서 별도로 묶어줘야함
 @Entity()
@@ -39,6 +39,10 @@ export class Party extends CommonWithGuildChannel {
   @IsEnum(PartyStatus)
   @Column({ default: PartyStatus.OPEN })
   status: PartyStatus = PartyStatus.OPEN;
+
+  @IsEnum(PartyVisibility)
+  @Column({ default: PartyVisibility.PUBLIC })
+  visibility: PartyVisibility = PartyVisibility.PUBLIC;
 
   @IsString()
   @Column()

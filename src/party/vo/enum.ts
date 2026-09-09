@@ -5,6 +5,12 @@ export enum PartyStatus {
   CLOSE = 'close',
 }
 
+export enum PartyVisibility {
+  PUBLIC = 'public',
+  FRIENDS = 'friends',
+  CLAN = 'clan',
+}
+
 /** 커맨드가 넘겨주는 생성 입력 — 나머지 컬럼은 서비스가 채운다 */
 export type CreateParty = Pick<
   Party,
