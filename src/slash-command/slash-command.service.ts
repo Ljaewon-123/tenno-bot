@@ -12,9 +12,14 @@ import {
   TargetCommand,
   TargetCommandLabel,
 } from '@/warframe-api/enum';
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
+import { isDropCategory } from '@/warframe-api/drop-table/vo/enum';
+import {
+  DROP_KEY,
+  WarframeApiService,
+} from '@/warframe-api/warframe-api.service';
 import {
   ArchimedeaType,
+  isVoidTier,
   isVoidTraderCategory,
 } from '@/warframe-api/world-state/vo/enum';
 import {
@@ -97,6 +102,24 @@ export class SlashCommandService {
   ) {
     const voidFissures = await this.warframeApi.voidFissures(tier);
     return interaction.editReply(payload(voidFissures));
+  }
+
+  /**
+   * 티어를 좁힌 화면에서만 페이저가 붙는다(요약 화면은 티어당 2줄이라 넘길 게 없다).
+   * 티어를 customId에 실어야 페이지를 넘겨도 필터가 살아남는다 — void-trader와 같은 이유.
+   */
+  @Button(`${TargetCommand.VoidFissures}/:tier/page/:page`)
+  async voidFissuresPage(
+    @Context() [interaction]: ButtonContext,
+    @ComponentParam('tier') tier: string,
+    @ComponentParam('page') page: string,
+  ) {
+    const voidFissures = await this.warframeApi.voidFissures(
+      isVoidTier(tier) ? tier : undefined,
+      undefined,
+      Number(page),
+    );
+    return interaction.update(payload(voidFissures));
   }
 
   @SlashCommand({
@@ -263,5 +286,25 @@ export class SlashCommandService {
   ) {
     const dropSources = await this.warframeApi.dropSources(itemName, category);
     return interaction.editReply(payload(dropSources));
+  }
+
+  /**
+   * 아이템 하나로 좁혀졌을 때만 페이저가 붙는다. 이름이 유저 입력이라 customId에
+   * `encodeURIComponent`로 실린다 — 공백·`/`가 그대로 들어가면 라우팅이 깨진다.
+   */
+  @Button(`${DROP_KEY}/:category/:item/page/:page`)
+  async dropSourcesPage(
+    @Context() [interaction]: ButtonContext,
+    @ComponentParam('category') category: string,
+    @ComponentParam('item') item: string,
+    @ComponentParam('page') page: string,
+  ) {
+    const dropSources = await this.warframeApi.dropSources(
+      decodeURIComponent(item),
+      isDropCategory(category) ? category : undefined,
+      undefined,
+      Number(page),
+    );
+    return interaction.update(payload(dropSources));
   }
 }

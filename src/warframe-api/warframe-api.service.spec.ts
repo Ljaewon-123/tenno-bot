@@ -41,6 +41,18 @@ const parts = (view: ContainerBuilder) => {
   return { contents, thumbnail, image, text: contents.join('\n') };
 };
 
+/** 페이저 버튼의 customId — 필터가 실려 있는지, 애초에 붙었는지를 여기서 본다 */
+const pagerIds = (view: ContainerBuilder) =>
+  (
+    view.toJSON().components as unknown as {
+      type: ComponentType;
+      components?: { custom_id?: string }[];
+    }[]
+  )
+    .filter((child) => child.type === ComponentType.ActionRow)
+    .flatMap((row) => row.components ?? [])
+    .map((child) => child.custom_id);
+
 /**
  * 이미지 URL이 비면 디스코드가 조용히 안 그리고 끝나서 눈으로는 회귀를 못 잡는다.
  * 알람·구독도 같은 카드 빌더를 타므로 여기만 지키면 세 경로가 같이 지켜진다.
@@ -234,20 +246,57 @@ describe('WarframeApiService 카드 이미지', () => {
     expect(text).toContain('🟢 ≥5% · 🟠 1-5% · 🔴 <1%');
   });
 
-  /** 잘렸으면 전체 개수·정렬 기준·나머지를 볼 경로 셋을 같이 준다 — 개수만 주면 막다른 길이다 */
-  it('접힌 줄은 전체 개수와 정렬 기준과 경로를 함께 말한다', async () => {
-    const service = new WarframeApiService({} as never, wfcdItemsService, {
-      findDropSources: vi.fn().mockResolvedValue(
-        Array.from({ length: 8 }, (_, index) => ({
-          itemName: 'Braton Prime',
-          sourceName: `Relic ${index}`,
-          chance: 10 - index,
-        })),
-      ),
+  const sourcesOf = (itemName: string, count: number) =>
+    Array.from({ length: count }, (_, index) => ({
+      itemName,
+      sourceName: `${itemName} relic ${index}`,
+      chance: 100 - index,
+    }));
+
+  const withSources = (sources: object[]) =>
+    new WarframeApiService({} as never, wfcdItemsService, {
+      findDropSources: vi.fn().mockResolvedValue(sources),
     } as never);
 
-    const { text } = parts(await service.dropSources('braton'));
-    expect(text).toContain(
+  /** 아이템이 하나로 좁혀졌으면 자를 이유가 없다 — 나머지는 페이지 버튼이 가져온다 */
+  it('아이템 하나면 페이지로 펴고 접힌 줄을 쓰지 않는다', async () => {
+    const view = await withSources(sourcesOf('Braton Prime', 12)).dropSources(
+      'braton prime',
+    );
+
+    const { text } = parts(view);
+    expect(text).toContain('Page 1 / 2 · highest chance first');
+    expect(text).not.toContain('Showing');
+    // 매칭된 이름이 아니라 유저가 친 질의를 싣는다 — 버튼이 같은 질의를 다시 돌려야 결과가 같다.
+    // 유저 입력이라 인코딩한다: 공백이 그대로 들어가면 라우팅이 깨진다
+    expect(pagerIds(view)).toEqual([
+      'drop/all/braton%20prime/page/-1',
+      'drop/all/braton%20prime/page/1',
+    ]);
+  });
+
+  /** 페이지가 하나뿐이면 넘길 게 없다 — 버튼을 남기면 눌러보게 된다 */
+  it('한 페이지에 다 들어가면 버튼도 접힌 줄도 없다', async () => {
+    const view = await withSources(sourcesOf('Braton Prime', 8)).dropSources(
+      'braton',
+    );
+
+    expect(pagerIds(view)).toEqual([]);
+    expect(parts(view).text).not.toContain('Showing');
+  });
+
+  /**
+   * 잘렸으면 전체 개수·정렬 기준·나머지를 볼 경로 셋을 같이 준다 — 개수만 주면 막다른 길이다.
+   * 여러 아이템이 잡힌 화면은 "어느 아이템의 몇 페이지"가 안 읽혀 페이저를 안 붙인다
+   */
+  it('여러 아이템이 잡히면 접힌 줄로 돌아간다', async () => {
+    const view = await withSources([
+      ...sourcesOf('Braton Prime', 8),
+      ...sourcesOf('Braton Vandal', 2),
+    ]).dropSources('braton');
+
+    expect(pagerIds(view)).toEqual([]);
+    expect(parts(view).text).toContain(
       '-# Showing 6 of 8 · highest chance first · add `category:` to /drop item:Braton Prime',
     );
   });
@@ -290,6 +339,30 @@ describe('WarframeApiService 균열/사이클', () => {
     expect(text).toContain('-# Meso · Neo · Requiem · Omnia — none');
     // 월드스테이트는 캐시를 타므로 실시간 값으로 오해되면 안 된다
     expect(text).toContain('-# cached 60s');
+  });
+
+  /** 요약의 접힌 줄이 가리키는 `tier:` 필터가 바로 이 화면이다 — 여기서 막히면 경로가 거짓말이 된다 */
+  it('티어를 좁히면 접지 않고 페이지로 편다', async () => {
+    const service = build({
+      voidFissures: vi
+        .fn()
+        .mockResolvedValue(
+          Array.from({ length: 10 }, (_, index) =>
+            fissure({ node: `Node ${index}` }),
+          ),
+        ),
+    });
+
+    const view = await service.voidFissures('Axi' as never);
+    const { text } = parts(view);
+    expect(text).toContain('Void Fissures · Axi');
+    expect(text).not.toContain('Showing');
+    expect(text).toContain('Page 1 / 2 · soonest first');
+    // 티어를 customId에 실어야 넘긴 페이지에서도 필터가 산다
+    expect(pagerIds(view)).toEqual([
+      'void-fissures/Axi/page/-1',
+      'void-fissures/Axi/page/1',
+    ]);
   });
 
   it('필터를 걸고 0개면 필터를 지우라고 말한다', async () => {

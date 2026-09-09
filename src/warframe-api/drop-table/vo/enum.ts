@@ -21,3 +21,7 @@ export enum DropCategory {
   /** 바로 키티어 상점. all.json에 없어 @wfcd/items에서 채운다 — 확률이 아니라 두캇 값이다 */
   Trader = 'trader',
 }
+
+/** customId로 돌아온 값. 우리가 심은 것이지만 구버전 메시지의 버튼도 눌린다 */
+export const isDropCategory = (value: string): value is DropCategory =>
+  (Object.values(DropCategory) as string[]).includes(value);

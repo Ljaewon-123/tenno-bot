@@ -24,6 +24,8 @@ export const LIMIT = {
   components: 40,
   /** TextDisplay 하나의 글자 수 */
   content: 4000,
+  /** 버튼·셀렉트 customId. 여기에 유저 입력을 실으면 길이를 먼저 재야 한다 */
+  customId: 100,
 } as const;
 
 /**

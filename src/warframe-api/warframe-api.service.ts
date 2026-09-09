@@ -12,6 +12,7 @@ import {
   subtext,
   type Block,
   type Line,
+  LIMIT,
 } from '@/utils/discord-embed';
 import { Injectable } from '@nestjs/common';
 import type { ButtonBuilder } from 'discord.js';
@@ -50,13 +51,19 @@ import { TTL_SECONDS } from './world-state/constants';
 import { WorldStateService } from './world-state/world-state.service';
 
 /** 그룹당 펴는 줄 수. 넘치는 만큼은 접는다 — 안 접으면 목록 하나가 40개 한도를 뚫는다 */
-const TOP = { fissure: 2, fissureFiltered: 6, drop: 6 } as const;
+const TOP = { fissure: 2, drop: 6 } as const;
 
 /** 기본 화면에서 카테고리당 미리 펴는 종수. 셋 다 펴도 한 화면 안에 든다 */
 const TRADER_PEEK = 5;
 
 /** 카테고리를 안 고른 상태. 셀렉트에서 되돌아올 자리가 없으면 기본 화면이 막다른 길이 된다 */
 const TRADER_ALL = 'all';
+
+/** `/drop` 페이저의 customId 앞자리 — 핸들러의 `@Button('drop/:category/:item/page/:page')`와 같아야 한다 */
+export const DROP_KEY = 'drop';
+const DROP_ALL = 'all';
+/** paged()가 key 뒤에 붙이는 꼬리. 페이지 번호가 세 자리를 넘길 목록은 없다 */
+const PAGE_SUFFIX_LENGTH = '/page/999'.length;
 
 /**
  * 접힌 줄. "…and N more"는 전체가 몇 개고 어디서 나머지를 보는지를 안 말해 막다른 길이 된다 —
@@ -182,8 +189,16 @@ export class WarframeApiService {
     return `${bar((currentScore / maximumScore) * 100)} ${currentScore.toLocaleString()} / ${maximumScore.toLocaleString()}`;
   }
 
+  /** 균열 한 줄 — 티어 요약과 티어별 페이지가 같은 모양이어야 페이지가 "같은 목록"으로 읽힌다 */
+  private fissureLine(fissure: Fissure) {
+    return `- ${bold(fissure.node)} — ${fissure.missionType}${
+      // Steel Path는 이모지가 아니라 굵은 축약 — 줄 끝의 남은 시간이 밀리지 않는다
+      fissure.isHard ? ` · ${bold('SP')}` : ''
+    } ${relative(fissure.expiry)}`;
+  }
+
   /** 보이드 균열 — 티어가 6개라 그룹당 상위 몇 줄만 펴고 접는다 */
-  async voidFissures(options?: VoidTier, buttons?: Buttons) {
+  async voidFissures(options?: VoidTier, buttons?: Buttons, page = 0) {
     const fissures = await this.worldStateService.voidFissures(options);
     const active = fissures.filter((fissure) => !fissure.expired);
 
@@ -196,19 +211,37 @@ export class WarframeApiService {
         options && 'Drop the filter to see every tier',
       );
 
+    const soonest = (list: Fissure[]) =>
+      [...list].sort((a, b) => dayjs(a.expiry).diff(b.expiry));
+
+    // 티어를 하나로 좁힌 순간 그룹이 하나뿐이라 접을 이유가 없다 — 여기서만 페이지로 편다.
+    // 요약 화면은 접힌 줄이 `tier:` 필터를 가리키고, 그 필터가 이 페이저로 이어진다
+    if (options) {
+      const view = paged({
+        key: `${TargetCommand.VoidFissures}/${options}`,
+        items: soonest(active),
+        page,
+        sort: 'soonest first',
+      });
+
+      return card({
+        title: `Void Fissures · ${options}`,
+        subtitle: `${active.length} active`,
+        blocks: [[{ lines: view.items.map((f) => this.fissureLine(f)) }]],
+        buttons: [...(view.buttons ?? []), ...(buttons ?? [])],
+        footer: this.fresh(view.footer),
+      });
+    }
+
     const byTier = active.reduce<Record<string, Fissure[]>>((acc, fissure) => {
       (acc[fissure.tier] ??= []).push(fissure);
       return acc;
     }, {});
-    // 티어 하나만 보자고 필터를 건 사람에게 2줄만 주면 필터를 건 의미가 없다
-    const top = options ? TOP.fissureFiltered : TOP.fissure;
 
     const groups: Block[][] = [];
     const empty: string[] = [];
     for (const tier of Object.values(VoidTier)) {
-      const list = (byTier[tier] ?? []).sort((a, b) =>
-        dayjs(a.expiry).diff(b.expiry),
-      );
+      const list = soonest(byTier[tier] ?? []);
       // 항목 0개인 티어는 블록을 만들지 않고 마지막 한 줄로 합친다 — "없음"도 정보다
       if (!list.length) {
         empty.push(tier);
@@ -218,18 +251,14 @@ export class WarframeApiService {
       groups.push([
         {
           heading: `${tier} ${list.length}`,
-          lines: list.slice(0, top).map(
-            (fissure) =>
-              `- ${bold(fissure.node)} — ${fissure.missionType}${
-                // Steel Path는 이모지가 아니라 굵은 축약 — 줄 끝의 남은 시간이 밀리지 않는다
-                fissure.isHard ? ` · ${bold('SP')}` : ''
-              } ${relative(fissure.expiry)}`,
-          ),
+          lines: list
+            .slice(0, TOP.fissure)
+            .map((fissure) => this.fissureLine(fissure)),
           // 티어 필터가 나머지를 보는 유일한 경로다 — 접은 자리에서 바로 알려준다
           more:
-            list.length > top
+            list.length > TOP.fissure
               ? foldedLine(
-                  top,
+                  TOP.fissure,
                   list.length,
                   'soonest first',
                   `/void-fissures tier:${tier}`,
@@ -664,6 +693,7 @@ export class WarframeApiService {
     itemName: string,
     category?: DropCategory,
     buttons?: Buttons,
+    page = 0,
   ) {
     const sources = await this.dropTableService.findDropSources(
       itemName,
@@ -694,6 +724,25 @@ export class WarframeApiService {
     const detail = modCard ? undefined : this.itemDetail(item);
 
     const prices = await this.traderPrices(sources);
+    const groups = Object.entries(byItem);
+    // customId는 100자 하드 리밋이다. 아이템 이름은 유저가 친 값이라 길이를 보장할 수 없어
+    // 안 들어가면 페이저를 포기하고 접힌 줄로 돌아간다 — 넘기면 메시지가 통째로 400이다
+    const key = `${DROP_KEY}/${category ?? DROP_ALL}/${encodeURIComponent(itemName)}`;
+    // 여러 아이템이 잡힌 화면에서 페이지는 "어느 아이템의 몇 페이지"인지가 안 읽힌다.
+    // 그때는 이름을 더 정확히 주는 게 진짜 경로라 접힌 줄을 그대로 둔다
+    const single =
+      groups.length === 1 &&
+      key.length + PAGE_SUFFIX_LENGTH <= LIMIT.customId &&
+      groups[0];
+
+    const view =
+      single &&
+      paged({
+        key,
+        items: [...single[1]].sort((a, b) => b.chance - a.chance),
+        page,
+        sort: 'highest chance first',
+      });
 
     return card({
       title: `Drop Sources · ${itemName}`,
@@ -706,13 +755,20 @@ export class WarframeApiService {
       image: modCard,
       blocks: [
         [detail],
-        ...Object.entries(byItem).map(([name, list]): Block[] => [
-          this.dropGroup(name, list, category, prices),
-        ]),
+        ...(view
+          ? [[this.dropGroup(single[0], single[1], category, prices, view)]]
+          : groups.map(([name, list]): Block[] => [
+              this.dropGroup(name, list, category, prices),
+            ])),
       ],
-      buttons,
+      buttons: view ? [...(view.buttons ?? []), ...(buttons ?? [])] : buttons,
       // 드랍 테이블은 월드스테이트가 아니라 DB라 신선도 표기 대상이 아니다
-      footer: 'Bar is relative to the best source · 🟢 ≥5% · 🟠 1-5% · 🔴 <1%',
+      footer: [
+        view && view.footer,
+        'Bar is relative to the best source · 🟢 ≥5% · 🟠 1-5% · 🔴 <1%',
+      ]
+        .filter(Boolean)
+        .join('\n'),
     });
   }
 
@@ -741,13 +797,15 @@ export class WarframeApiService {
     list: DropSource[],
     category?: DropCategory,
     prices = new Map<string, string>(),
+    view?: { items: DropSource[] },
   ): Block {
     const sorted = [...list].sort((a, b) => b.chance - a.chance);
+    // 막대 기준은 페이지가 아니라 목록 전체의 최고 확률이다 — 페이지마다 기준이 바뀌면 막대가 거짓말을 한다
     const best = sorted[0].chance;
 
     return {
       heading: name,
-      lines: sorted.slice(0, TOP.drop).map((source) => {
+      lines: (view ? view.items : sorted.slice(0, TOP.drop)).map((source) => {
         // relic은 이름에 이미 드러나므로 꼬리표를 붙이지 않는다
         const tail =
           source.category && source.category !== DropCategory.Relic
@@ -759,8 +817,9 @@ export class WarframeApiService {
           return `- 🛒 ${source.sourceName}${tail}${prices.has(name) ? ` · ${prices.get(name)}` : ''}`;
         return `- ${chanceIcon(source.chance)} ${source.sourceName}${tail} ${bar((source.chance / best) * 100)} ${source.chance}%`;
       }),
+      // 페이저가 붙었으면 접힌 줄이 없다 — 버튼이 나머지를 보는 경로다
       more:
-        sorted.length > TOP.drop
+        !view && sorted.length > TOP.drop
           ? foldedLine(
               TOP.drop,
               sorted.length,

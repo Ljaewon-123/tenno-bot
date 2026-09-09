@@ -80,6 +80,10 @@ export const isVoidTraderCategory = (
 ): value is VoidTraderCategory =>
   (Object.values(VoidTraderCategory) as string[]).includes(value);
 
+/** customId로 돌아온 값은 유저가 아니라 우리가 심은 것이지만, 구버전 메시지의 버튼도 눌린다 */
+export const isVoidTier = (value: string): value is VoidTier =>
+  (Object.values(VoidTier) as string[]).includes(value);
+
 /**
  * 시간대가 게임플레이를 바꾸는 오픈월드만. 지구(pc/earthCycle)는 조명만 바뀌어 뺐다.
  * 값이 그대로 `pc/{name}Cycle` 경로가 된다.
