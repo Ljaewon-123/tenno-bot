@@ -1,5 +1,7 @@
+import { EnumOption } from '@/utils/decorators/enum-option';
 import { Expose } from 'class-transformer';
 import { IntegerOption, StringOption } from 'necord';
+import { PartyVisibility } from '../vo/enum';
 
 export class CreatePartyCommand {
   @Expose()
@@ -26,4 +28,12 @@ export class CreatePartyCommand {
     max_value: 4,
   })
   size?: number;
+
+  @Expose()
+  @EnumOption({
+    enum: PartyVisibility,
+    name: 'visibility',
+    description: 'Who you are recruiting (label only — anyone can still enter)',
+  })
+  visibility?: PartyVisibility;
 }

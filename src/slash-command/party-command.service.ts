@@ -1,6 +1,7 @@
 import { CreatePartyCommand } from '@/party/dto/create-party.command.dto';
 import { PartyMessageService, partyLine } from '@/party/party-message.service';
 import { PartyService } from '@/party/party.service';
+import { PartyVisibility, PartyVisibilityLabel } from '@/party/vo/enum';
 import { emptyCard, manageCard, payload } from '@/utils/discord-embed';
 import { Injectable } from '@nestjs/common';
 import {
@@ -26,7 +27,7 @@ export class PartyCommandService {
   @Subcommand({ name: 'create', description: 'Open a new party' })
   async create(
     @Context() [interaction]: SlashCommandContext,
-    @Options() { name, mission, size }: CreatePartyCommand,
+    @Options() { name, mission, size, visibility }: CreatePartyCommand,
   ) {
     if (!interaction.guildId) return interaction.editReply(guildOnly());
 
@@ -37,6 +38,7 @@ export class PartyCommandService {
       name,
       mission,
       partySize: size ?? 4,
+      visibility: visibility ?? PartyVisibility.PUBLIC,
     });
 
     // 인터랙션 응답 자체가 모집 메시지 — 버튼/크론이 갱신할 수 있게 id를 붙여둔다
@@ -62,12 +64,20 @@ export class PartyCommandService {
         ),
       );
 
+    // 0인 범위도 남긴다 — 줄 모양이 매번 같아야 "친구만이 없다"가 읽힌다
+    const breakdown = Object.values(PartyVisibility)
+      .map(
+        (value) =>
+          `${PartyVisibilityLabel[value]} ${parties.filter((party) => party.visibility === value).length}`,
+      )
+      .join(' · ');
+
     return interaction.editReply(
       payload(
         manageCard({
           title: `Open Parties · ${parties.length}`,
           rows: parties.map((party) => ({ text: partyLine(party) })),
-          footer: 'Join from the recruiting message in its own channel',
+          footer: `${breakdown} · Join from the recruiting message in its own channel`,
         }),
       ),
     );

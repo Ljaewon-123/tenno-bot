@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Party } from './entities/party.entity';
 import { PartyMessageService } from './party-message.service';
 import { PartyService } from './party.service';
-import { PartyStatus } from './vo/enum';
+import { PartyStatus, PartyVisibility } from './vo/enum';
 
 const party = (overrides: Partial<Party> = {}) =>
   ({
@@ -18,6 +18,7 @@ const party = (overrides: Partial<Party> = {}) =>
     partySize: 4,
     members: ['host'],
     status: PartyStatus.OPEN,
+    visibility: PartyVisibility.PUBLIC,
     createdAt: dayjs(),
     ...overrides,
   }) as Party;

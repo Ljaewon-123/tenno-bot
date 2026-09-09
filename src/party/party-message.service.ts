@@ -10,7 +10,7 @@ import {
 import { Injectable } from '@nestjs/common';
 import { ButtonStyle } from 'discord.js';
 import { Party } from './entities/party.entity';
-import { PartyStatus } from './vo/enum';
+import { PartyStatus, PartyVisibilityLabel } from './vo/enum';
 
 /** 이 시간이 지난 OPEN 파티는 크론이 자동 마감한다 */
 export const PARTY_EXPIRE_HOURS = 3;
@@ -51,7 +51,7 @@ export class PartyMessageService {
         // 정원이 차도 파티를 닫지 않는다 — 초록은 "지금은 들어갈 자리가 없다"는 표시일 뿐이다
         accent: full ? Accent.Success : Accent.Default,
         title: full ? `${party.name} · Full` : party.name,
-        subtitle: party.mission,
+        subtitle: `${party.mission} · ${PartyVisibilityLabel[party.visibility]}`,
         blocks: [
           [
             {
@@ -106,4 +106,4 @@ export class PartyMessageService {
 
 /** 마감 목록·안내에서 파티 한 줄을 같은 모양으로 쓰기 위한 요약 */
 export const partyLine = (party: Party) =>
-  `${bold(party.name)} · ${party.mission} · ${party.members.length}/${party.partySize} · host <@${party.hostUserId}>`;
+  `${bold(party.name)} · ${party.mission} · ${PartyVisibilityLabel[party.visibility]} · ${party.members.length}/${party.partySize} · host <@${party.hostUserId}>`;
