@@ -4,8 +4,10 @@ import {
   accentFor,
   bar,
   bold,
+  button,
   card,
   emptyCard,
+  linkButton,
   paged,
   relative,
   select,
@@ -15,7 +17,7 @@ import {
   LIMIT,
 } from '@/utils/discord-embed';
 import { Injectable } from '@nestjs/common';
-import type { ButtonBuilder } from 'discord.js';
+import { ButtonBuilder } from 'discord.js';
 import { DropTableService } from './drop-table/drop-table.service';
 import type { DropSource } from './drop-table/entities/drop-source.entity';
 import { DropCategory } from './drop-table/vo/enum';
@@ -32,6 +34,7 @@ import {
   CycleLabel,
   CycleName,
   CycleNextState,
+  NightwaveFilter,
   VOID_TRADER_IMAGE,
   VOID_TRADER_WEAPON_CATEGORIES,
   VoidTier,
@@ -48,6 +51,7 @@ import {
   WorldEvent,
 } from './world-state/vo/types';
 import { TTL_SECONDS } from './world-state/constants';
+import { staleAsOf } from './world-state/stale';
 import { WorldStateService } from './world-state/world-state.service';
 
 /** 그룹당 펴는 줄 수. 넘치는 만큼은 접는다 — 안 접으면 목록 하나가 40개 한도를 뚫는다 */
@@ -62,6 +66,13 @@ const TRADER_ALL = 'all';
 /** `/drop` 페이저의 customId 앞자리 — 핸들러의 `@Button('drop/:category/:item/page/:page')`와 같아야 한다 */
 export const DROP_KEY = 'drop';
 const DROP_ALL = 'all';
+
+/** customId의 필터 축에서 "안 걸림"을 뜻하는 값. 축을 비워 두면 세그먼트 수가 달라져 라우팅이 깨진다 */
+export const FILTER_OFF = 'all';
+/** 아르키메디아 customId의 detail 축 — `archimedea/:type/:detail/page/:page` */
+export const ARCHIMEDEA_DETAIL = 'detail';
+/** 균열 customId의 스틸패스 축 — `void-fissures/:tier/:hard/page/:page` */
+export const FISSURE_HARD = 'sp';
 /** paged()가 key 뒤에 붙이는 꼬리. 페이지 번호가 세 자리를 넘길 목록은 없다 */
 const PAGE_SUFFIX_LENGTH = '/page/999'.length;
 
@@ -91,8 +102,13 @@ export class WarframeApiService {
    * footer는 데이터 신선도 자리다. 월드스테이트는 캐시를 타므로 최대 TTL만큼 옛날 값일 수 있고,
    * 안 적으면 매번 실시간으로 읽어온 값이라고 오해한다.
    */
-  private fresh(...extra: Line[]) {
-    return [...extra.filter(Boolean), `cached ${TTL_SECONDS}s`].join(' · ');
+  private fresh(data: unknown, ...extra: Line[]) {
+    // 스테일 캐시로 내준 값이면 TTL이 아니라 실제 나이를 적는다 — `cached 60s`는 나이를 축소해 말한다
+    const asOf = staleAsOf(data);
+    return [
+      ...extra.filter(Boolean),
+      asOf ? `cached ${relative(asOf)}` : `cached ${TTL_SECONDS}s`,
+    ].join(' · ');
   }
 
   /** 집정관 */
@@ -119,8 +135,12 @@ export class WarframeApiService {
         ],
         [`Reward Shard · ${bold(ArchonReward[archon.boss])}`],
       ],
-      buttons,
-      footer: this.fresh(),
+      // 보스 공략은 API에 없다 — 위키가 유일한 다음 행동이라 링크 버튼으로 내보낸다
+      buttons: [
+        ...(buttons ?? []),
+        linkButton('Wiki', this.wikiUrl(archon.boss)),
+      ],
+      footer: this.fresh(archon),
     });
   }
 
@@ -142,7 +162,7 @@ export class WarframeApiService {
         })),
       ],
       buttons,
-      footer: this.fresh(),
+      footer: this.fresh(sortie),
     });
   }
 
@@ -178,7 +198,7 @@ export class WarframeApiService {
         },
       ]),
       buttons,
-      footer: this.fresh(),
+      footer: this.fresh(events),
     });
   }
 
@@ -197,18 +217,45 @@ export class WarframeApiService {
     } ${relative(fissure.expiry)}`;
   }
 
-  /** 보이드 균열 — 티어가 6개라 그룹당 상위 몇 줄만 펴고 접는다 */
-  async voidFissures(options?: VoidTier, buttons?: Buttons, page = 0) {
+  /**
+   * 보이드 균열 — 티어가 6개라 그룹당 상위 몇 줄만 펴고 접는다.
+   * 필터는 티어·스틸패스 두 축이고 둘 다 customId에 실린다(`:tier/:hard`) — 안 그러면
+   * 페이지를 넘기거나 다른 축을 켜는 순간 먼저 건 필터가 죽는다.
+   */
+  async voidFissures(
+    options?: VoidTier,
+    buttons?: Buttons,
+    page = 0,
+    hard = false,
+  ) {
     const fissures = await this.worldStateService.voidFissures(options);
-    const active = fissures.filter((fissure) => !fissure.expired);
+    const live = fissures.filter((fissure) => !fissure.expired);
+    const active = hard ? live.filter((fissure) => fissure.isHard) : live;
+
+    const filterId = (tier: VoidTier | typeof FILTER_OFF, sp: boolean) =>
+      `${TargetCommand.VoidFissures}/${tier}/${sp ? FISSURE_HARD : FILTER_OFF}/page/0`;
+    const filters = [
+      // 스틸패스 균열이 실제로 있을 때만 — 눌러서 빈 화면이 나오는 버튼은 미끼다
+      !hard &&
+        live.some((fissure) => fissure.isHard) &&
+        button(filterId(options ?? FILTER_OFF, true), 'Steel Path only'),
+      // 좁힌 화면에서 되돌아갈 자리. 두 축을 한 번에 푼다
+      (hard || options) && button(filterId(FILTER_OFF, false), 'All fissures'),
+    ].filter((child): child is ButtonBuilder => Boolean(child));
+
+    const applied = [
+      options && `\`tier:${options}\``,
+      hard && '`steel-path`',
+    ].filter(Boolean);
 
     if (!active.length)
       return emptyCard(
         'No active fissures',
-        options
-          ? `Nothing matches \`tier:${options}\` right now.`
+        applied.length
+          ? `Nothing matches ${applied.join(' + ')} right now.`
           : 'The relays are quiet.',
-        options && 'Drop the filter to see every tier',
+        applied.length > 0 && 'Drop the filter to see every tier',
+        filters,
       );
 
     const soonest = (list: Fissure[]) =>
@@ -218,18 +265,18 @@ export class WarframeApiService {
     // 요약 화면은 접힌 줄이 `tier:` 필터를 가리키고, 그 필터가 이 페이저로 이어진다
     if (options) {
       const view = paged({
-        key: `${TargetCommand.VoidFissures}/${options}`,
+        key: `${TargetCommand.VoidFissures}/${options}/${hard ? FISSURE_HARD : FILTER_OFF}`,
         items: soonest(active),
         page,
         sort: 'soonest first',
       });
 
       return card({
-        title: `Void Fissures · ${options}`,
+        title: `Void Fissures · ${options}${hard ? ' · Steel Path' : ''}`,
         subtitle: `${active.length} active`,
         blocks: [[{ lines: view.items.map((f) => this.fissureLine(f)) }]],
-        buttons: [...(view.buttons ?? []), ...(buttons ?? [])],
-        footer: this.fresh(view.footer),
+        buttons: [...(view.buttons ?? []), ...filters, ...(buttons ?? [])],
+        footer: this.fresh(fissures, view.footer),
       });
     }
 
@@ -261,7 +308,8 @@ export class WarframeApiService {
                   TOP.fissure,
                   list.length,
                   'soonest first',
-                  `/void-fissures tier:${tier}`,
+                  // 켜 둔 스틸패스 필터까지 실어야 눌러서 간 화면의 개수가 여기 적힌 수와 같다
+                  `/void-fissures tier:${tier}${hard ? ' steel-path:True' : ''}`,
                 )
               : undefined,
         },
@@ -270,11 +318,11 @@ export class WarframeApiService {
     if (empty.length) groups.push([subtext(`${empty.join(' · ')} — none`)]);
 
     return card({
-      title: 'Void Fissures',
+      title: `Void Fissures${hard ? ' · Steel Path' : ''}`,
       subtitle: `${active.length} active · soonest first`,
       blocks: groups,
-      buttons,
-      footer: this.fresh(),
+      buttons: [...filters, ...(buttons ?? [])],
+      footer: this.fresh(fissures),
     });
   }
 
@@ -308,8 +356,9 @@ export class WarframeApiService {
         subtitle: `Arrives ${relative(trader.activation)} · stays 48 hours`,
         thumbnail,
         blocks: [],
+        // 🔔는 도착 알림이라 부재 화면에서만 뜻이 있다 — 와 있는 동안 누를 도착이 없다
         buttons,
-        footer: this.fresh('Inventory is unknown until he arrives'),
+        footer: this.fresh(trader, 'Inventory is unknown until he arrives'),
       });
 
     // 정렬이 흔들리면 페이지 번호가 의미를 잃는다 — ducats 오름차순 고정
@@ -363,8 +412,8 @@ export class WarframeApiService {
             ],
           })),
         ],
-        buttons,
         footer: this.fresh(
+          trader,
           foldedLine(shown, stock.length, 'cheapest first'),
           'dt = ducats',
         ),
@@ -393,8 +442,8 @@ export class WarframeApiService {
           },
         ],
       ],
-      buttons: [...(view.buttons ?? []), ...(buttons ?? [])],
-      footer: this.fresh(view.footer, 'dt = ducats'),
+      buttons: view.buttons,
+      footer: this.fresh(trader, view.footer, 'dt = ducats'),
     });
   }
 
@@ -447,20 +496,43 @@ export class WarframeApiService {
       ],
       buttons,
       footer: this.fresh(
+        soonest?.status === 'fulfilled' ? soonest.value : undefined,
         failed.length > 0 &&
           `${failed.length} of ${rows.length} regions failed to load`,
       ),
     });
   }
 
-  /** 나이트웨이브 — 일일/주간/엘리트로 나눠 보여준다 */
-  async nightwave(buttons?: Buttons) {
+  /** 나이트웨이브 — 일일/주간/엘리트로 나눠 보여준다. 필터는 주기 축 하나뿐이다 */
+  async nightwave(buttons?: Buttons, filter?: NightwaveFilter) {
     const nightwave = await this.worldStateService.nightwave();
     const now = dayjs();
     // possibleChallenges에는 아직 안 뜬 것까지 들어있고, activeChallenges에도 기간이 지난 게 남는다
-    const active = nightwave.activeChallenges.filter((challenge) =>
+    const all = nightwave.activeChallenges.filter((challenge) =>
       now.isBefore(challenge.expiry),
     );
+    // 일간은 하루, 주간·엘리트는 한 주 — 남은 시간이 다르면 같이 볼 이유도 없다
+    const active = filter
+      ? all.filter(
+          (challenge) =>
+            challenge.isDaily === (filter === NightwaveFilter.Daily),
+        )
+      : all;
+
+    const filters = [
+      filter !== NightwaveFilter.Daily &&
+        all.some((challenge) => challenge.isDaily) &&
+        button(`${TargetCommand.Nightwave}/filter/daily`, 'Daily only'),
+      filter !== NightwaveFilter.Weekly &&
+        all.some((challenge) => !challenge.isDaily) &&
+        button(`${TargetCommand.Nightwave}/filter/weekly`, 'Weekly only'),
+      // 좁힌 화면에서 되돌아갈 자리
+      filter &&
+        button(
+          `${TargetCommand.Nightwave}/filter/${FILTER_OFF}`,
+          'All challenges',
+        ),
+    ].filter((child): child is ButtonBuilder => Boolean(child));
 
     const groups: [string, NightwaveChallenge[]][] = [
       ['Daily', active.filter((challenge) => challenge.isDaily)],
@@ -484,9 +556,17 @@ export class WarframeApiService {
           ]),
         },
       ]),
-      buttons,
-      footer: this.fresh(),
+      buttons: [...filters, ...(buttons ?? [])],
+      footer: this.fresh(nightwave),
     });
+  }
+
+  /** 아르키메디아 customId — 두 축(종·detail)을 다 실어야 버튼을 눌러도 나머지 축이 산다 */
+  private archimedeaId(
+    type: ArchimedeaType | typeof FILTER_OFF,
+    detail: boolean,
+  ) {
+    return `${TargetCommand.Archimedea}/${type}/${detail ? ARCHIMEDEA_DETAIL : FILTER_OFF}/page/0`;
   }
 
   /** 아르키메디아 (심층/시간) — 옵션이 없으면 둘 다, detail이면 편차·위험 설명까지 */
@@ -514,6 +594,30 @@ export class WarframeApiService {
     const labelOf = (archimedea: Archimedea) =>
       ArchimedeaLabel[keyOf(archimedea)] ?? archimedea.typeKey;
 
+    /**
+     * 종 전환은 버튼 하나로 순환한다(둘 다 → 심층 → 시간 → 둘 다) — 종마다 버튼을 깔면
+     * 페이저 2 + 종 2 + detail 1 + 🔔 1로 한 행 5개 한도를 넘긴다.
+     */
+    const cycle: (ArchimedeaType | typeof FILTER_OFF)[] = [
+      FILTER_OFF,
+      ...new Set(archimedeas.map(keyOf)),
+    ];
+    const nextType =
+      cycle[(cycle.indexOf(type ?? FILTER_OFF) + 1) % cycle.length];
+    const filters = [
+      cycle.length > 2 &&
+        button(
+          this.archimedeaId(nextType, detail),
+          nextType === FILTER_OFF
+            ? 'Show both'
+            : `${ArchimedeaLabel[nextType] ?? nextType} only`,
+        ),
+      button(
+        this.archimedeaId(type ?? FILTER_OFF, !detail),
+        detail ? 'Hide details' : 'Show details',
+      ),
+    ].filter((child): child is ButtonBuilder => Boolean(child));
+
     // 미션마다 편차1+위험3의 설명문이 붙는 detail은 다 쌓으면 메시지 합 한도를 넘긴다 —
     // 산출물 4c가 페이징을 요구한 이유고, G8이 실제로 터질 수 있는 유일한 경로다
     const missions = targets.flatMap((archimedea) =>
@@ -525,7 +629,13 @@ export class WarframeApiService {
       })),
     );
     if (detail && missions.length)
-      return this.archimedeaDetail({ missions, page, type, labelOf, buttons });
+      return this.archimedeaDetail({
+        missions,
+        page,
+        type,
+        labelOf,
+        buttons: [...filters, ...(buttons ?? [])],
+      });
 
     const blocks: Block[][] = [];
     for (const archimedea of targets) {
@@ -553,8 +663,8 @@ export class WarframeApiService {
       title: targets.length === 1 ? labelOf(targets[0]) : 'Archimedea',
       subtitle: `Resets ${relative(targets[0].expiry)}`,
       blocks,
-      buttons,
-      footer: this.fresh('Bold risks are elite-only'),
+      buttons: [...filters, ...(buttons ?? [])],
+      footer: this.fresh(archimedeas, 'Bold risks are elite-only'),
     });
   }
 
@@ -581,7 +691,7 @@ export class WarframeApiService {
   }) {
     const view = paged({
       // 타입을 customId에 실어야 넘긴 페이지에서도 필터가 산다
-      key: `${TargetCommand.Archimedea}/${type ?? 'all'}`,
+      key: `${TargetCommand.Archimedea}/${type ?? FILTER_OFF}/${ARCHIMEDEA_DETAIL}`,
       items: missions,
       page,
       sort: 'one mission per page',
@@ -608,7 +718,7 @@ export class WarframeApiService {
         this.archimedeaModifiers(archimedea),
       ],
       buttons: [...(view.buttons ?? []), ...(buttons ?? [])],
-      footer: this.fresh(view.footer),
+      footer: this.fresh(missions[0]?.archimedea, view.footer),
     });
   }
 
@@ -638,10 +748,14 @@ export class WarframeApiService {
     return now.day(now.day() === 0 ? 1 : 8).startOf('day');
   }
 
+  /** 위키 페이지 URL — 공백은 언더스코어, 나머지 특수문자는 인코딩해야 페이지에 닿는다 */
+  private wikiUrl(page: string) {
+    return `https://wiki.warframe.com/w/${encodeURIComponent(page.replace(/ /g, '_'))}`;
+  }
+
   /** 퍽·설치 재료는 어느 API에도 없고 위키 표가 유일한 출처다. 페이지명이 곧 `{무기} Incarnon Genesis` */
   private genesisWikiLink(weapon: string) {
-    const page = encodeURIComponent(weapon.replace(/ /g, '_'));
-    return `[${weapon}](https://wiki.warframe.com/w/${page}_Incarnon_Genesis)`;
+    return `[${weapon}](${this.wikiUrl(`${weapon} Incarnon Genesis`)})`;
   }
 
   /**
@@ -649,7 +763,8 @@ export class WarframeApiService {
    * 진화 퍽·설치 재료는 어느 API에도 없다(위키 표가 유일한 출처) — 위키 링크로 넘긴다.
    */
   async incarnon(buttons?: Buttons) {
-    const { choices } = await this.worldStateService.duviriCycle();
+    const duviri = await this.worldStateService.duviriCycle();
+    const { choices } = duviri;
     const pick = (category: CircuitCategory) =>
       choices.find((choice) => choice.categoryKey === category)?.choices ?? [];
     const genesis = pick(CircuitCategory.Hard);
@@ -685,8 +800,21 @@ export class WarframeApiService {
         ],
       ],
       buttons,
-      footer: this.fresh('Resets Monday 00:00 UTC'),
+      footer: this.fresh(duviri, 'Resets Monday 00:00 UTC'),
     });
+  }
+
+  /**
+   * 필터·복귀 버튼도 페이저와 같은 customId를 쓴다 — 아이템 이름이 유저 입력이라
+   * 100자를 넘으면 버튼을 포기한다(넘긴 채로 보내면 메시지가 통째로 400이다).
+   */
+  private dropButton(
+    label: string,
+    itemName: string,
+    category: DropCategory | typeof DROP_ALL,
+  ) {
+    const id = `${DROP_KEY}/${category}/${encodeURIComponent(itemName)}/page/0`;
+    return id.length <= LIMIT.customId ? button(id, label) : undefined;
   }
 
   async dropSources(
@@ -699,12 +827,17 @@ export class WarframeApiService {
       itemName,
       category,
     );
+    // 좁힌 화면에서 되돌아갈 자리 — 없으면 커맨드 재입력이 유일한 길이 된다
+    const widen = category
+      ? this.dropButton('All sources', itemName, DROP_ALL)
+      : undefined;
 
     if (!sources.length)
       return emptyCard(
         `No drop sources · ${itemName}`,
         'Nothing in the drop tables matches that name.',
         category && `Drop \`category:${category}\` to widen the search`,
+        widen && [widen],
       );
 
     // 부분 일치라 여러 아이템이 잡힐 수 있어 아이템별로 묶는다
@@ -735,6 +868,14 @@ export class WarframeApiService {
       key.length + PAGE_SUFFIX_LENGTH <= LIMIT.customId &&
       groups[0];
 
+    // 실제로 좁혀질 때만 붙인다 — 이미 유물뿐인 목록에서 누르면 같은 화면이 다시 온다
+    const relicsOnly =
+      category !== DropCategory.Relic &&
+      sources.some((source) => source.category === DropCategory.Relic) &&
+      sources.some((source) => source.category !== DropCategory.Relic)
+        ? this.dropButton('Relics only', itemName, DropCategory.Relic)
+        : undefined;
+
     const view =
       single &&
       paged({
@@ -761,7 +902,12 @@ export class WarframeApiService {
               this.dropGroup(name, list, category, prices),
             ])),
       ],
-      buttons: view ? [...(view.buttons ?? []), ...(buttons ?? [])] : buttons,
+      buttons: [
+        ...(view ? (view.buttons ?? []) : []),
+        relicsOnly,
+        widen,
+        ...(buttons ?? []),
+      ].filter((child): child is ButtonBuilder => Boolean(child)),
       // 드랍 테이블은 월드스테이트가 아니라 DB라 신선도 표기 대상이 아니다
       footer: [
         view && view.footer,
@@ -871,11 +1017,15 @@ export class WarframeApiService {
   }
 
   /**
-   * 🔔 1회용 리마인더가 "언제가 만료 30분 전인가"를 알려면 만료 시각이 필요하다.
+   * 🔔 1회용 리마인더가 "몇 분 전"을 계산할 기준 시각. 대상마다 기준이 다르다 —
+   * 만료(소티·집정관·아르키메디아) / 다음 전환(사이클) / 도착(바로).
    * 카드를 그릴 때가 아니라 버튼을 누른 순간에만 부르므로 조회 비용이 늘지 않는다
    * (월드스테이트는 어차피 같은 캐시를 탄다).
    */
-  async expiryOf(target: RemindTarget): Promise<Dayjs | null> {
+  async remindMomentOf(
+    target: RemindTarget,
+    option?: CycleName,
+  ): Promise<Dayjs | null> {
     switch (target) {
       case TargetCommand.Sortie:
         return dayjs((await this.worldStateService.sortie()).expiry);
@@ -887,6 +1037,19 @@ export class WarframeApiService {
           .map((archimedea) => dayjs(archimedea.expiry))
           .sort((a, b) => a.diff(b));
         return expiries[0] ?? null;
+      }
+      case TargetCommand.Cycles: {
+        // 낮이면 다음 밤, 밤이면 다음 낮 — 어느 쪽이든 expiry가 곧 다음 전환이라 계산이 없다.
+        // 지역이 빠지면 알릴 대상이 정해지지 않는다(버튼은 항상 지역을 싣는다)
+        if (!option) return null;
+        return dayjs((await this.worldStateService.cycle(option)).expiry);
+      }
+      case TargetCommand.VoidTrader: {
+        // 유일하게 만료가 아니라 도착이다. 이미 와 있으면 알릴 도착이 없다
+        const activation = dayjs(
+          (await this.worldStateService.voidTrader()).activation,
+        );
+        return activation.isAfter(dayjs()) ? activation : null;
       }
     }
   }

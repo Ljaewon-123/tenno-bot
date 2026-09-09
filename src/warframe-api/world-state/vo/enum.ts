@@ -80,7 +80,19 @@ export const isVoidTraderCategory = (
 ): value is VoidTraderCategory =>
   (Object.values(VoidTraderCategory) as string[]).includes(value);
 
+/** 나이트웨이브 필터 — 엘리트는 주간에 포함된다(주기가 같아서 따로 볼 이유가 없다) */
+export enum NightwaveFilter {
+  Daily = 'daily',
+  Weekly = 'weekly',
+}
+
+export const isNightwaveFilter = (value: string): value is NightwaveFilter =>
+  (Object.values(NightwaveFilter) as string[]).includes(value);
+
 /** customId로 돌아온 값은 유저가 아니라 우리가 심은 것이지만, 구버전 메시지의 버튼도 눌린다 */
+export const isCycleName = (value: string): value is CycleName =>
+  (Object.values(CycleName) as string[]).includes(value);
+
 export const isVoidTier = (value: string): value is VoidTier =>
   (Object.values(VoidTier) as string[]).includes(value);
 

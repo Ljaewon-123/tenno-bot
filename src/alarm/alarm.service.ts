@@ -1,6 +1,16 @@
 import dayjs from '@/utils/dayjs';
 import { asPush, payload, relative } from '@/utils/discord-embed';
-import { RemindTarget, TargetCommandLabel } from '@/warframe-api/enum';
+import {
+  AlarmRequest,
+  RemindTarget,
+  TargetCommand,
+  TargetCommandLabel,
+} from '@/warframe-api/enum';
+import {
+  CycleLabel,
+  CycleName,
+  VoidTier,
+} from '@/warframe-api/world-state/vo/enum';
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
@@ -15,8 +25,19 @@ import { AlarmStatus } from './vo/enum';
 /** 이 시간을 넘도록 RUNNING인 알람은 프로세스가 죽은 것으로 본다 */
 const STALE_AFTER_MINUTES = 10;
 
-/** 🔔 버튼이 거는 1회용 리마인더가 만료 몇 분 전에 오는가 */
+/** 🔔 버튼이 거는 1회용 리마인더가 기준 시각 몇 분 전에 오는가 */
 export const REMIND_LEAD_MINUTES = 30;
+
+/**
+ * 사이클만 리드가 짧다. 오브 협곡은 한 바퀴가 27분(따뜻함 ~7분 + 추움 20분)이라
+ * 30분 전으로 잡으면 **모든 등록이 "이미 늦었다"로 거절된다**. 5분은 접속해서 이동할 만한 최소치.
+ */
+export const CYCLE_REMIND_LEAD_MINUTES = 5;
+
+const leadFor = (target: RemindTarget) =>
+  target === TargetCommand.Cycles
+    ? CYCLE_REMIND_LEAD_MINUTES
+    : REMIND_LEAD_MINUTES;
 
 /**
  * 서버당 반복 알람 상한. 채널 단위로 걸면 채널을 더 파는 것으로 그냥 우회된다 —
@@ -31,6 +52,8 @@ export type RemindInput = {
   channelId: string | null;
   userId: string;
   target: RemindTarget;
+  /** 사이클은 지역마다 따로 건다 — 대상 하나로는 무엇을 알릴지가 안 정해진다 */
+  option?: CycleName;
 };
 
 @Injectable()
@@ -85,29 +108,32 @@ export class AlarmService {
    * 버튼은 유저별 상태를 못 보여주므로(같은 메시지의 버튼은 모두에게 같은 라벨이다)
    * 눌린 결과는 호출단이 ephemeral로 알려야 한다.
    */
-  async remind({ guildId, channelId, userId, target }: RemindInput) {
+  async remind({ guildId, channelId, userId, target, option }: RemindInput) {
+    // 지역까지 넣어야 토글이 지역별로 갈린다 — 키가 같으면 시투스를 걸고 발리스를 누를 때 시투스가 지워진다
+    const key = option ? `${target}:${option}` : target;
     // 사람마다 따로 잡힌다 — 같은 서버·같은 대상이어도 남의 것을 지우면 안 된다
     const existing = await this.alarmConfigRepository.findOneBy({
       guildId,
       userId,
-      name: target,
+      name: key,
     });
     if (existing) {
       await this.alarmConfigRepository.delete({ id: existing.id });
       return null;
     }
 
-    const expiry = await this.warframeApiService.expiryOf(target);
-    if (!expiry)
+    const moment = await this.warframeApiService.remindMomentOf(target, option);
+    if (!moment)
       throw new BadRequestException(
         `${TargetCommandLabel[target]} is between rotations right now.`,
       );
 
-    const at = expiry.subtract(REMIND_LEAD_MINUTES, 'minute');
+    const lead = leadFor(target);
+    const at = moment.subtract(lead, 'minute');
     // 등록하자마자 발동하는 리마인더는 알림이 아니라 소음이다
     if (!at.isAfter(dayjs()))
       throw new BadRequestException(
-        `${TargetCommandLabel[target]} ends in under ${REMIND_LEAD_MINUTES} minutes — too late to remind you.`,
+        `${TargetCommandLabel[target]} happens in under ${lead} minutes — too late to remind you.`,
       );
 
     const entity = this.alarmConfigRepository.create({
@@ -115,9 +141,9 @@ export class AlarmService {
       channelId,
       userId,
       // 토글 키를 겸한다 — 화면에 찍히는 이름은 TargetCommandLabel이 만든다
-      name: target,
+      name: key,
       intervalValue: null,
-      targetCommand: { target },
+      targetCommand: { target, options: option },
       doneAt: at,
     });
     await this.alarmConfigRepository.save(entity);
@@ -166,11 +192,11 @@ export class AlarmService {
   @Transactional({ propagation: Propagation.REQUIRED })
   async run(alarm: AlarmConfig) {
     try {
-      const targetCommand = alarm.targetCommand;
-      const view = await this.warframeApiService.getAlarmTarget({
-        target: targetCommand.target,
-        options: targetCommand.options,
-      });
+      // jsonb에서 올라온 값이라 "이 대상엔 이 좁힘 값"이라는 짝은 타입이 못 좁힌다 —
+      // 값 자체는 엔티티의 class-validator가 지킨다
+      const view = await this.warframeApiService.getAlarmTarget(
+        alarm.targetCommand as AlarmRequest,
+      );
 
       // 사용자가 부른 게 아니다 — 왜 이게 왔는지를 밝히지 않으면 조회 결과와 구분되지 않는다
       await this.deliver(alarm, asPush(view, ...this.pushLines(alarm)));
@@ -183,19 +209,31 @@ export class AlarmService {
     }
   }
 
+  /** 1회용 리마인더의 주어 — 대상마다 곧 일어나는 일이 다르다(만료 / 전환 / 도착) */
+  private remindSubject(
+    target: TargetCommand,
+    options?: VoidTier | CycleName,
+  ): string {
+    const label = TargetCommandLabel[target];
+    if (target === TargetCommand.Cycles)
+      return `${CycleLabel[options as CycleName] ?? label} changes`;
+    if (target === TargetCommand.VoidTrader) return `${label} arrives`;
+    return `${label} ends`;
+  }
+
   /**
    * 반복 알람은 "언제마다 오는지", 1회용은 "누구 것이고 뭐가 곧 끝나는지"를 밝혀야 한다.
    * 세 번째는 잘렸을 때 전체를 볼 경로 — enum 값이 그대로 슬래시 커맨드 이름이다.
    */
   private pushLines(alarm: AlarmConfig): [string, string, string] {
-    const label = TargetCommandLabel[alarm.targetCommand.target];
-    const path = `/${alarm.targetCommand.target}`;
+    const { target, options } = alarm.targetCommand;
+    const path = `/${target}`;
     if (!alarm.intervalValue)
       return [
         // DM이 막혀 채널로 떨어져도 누구 것인지 알려면 멘션이 본문에 있어야 한다 —
         // ComponentsV2 메시지는 content를 못 써서 멘션 자리가 여기뿐이다
-        `🔔 Reminder · <@${alarm.userId}> · ${label} ends ${relative(
-          alarm.doneAt.add(REMIND_LEAD_MINUTES, 'minute'),
+        `🔔 Reminder · <@${alarm.userId}> · ${this.remindSubject(target, options)} ${relative(
+          alarm.doneAt.add(leadFor(target as RemindTarget), 'minute'),
         )}`,
         'One-time reminder you set with 🔔 — press it again to set a new one',
         path,

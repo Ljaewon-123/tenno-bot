@@ -4,6 +4,7 @@ import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
 import { CYCLE_CACHE_KEY, STALE_MAX_MINUTES, TTL_SECONDS } from './constants';
+import { markStale, staleAsOf } from './stale';
 import { CycleName, VoidTier } from './vo/enum';
 import {
   Archimedea,
@@ -48,7 +49,12 @@ export class WorldStateService {
       'pc/fissures',
     );
     if (!options?.length) return fissures;
-    return fissures.filter((f) => options.includes(f.tier));
+
+    // 거른 배열은 새 객체라 나이 표시가 끊긴다 — 같은 응답이므로 표식을 옮겨 준다
+    const filtered = fissures.filter((f) => options.includes(f.tier));
+    const asOf = staleAsOf(fissures);
+    if (asOf) markStale(filtered, asOf);
+    return filtered;
   }
 
   /** 보이드 상인 (바로 키티어) */
@@ -92,8 +98,7 @@ export class WorldStateService {
       .request<T>(HttpMethod.Get, path)
       .catch((error: Error) => {
         // 만료됐어도 캐시가 있으면 그게 에러 카드보다 낫다 — 월드스테이트는 분 단위로 안 변한다.
-        // ponytail: 카드 footer는 그대로 `cached 60s`라 이 창 안에서는 나이를 축소해 말한다.
-        // 실제 나이를 적으려면 get()이 {data, asOf}를 반환해야 하고 호출부 18곳·스펙 mock이 따라 바뀐다
+        // 실제 나이는 stale.ts가 들고 카드 footer가 `cached <t:..:R>`로 적는다
         if (!cached || !staleUntil?.isAfter(now)) throw error;
         servedStale = true;
         this.logger.warn(
@@ -103,7 +108,12 @@ export class WorldStateService {
       });
 
     // 스테일은 캐시를 갱신하지 않는다 — 새로 받은 것처럼 TTL을 밀면 API가 살아나도 60초를 더 기다린다
-    if (servedStale) return response;
+    if (servedStale) {
+      // 받아진 시각은 따로 없다. expiresAt에서 TTL을 빼면 그게 마지막 성공 시각이다
+      if (cached?.expiresAt)
+        markStale(response, cached.expiresAt.subtract(TTL_SECONDS, 'second'));
+      return response;
+    }
 
     const entity = cached ?? this.cacheRepository.create({ key });
     entity.cache = response;

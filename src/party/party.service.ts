@@ -11,6 +11,9 @@ import {
 import { PartyRepository } from './repositories/party.repository';
 import { CreateParty, PartyStatus } from './vo/enum';
 
+/** 기록으로 보여줄 최근 마감 건수 — 3e가 말한 "최근 마감 3건" */
+const PARTY_HISTORY_SIZE = 3;
+
 @Injectable()
 export class PartyService {
   private readonly logger = new Logger(PartyService.name);
@@ -33,6 +36,18 @@ export class PartyService {
       if ((error as { code?: string })?.code === '23505')
         throw new BadRequestException('You already have an open party.');
       throw error;
+    });
+  }
+
+  /**
+   * 최근 마감 파티. 마감은 상태만 바꾸고 행을 안 지워서 기록이 이미 남아 있다 —
+   * 별도 테이블을 만들 이유가 없다. 마감 시각은 `updatedAt`이 대신한다(마감 말고 바뀔 게 없다).
+   */
+  async history(guildId: string, take = PARTY_HISTORY_SIZE): Promise<Party[]> {
+    return this.partyRepository.find({
+      where: { guildId, status: PartyStatus.CLOSE },
+      order: { updatedAt: 'DESC' },
+      take,
     });
   }
 

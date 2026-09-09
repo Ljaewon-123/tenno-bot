@@ -2,9 +2,13 @@ import { ComponentType, type ContainerBuilder } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { WarframeApiService } from './warframe-api.service';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
+import { DropCategory } from './drop-table/vo/enum';
+import dayjs from '@/utils/dayjs';
+import { markStale } from './world-state/stale';
 import {
   ArchimedeaType,
   ArchonBoss,
+  NightwaveFilter,
   VoidTraderCategory,
 } from './world-state/vo/enum';
 
@@ -53,6 +57,19 @@ const pagerIds = (view: ContainerBuilder) =>
     .flatMap((row) => row.components ?? [])
     .map((child) => child.custom_id);
 
+/** 링크 버튼은 customId가 없다 — 눌러서 어디로 나가는지는 url만이 말한다 */
+const linkUrls = (view: ContainerBuilder) =>
+  (
+    view.toJSON().components as unknown as {
+      type: ComponentType;
+      components?: { url?: string }[];
+    }[]
+  )
+    .filter((child) => child.type === ComponentType.ActionRow)
+    .flatMap((row) => row.components ?? [])
+    .map((child) => child.url)
+    .filter(Boolean);
+
 /**
  * 이미지 URL이 비면 디스코드가 조용히 안 그리고 끝나서 눈으로는 회귀를 못 잡는다.
  * 알람·구독도 같은 카드 빌더를 타므로 여기만 지키면 세 경로가 같이 지켜진다.
@@ -75,8 +92,13 @@ describe('WarframeApiService 카드 이미지', () => {
         }),
       });
 
-      const { thumbnail, image } = parts(await service.archonHunt());
+      const view = await service.archonHunt();
+      const { thumbnail, image } = parts(view);
       const name = boss.replace('Archon ', '');
+      // 보스 공략은 API에 없다 — 위키가 유일한 다음 행동이다
+      expect(linkUrls(view)).toEqual([
+        `https://wiki.warframe.com/w/${boss.replace(' ', '_')}`,
+      ]);
       expect(thumbnail).toBe(
         `https://cdn.warframestat.us/img/${name}Header.png`,
       );
@@ -85,6 +107,22 @@ describe('WarframeApiService 카드 이미지', () => {
       );
     },
   );
+
+  /** 30분 창 안의 스테일 값에 `cached 60s`를 적으면 나이를 축소해 말하는 게 된다 */
+  it('만료된 캐시로 내준 값이면 footer가 TTL이 아니라 실제 나이를 적는다', async () => {
+    const sortie = {
+      boss: 'Vay Hek',
+      expiry: '2099-09-08T00:00:00Z',
+      variants: [],
+    };
+    markStale(sortie, dayjs('2099-01-01T00:00:00Z'));
+
+    const { text } = parts(
+      await build({ sortie: vi.fn().mockResolvedValue(sortie) }).sortie(),
+    );
+    expect(text).toContain('cached <t:4070908800:R>');
+    expect(text).not.toContain('cached 60s');
+  });
 
   it('바로가 없는 동안은 카운트다운만 남기되 이미지는 유지한다', async () => {
     const service = build({
@@ -300,6 +338,51 @@ describe('WarframeApiService 카드 이미지', () => {
       '-# Showing 6 of 8 · highest chance first · add `category:` to /drop item:Braton Prime',
     );
   });
+
+  const mixedSources = [
+    {
+      itemName: 'Braton Prime',
+      sourceName: 'Lith B4',
+      chance: 11,
+      category: 'relic',
+    },
+    {
+      itemName: 'Braton Prime',
+      sourceName: 'Lancer',
+      chance: 2,
+      category: 'enemy',
+    },
+  ];
+
+  /** 좁히는 버튼은 실제로 좁혀질 때만 — 이미 유물뿐이면 눌러도 같은 화면이 온다 */
+  it('유물과 다른 출처가 섞여 있을 때만 Relics only가 붙는다', async () => {
+    expect(
+      await withSources(mixedSources)
+        .dropSources('braton prime')
+        .then(pagerIds),
+    ).toContain('drop/relic/braton%20prime/page/0');
+
+    expect(
+      await withSources([mixedSources[0]])
+        .dropSources('braton prime')
+        .then(pagerIds),
+    ).not.toContain('drop/relic/braton%20prime/page/0');
+  });
+
+  /** 좁힌 화면에서 되돌아갈 자리가 없으면 커맨드 재입력이 유일한 길이 된다 */
+  it('카테고리를 걸면 넓히는 버튼이 붙고, 0개여도 붙는다', async () => {
+    const narrowed = await withSources([mixedSources[0]]).dropSources(
+      'braton prime',
+      DropCategory.Relic,
+    );
+    expect(pagerIds(narrowed)).toContain('drop/all/braton%20prime/page/0');
+
+    const empty = await withSources([]).dropSources(
+      'braton prime',
+      DropCategory.Relic,
+    );
+    expect(pagerIds(empty)).toEqual(['drop/all/braton%20prime/page/0']);
+  });
 });
 
 describe('WarframeApiService 균열/사이클', () => {
@@ -358,11 +441,42 @@ describe('WarframeApiService 균열/사이클', () => {
     expect(text).toContain('Void Fissures · Axi');
     expect(text).not.toContain('Showing');
     expect(text).toContain('Page 1 / 2 · soonest first');
-    // 티어를 customId에 실어야 넘긴 페이지에서도 필터가 산다
+    // 두 필터 축을 다 실어야 넘긴 페이지에서도, 다른 축을 켜도 필터가 산다
     expect(pagerIds(view)).toEqual([
-      'void-fissures/Axi/page/-1',
-      'void-fissures/Axi/page/1',
+      'void-fissures/Axi/all/page/-1',
+      'void-fissures/Axi/all/page/1',
+      // 좁힌 화면에는 되돌아갈 자리가 있어야 한다
+      'void-fissures/all/all/page/0',
     ]);
+  });
+
+  /** 눌러서 빈 화면이 나오는 버튼은 미끼다 — 스틸패스 균열이 있을 때만 붙는다 */
+  it('Steel Path 필터는 대상이 있을 때만 붙고 켜면 교집합이 남는다', async () => {
+    const mixed = build({
+      voidFissures: vi
+        .fn()
+        .mockResolvedValue([
+          fissure({ node: 'Normal' }),
+          fissure({ node: 'Hard', isHard: true }),
+        ]),
+    });
+
+    expect(pagerIds(await mixed.voidFissures())).toContain(
+      'void-fissures/all/sp/page/0',
+    );
+
+    const filtered = await mixed.voidFissures(undefined, undefined, 0, true);
+    const { text } = parts(filtered);
+    expect(text).toContain('Void Fissures · Steel Path');
+    expect(text).toContain('**Hard**');
+    expect(text).not.toContain('**Normal**');
+    // 이미 켜진 필터는 다시 권하지 않는다 — 남는 건 되돌아갈 자리 하나뿐
+    expect(pagerIds(filtered)).toEqual(['void-fissures/all/all/page/0']);
+
+    const noneHard = build({
+      voidFissures: vi.fn().mockResolvedValue([fissure({ node: 'Normal' })]),
+    });
+    expect(pagerIds(await noneHard.voidFissures())).toEqual([]);
   });
 
   it('필터를 걸고 0개면 필터를 지우라고 말한다', async () => {
@@ -433,6 +547,36 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
     expect(text).toContain('**Daily 1**');
     expect(text).toContain('**Weekly 1**');
     expect(text).toContain('**Elite Weekly 1**');
+  });
+
+  /** 일간과 주간은 남은 시간이 달라 같이 볼 이유가 없다 — 엘리트는 주간에 붙는다 */
+  it('주기 필터는 한 축이고 좁힌 화면에는 되돌아갈 자리가 남는다', async () => {
+    const service = build({
+      nightwave: vi.fn().mockResolvedValue({
+        season: 18,
+        expiry: '2099-01-01T00:00:00Z',
+        activeChallenges: [
+          challenge({ isDaily: true, title: 'Mine' }),
+          challenge({ title: 'Hunt' }),
+          challenge({ isElite: true, title: 'Slay' }),
+        ],
+      }),
+    });
+
+    expect(pagerIds(await service.nightwave())).toEqual([
+      'nightwave/filter/daily',
+      'nightwave/filter/weekly',
+    ]);
+
+    const weekly = await service.nightwave(undefined, NightwaveFilter.Weekly);
+    const { text } = parts(weekly);
+    expect(text).toContain('**Hunt**');
+    expect(text).toContain('**Slay**');
+    expect(text).not.toContain('**Mine**');
+    expect(pagerIds(weekly)).toEqual([
+      'nightwave/filter/daily',
+      'nightwave/filter/all',
+    ]);
   });
 
   const archimedea = (typeKey: string) => ({
@@ -532,10 +676,11 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
       expect(text).toContain('**Alpha Deviation**');
       expect(text).not.toContain('**Beta Deviation**');
       expect(text).toContain('Page 1 / 3');
-      // 타입을 customId에 실어야 넘긴 페이지에서도 필터가 산다
+      // 두 축(종·detail)을 다 실어야 페이지를 넘겨도, 한 축을 바꿔도 나머지가 산다
       expect(buttons(view)).toEqual([
-        ['archimedea/CT_LAB/page/-1', true],
-        ['archimedea/CT_LAB/page/1', false],
+        ['archimedea/CT_LAB/detail/page/-1', true],
+        ['archimedea/CT_LAB/detail/page/1', false],
+        ['archimedea/CT_LAB/all/page/0', false],
       ]);
     });
 
@@ -564,7 +709,7 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
       const { text } = parts(view);
       expect(text).toContain('## Temporal Archimedea');
       expect(text).toContain('Page 4 / 6');
-      expect(buttons(view)[0][0]).toBe('archimedea/all/page/2');
+      expect(buttons(view)[0][0]).toBe('archimedea/all/detail/page/2');
     });
 
     it('개인 수정자는 모든 페이지에 남는다 — 미션마다 다시 찾으러 가지 않는다', async () => {
@@ -585,7 +730,10 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
       const { text } = parts(view);
       expect(text).toContain('Alpha');
       expect(text).toContain('Gamma');
-      expect(buttons(view)).toEqual([]);
+      // 페이저는 없지만 detail로 넘어가는 자리는 남는다 — 산출물 4c의 Show details
+      expect(buttons(view)).toEqual([
+        ['archimedea/CT_LAB/detail/page/0', false],
+      ]);
     });
   });
 });

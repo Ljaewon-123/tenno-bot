@@ -1,6 +1,7 @@
 import { card } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
 import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
+import { CycleName } from '@/warframe-api/world-state/vo/enum';
 import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ALARM_LIMIT_PER_GUILD, AlarmService } from './alarm.service';
@@ -41,19 +42,19 @@ const build = (pending: AlarmConfig[] = []) => {
   const getAlarmTarget = vi
     .fn()
     .mockImplementation(async () => card({ title: 'Sortie', blocks: [] }));
-  const expiryOf = vi.fn().mockResolvedValue(dayjs(NOW).add(2, 'hour'));
+  const remindMomentOf = vi.fn().mockResolvedValue(dayjs(NOW).add(2, 'hour'));
   const fetch = vi.fn(() => Promise.resolve({ isSendable: () => true, send }));
   const fetchUser = vi.fn(() => Promise.resolve({ send: dm }));
   const service = new AlarmService(
     alarmConfigRepository as never,
-    { getAlarmTarget, expiryOf } as never,
+    { getAlarmTarget, remindMomentOf } as never,
     { channels: { fetch }, users: { fetch: fetchUser } } as never,
   );
   return {
     service,
     alarmConfigRepository,
     getAlarmTarget,
-    expiryOf,
+    remindMomentOf,
     fetch,
     send,
     fetchUser,
@@ -209,8 +210,8 @@ describe('AlarmService.remind', () => {
   };
 
   it('처음 누르면 만료 30분 전으로 1회용 알람을 만든다', async () => {
-    const { service, alarmConfigRepository, expiryOf } = build();
-    expiryOf.mockResolvedValue(dayjs(NOW).add(2, 'hour'));
+    const { service, alarmConfigRepository, remindMomentOf } = build();
+    remindMomentOf.mockResolvedValue(dayjs(NOW).add(2, 'hour'));
 
     const at = await service.remind(input);
 
@@ -247,18 +248,41 @@ describe('AlarmService.remind', () => {
     });
   });
 
+  /** 오브 협곡은 한 바퀴가 27분이라 30분 리드로는 모든 등록이 거절된다 */
+  it('사이클은 지역이 키에 실리고 리드가 5분이다', async () => {
+    const { service, alarmConfigRepository, remindMomentOf } = build();
+    remindMomentOf.mockResolvedValue(dayjs(NOW).add(20, 'minute'));
+
+    const at = await service.remind({
+      ...input,
+      target: RemindTarget.Cycles,
+      option: CycleName.Vallis,
+    });
+
+    expect(at?.toISOString()).toBe(dayjs(NOW).add(15, 'minute').toISOString());
+    const [created] = alarmConfigRepository.create.mock.calls[0] as [
+      Partial<AlarmConfig>,
+    ];
+    // 키가 대상뿐이면 시투스를 걸어 둔 사람이 발리스를 누를 때 시투스가 지워진다
+    expect(created.name).toBe(`${TargetCommand.Cycles}:${CycleName.Vallis}`);
+    expect(created.targetCommand).toEqual({
+      target: TargetCommand.Cycles,
+      options: CycleName.Vallis,
+    });
+  });
+
   it('남은 시간이 30분보다 짧으면 거부한다', async () => {
     // 등록하자마자 발동하는 리마인더는 알림이 아니라 소음이다
-    const { service, expiryOf, alarmConfigRepository } = build();
-    expiryOf.mockResolvedValue(dayjs(NOW).add(10, 'minute'));
+    const { service, remindMomentOf, alarmConfigRepository } = build();
+    remindMomentOf.mockResolvedValue(dayjs(NOW).add(10, 'minute'));
 
     await expect(service.remind(input)).rejects.toThrow();
     expect(alarmConfigRepository.save).not.toHaveBeenCalled();
   });
 
   it('만료를 알 수 없으면 거부한다', async () => {
-    const { service, expiryOf, alarmConfigRepository } = build();
-    expiryOf.mockResolvedValue(null);
+    const { service, remindMomentOf, alarmConfigRepository } = build();
+    remindMomentOf.mockResolvedValue(null);
 
     await expect(service.remind(input)).rejects.toThrow();
     expect(alarmConfigRepository.save).not.toHaveBeenCalled();
