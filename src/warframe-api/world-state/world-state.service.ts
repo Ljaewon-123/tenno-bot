@@ -1,9 +1,9 @@
 import dayjs from '@/utils/dayjs';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
-import { CYCLE_CACHE_KEY, TTL_SECONDS } from './constants';
+import { CYCLE_CACHE_KEY, STALE_MAX_MINUTES, TTL_SECONDS } from './constants';
 import { CycleName, VoidTier } from './vo/enum';
 import {
   Archimedea,
@@ -19,6 +19,8 @@ import {
 
 @Injectable()
 export class WorldStateService {
+  private readonly logger = new Logger(WorldStateService.name);
+
   constructor(
     private readonly httpJsonService: HttpJsonService,
     private readonly cacheRepository: CacheRepository,
@@ -83,10 +85,25 @@ export class WorldStateService {
     const cached = await this.cacheRepository.findOneBy({ key });
     if (cached?.expiresAt?.isAfter(now)) return cached.cache as T;
 
-    const response = await this.httpJsonService.request<T>(
-      HttpMethod.Get,
-      path,
-    );
+    const staleUntil = cached?.expiresAt?.add(STALE_MAX_MINUTES, 'minute');
+    let servedStale = false;
+
+    const response = await this.httpJsonService
+      .request<T>(HttpMethod.Get, path)
+      .catch((error: Error) => {
+        // 만료됐어도 캐시가 있으면 그게 에러 카드보다 낫다 — 월드스테이트는 분 단위로 안 변한다.
+        // ponytail: 카드 footer는 그대로 `cached 60s`라 이 창 안에서는 나이를 축소해 말한다.
+        // 실제 나이를 적으려면 get()이 {data, asOf}를 반환해야 하고 호출부 18곳·스펙 mock이 따라 바뀐다
+        if (!cached || !staleUntil?.isAfter(now)) throw error;
+        servedStale = true;
+        this.logger.warn(
+          `${path} 실패 — 만료된 캐시로 대체한다: ${error.message}`,
+        );
+        return cached.cache as T;
+      });
+
+    // 스테일은 캐시를 갱신하지 않는다 — 새로 받은 것처럼 TTL을 밀면 API가 살아나도 60초를 더 기다린다
+    if (servedStale) return response;
 
     const entity = cached ?? this.cacheRepository.create({ key });
     entity.cache = response;

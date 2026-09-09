@@ -9,6 +9,12 @@ import { CycleName } from './vo/enum';
 export const TTL_SECONDS = 60;
 
 /**
+ * API가 죽었을 때 만료된 캐시를 대신 내주는 상한.
+ * 이 창 안에서는 조금 옛날 값이 에러 카드보다 낫고, 넘으면 조용히 틀린 값보다 에러가 낫다.
+ */
+export const STALE_MAX_MINUTES = 30;
+
+/**
  * 경로는 `pc/${name}Cycle`로 조립되지만 CacheKey는 enum이라 조립할 수 없다.
  * 사이클을 추가할 땐 여기와 ALLOWED_PATHS 양쪽에 등록해야 한다.
  */

@@ -50,3 +50,43 @@ describe('WorldStateService 캐시', () => {
     expect(save).toHaveBeenCalled();
   });
 });
+
+/** API가 죽으면 지금까지는 에러 카드였다 — 조금 옛날 값이 아무것도 못 보는 것보다 낫다 */
+describe('WorldStateService 스테일 폴백', () => {
+  const build = (expiresAt: ReturnType<typeof dayjs> | null) => {
+    const save = vi.fn();
+    const service = new WorldStateService(
+      { request: vi.fn().mockRejectedValue(new Error('502')) } as never,
+      {
+        findOneBy: vi
+          .fn()
+          .mockResolvedValue(
+            expiresAt && { cache: { id: 'cached' }, expiresAt },
+          ),
+        create: vi.fn((value: object) => ({ ...value })),
+        save,
+      } as never,
+    );
+    return { service, save };
+  };
+
+  it('만료 직후면 낡은 값을 내주고 TTL은 밀지 않는다', async () => {
+    const { service, save } = build(dayjs().subtract(5, 'minute'));
+
+    await expect(service.sortie()).resolves.toEqual({ id: 'cached' });
+    // TTL을 밀면 API가 살아나도 60초를 더 기다린다
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('상한을 넘게 낡았으면 조용히 틀린 값 대신 에러를 올린다', async () => {
+    const { service } = build(dayjs().subtract(31, 'minute'));
+
+    await expect(service.sortie()).rejects.toThrow('502');
+  });
+
+  it('캐시 자체가 없으면 대체할 것이 없다', async () => {
+    const { service } = build(null);
+
+    await expect(service.sortie()).rejects.toThrow('502');
+  });
+});
