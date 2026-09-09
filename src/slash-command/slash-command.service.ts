@@ -13,14 +13,29 @@ import {
   TargetCommandLabel,
 } from '@/warframe-api/enum';
 import { WarframeApiService } from '@/warframe-api/warframe-api.service';
-import { ArchimedeaType } from '@/warframe-api/world-state/vo/enum';
+import {
+  ArchimedeaType,
+  isVoidTraderCategory,
+} from '@/warframe-api/world-state/vo/enum';
 import {
   BadRequestException,
   Injectable,
   UseInterceptors,
 } from '@nestjs/common';
-import type { ButtonContext, SlashCommandContext } from 'necord';
-import { Button, ComponentParam, Context, Options, SlashCommand } from 'necord';
+import type {
+  ButtonContext,
+  SlashCommandContext,
+  StringSelectContext,
+} from 'necord';
+import {
+  Button,
+  ComponentParam,
+  Context,
+  Options,
+  SelectedStrings,
+  SlashCommand,
+  StringSelect,
+} from 'necord';
 import { ArchimedeaCommand } from './dto/archimedea.command.dto';
 import { DropCommand } from './dto/drop.command.dto';
 import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
@@ -93,16 +108,32 @@ export class SlashCommandService {
     return interaction.editReply(payload(voidTrader));
   }
 
+  /** 카테고리 전환. 값이 망가졌으면 기본(요약) 화면으로 떨어뜨린다 */
+  @StringSelect(`${TargetCommand.VoidTrader}/category`)
+  async voidTraderCategory(
+    @Context() [interaction]: StringSelectContext,
+    @SelectedStrings() [category]: string[],
+  ) {
+    const voidTrader = await this.warframeApi.voidTrader(
+      isVoidTraderCategory(category) ? category : undefined,
+    );
+    return interaction.update(payload(voidTrader));
+  }
+
   /**
-   * 재고 40종 넘김 — 8개씩 끊어 같은 메시지를 갈아끼운다(새 메시지를 쌓으면 채널이 오염된다).
+   * 고른 카테고리 안에서 8개씩 끊어 같은 메시지를 갈아끼운다(새 메시지를 쌓으면 채널이 오염된다).
    * 버튼 인터랙션이라 커맨드의 15분 토큰 만료와 무관하게 계속 눌린다.
    */
-  @Button(`${TargetCommand.VoidTrader}/page/:page`)
+  @Button(`${TargetCommand.VoidTrader}/:category/page/:page`)
   async voidTraderPage(
     @Context() [interaction]: ButtonContext,
+    @ComponentParam('category') category: string,
     @ComponentParam('page') page: string,
   ) {
-    const voidTrader = await this.warframeApi.voidTrader(Number(page));
+    const voidTrader = await this.warframeApi.voidTrader(
+      isVoidTraderCategory(category) ? category : undefined,
+      Number(page),
+    );
     return interaction.update(payload(voidTrader));
   }
 

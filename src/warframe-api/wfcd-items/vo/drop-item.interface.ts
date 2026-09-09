@@ -5,6 +5,8 @@
 export interface DropItem {
   name: string;
   type?: string;
+  /** 'Mods' · 'Primary' · 'Skins' … 바로 재고를 분류하는 근거 */
+  category?: string;
   description?: string;
   imageName?: string;
   /** 모드 카드 이미지 — 이름·최대 랭크 수치·설명이 전부 그려져 있다 */

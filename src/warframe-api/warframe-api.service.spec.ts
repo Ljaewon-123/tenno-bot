@@ -2,7 +2,11 @@ import { ComponentType, type ContainerBuilder } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { WarframeApiService } from './warframe-api.service';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
-import { ArchimedeaType, ArchonBoss } from './world-state/vo/enum';
+import {
+  ArchimedeaType,
+  ArchonBoss,
+  VoidTraderCategory,
+} from './world-state/vo/enum';
 
 /**
  * V2 컨테이너는 슬롯이 아니라 컴포넌트 목록이라 필드 이름으로 못 집는다.
@@ -89,6 +93,46 @@ describe('WarframeApiService 카드 이미지', () => {
     expect(text).toContain('Inventory is unknown until he arrives');
   });
 
+  /** 재고 응답에는 카테고리가 없다 — 아이템 DB의 category가 유일한 근거라 여기가 회귀 지점이다 */
+  it('기본 화면은 카테고리별 요약이고 못 찾은 아이템은 Other로 흡수된다', async () => {
+    const service = new WarframeApiService(
+      {
+        voidTrader: vi.fn().mockResolvedValue({
+          character: "Baro Ki'Teer",
+          location: 'Larunda Relay',
+          activation: '2000-01-01T00:00:00Z',
+          expiry: '2099-09-12T00:00:00Z',
+          inventory: [
+            { item: 'Prisma Gorgon', ducats: 600, credits: 50000 },
+            { item: 'Primed Flow', ducats: 350, credits: 110000 },
+            { item: 'Sands of Inaros Blueprint', ducats: 100, credits: 25000 },
+          ],
+        }),
+      } as never,
+      new WfcdItemsService([
+        { name: 'Primed Flow', category: 'Mods', imageName: 'a.png' },
+        { name: 'Prisma Gorgon', category: 'Primary', imageName: 'b.png' },
+      ] as never),
+      {} as never,
+    );
+
+    const { text } = parts(await service.voidTrader());
+    expect(text).toContain('Mods · 1');
+    expect(text).toContain('Weapons · 1');
+    expect(text).toContain('Cosmetics & Other · 1');
+    // 기본 화면은 ducats만 — 크레딧은 카테고리를 고른 뒤에 붙는다
+    expect(text).toContain('**Primed Flow** 350dt');
+    expect(text).not.toContain('110,000cr');
+    expect(text).toContain('Showing 3 of 3 · cheapest first');
+
+    const picked = parts(
+      await service.voidTrader(VoidTraderCategory.Weapons, 0),
+    );
+    expect(picked.text).toContain('Weapons · 1 items');
+    expect(picked.text).toContain('**Prisma Gorgon** · 600dt / 50,000cr');
+    expect(picked.text).not.toContain('Primed Flow');
+  });
+
   it('재고는 ducats 오름차순 8개씩 끊고 남은 경로를 페이지 표기로 밝힌다', async () => {
     const service = build({
       voidTrader: vi.fn().mockResolvedValue({
@@ -105,7 +149,10 @@ describe('WarframeApiService 카드 이미지', () => {
       }),
     });
 
-    const { text } = parts(await service.voidTrader(1));
+    // 아이템 DB가 비어 있어 20종 전부 Other로 떨어진다
+    const { text } = parts(
+      await service.voidTrader(VoidTraderCategory.Other, 1),
+    );
     expect(text).toContain('20 items');
     expect(text).toContain('**Item 11** · 90dt');
     expect(text).not.toContain('**Item 3**');

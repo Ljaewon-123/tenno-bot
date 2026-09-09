@@ -48,6 +48,39 @@ export const ArchonImage = {
 export const VOID_TRADER_IMAGE = 'BaroKiteerAvatar.png';
 
 /**
+ * 바로 재고 분류. 재고 응답에는 카테고리가 없어 아이템 DB의 `category`에서 파생한다.
+ * 사람은 재고 40종을 다 읽는 게 아니라 "내가 노리는 게 왔나"만 본다 — 그 판단이 셋이면 끝난다.
+ */
+export enum VoidTraderCategory {
+  Mods = 'mods',
+  Weapons = 'weapons',
+  Other = 'other',
+}
+
+export const VoidTraderCategoryLabel: Record<VoidTraderCategory, string> = {
+  [VoidTraderCategory.Mods]: 'Mods',
+  [VoidTraderCategory.Weapons]: 'Weapons',
+  [VoidTraderCategory.Other]: 'Cosmetics & Other',
+};
+
+/**
+ * Weapons로 묶을 wfcd `category`. 센티널·아크윙 본체는 여기 없다 — 무기가 아니라 Other다.
+ * Mods 외의 나머지는 전부 Other로 흡수한다(코스메틱은 아이템 DB에서 아예 안 잡히는 게 많다).
+ */
+export const VOID_TRADER_WEAPON_CATEGORIES: string[] = [
+  'Primary',
+  'Secondary',
+  'Melee',
+  'Arch-Gun',
+  'Arch-Melee',
+];
+
+export const isVoidTraderCategory = (
+  value: string,
+): value is VoidTraderCategory =>
+  (Object.values(VoidTraderCategory) as string[]).includes(value);
+
+/**
  * 시간대가 게임플레이를 바꾸는 오픈월드만. 지구(pc/earthCycle)는 조명만 바뀌어 뺐다.
  * 값이 그대로 `pc/{name}Cycle` 경로가 된다.
  */

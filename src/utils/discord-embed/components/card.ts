@@ -9,6 +9,7 @@ import {
   TextDisplayBuilder,
   ThumbnailBuilder,
   type ButtonBuilder,
+  type StringSelectMenuBuilder,
 } from 'discord.js';
 import { bold, subtext, title as heading, truncate } from '../markdown';
 import { Accent, LIMIT } from '../types';
@@ -37,6 +38,8 @@ export type CardInput = {
    */
   blocks: Block[][];
   buttons?: ButtonBuilder[];
+  /** 한 행을 통째로 먹어 버튼과 같은 줄에 못 선다 — 카드당 하나 */
+  select?: StringSelectMenuBuilder;
   /** 데이터 신선도·단위 표기. footer는 마크다운이 안 먹어 V2에서는 -# 줄이 대신한다 */
   footer?: Line;
 };
@@ -46,7 +49,8 @@ export type Child =
   | SectionBuilder
   | SeparatorBuilder
   | MediaGalleryBuilder
-  | ActionRowBuilder<ButtonBuilder>;
+  | ActionRowBuilder<ButtonBuilder>
+  | ActionRowBuilder<StringSelectMenuBuilder>;
 
 export const kept = (values: Line[]) =>
   values.filter((value): value is string => Boolean(value));
@@ -115,6 +119,7 @@ export const card = ({
   image,
   blocks,
   buttons,
+  select,
   footer,
 }: CardInput) => {
   const head = text(
@@ -147,6 +152,11 @@ export const card = ({
     children.push(
       divider(),
       new ActionRowBuilder<ButtonBuilder>().addComponents(buttons),
+    );
+
+  if (select)
+    children.push(
+      new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(select),
     );
 
   if (footer) children.push(text(subtext(footer)));

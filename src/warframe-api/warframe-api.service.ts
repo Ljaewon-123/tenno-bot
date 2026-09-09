@@ -8,6 +8,7 @@ import {
   emptyCard,
   paged,
   relative,
+  select,
   subtext,
   type Block,
   type Line,
@@ -31,7 +32,10 @@ import {
   CycleName,
   CycleNextState,
   VOID_TRADER_IMAGE,
+  VOID_TRADER_WEAPON_CATEGORIES,
   VoidTier,
+  VoidTraderCategory,
+  VoidTraderCategoryLabel,
 } from './world-state/vo/enum';
 import {
   Archimedea,
@@ -39,6 +43,7 @@ import {
   ArchimedeaMission,
   Fissure,
   NightwaveChallenge,
+  VoidTraderItem,
   WorldEvent,
 } from './world-state/vo/types';
 import { TTL_SECONDS } from './world-state/constants';
@@ -46,6 +51,12 @@ import { WorldStateService } from './world-state/world-state.service';
 
 /** 그룹당 펴는 줄 수. 넘치는 만큼은 접는다 — 안 접으면 목록 하나가 40개 한도를 뚫는다 */
 const TOP = { fissure: 2, fissureFiltered: 6, drop: 6 } as const;
+
+/** 기본 화면에서 카테고리당 미리 펴는 종수. 셋 다 펴도 한 화면 안에 든다 */
+const TRADER_PEEK = 5;
+
+/** 카테고리를 안 고른 상태. 셀렉트에서 되돌아올 자리가 없으면 기본 화면이 막다른 길이 된다 */
+const TRADER_ALL = 'all';
 
 /**
  * 접힌 줄. "…and N more"는 전체가 몇 개고 어디서 나머지를 보는지를 안 말해 막다른 길이 된다 —
@@ -238,8 +249,21 @@ export class WarframeApiService {
     });
   }
 
-  /** 보이드 상인 (바로 키티어) — 부재가 대부분의 시간이라 부재 화면이 따로 있다 */
-  async voidTrader(page = 0, buttons?: Buttons) {
+  /** 재고 한 종의 분류. 아이템 DB에서 못 찾으면(코스메틱·소모품이 대부분) Other로 흡수한다 */
+  private traderCategory(stock: VoidTraderItem): VoidTraderCategory {
+    const category = this.wfcdItemsService.findItemByName(stock.item)?.category;
+    if (category === 'Mods') return VoidTraderCategory.Mods;
+    return VOID_TRADER_WEAPON_CATEGORIES.includes(category ?? '')
+      ? VoidTraderCategory.Weapons
+      : VoidTraderCategory.Other;
+  }
+
+  /**
+   * 보이드 상인 (바로 키티어) — 부재가 대부분의 시간이라 부재 화면이 따로 있다.
+   * 재고 40종을 페이지로만 넘기면 6번 눌러야 다 본다 — 확인 목적에는 과하다.
+   * 기본 화면은 카테고리 3개 요약, 셀렉트로 고른 카테고리만 전체 가격과 함께 편다.
+   */
+  async voidTrader(category?: VoidTraderCategory, page = 0, buttons?: Buttons) {
     const trader = await this.worldStateService.voidTrader();
     const now = dayjs();
     const active =
@@ -261,23 +285,78 @@ export class WarframeApiService {
 
     // 정렬이 흔들리면 페이지 번호가 의미를 잃는다 — ducats 오름차순 고정
     const stock = [...trader.inventory].sort((a, b) => a.ducats - b.ducats);
-    // 40종 넘는 재고를 8줄로 자르고 마는 건 목록이 아니라 미끼다 — 나머지를 볼 경로를 같이 준다
+    // 분류는 아이템 DB 전체 스캔이라 재고당 딱 한 번만 돌린다
+    const grouped = new Map<VoidTraderCategory, VoidTraderItem[]>(
+      Object.values(VoidTraderCategory).map((name) => [name, []]),
+    );
+    for (const item of stock)
+      grouped.get(this.traderCategory(item))?.push(item);
+    const filled = [...grouped].filter(([, items]) => items.length);
+
+    // 비어 있는 카테고리는 고를 수 없다 — 고르면 빈 화면이 나오는 선택지는 미끼다
+    const picker = select(
+      `${TargetCommand.VoidTrader}/category`,
+      'Pick a category to see all items',
+      [
+        { label: 'All categories', value: TRADER_ALL },
+        ...filled.map(([name, items]) => ({
+          label: `${VoidTraderCategoryLabel[name]} · ${items.length}`,
+          value: name,
+        })),
+      ],
+      category ?? TRADER_ALL,
+    );
+
+    const head = {
+      accent: accentFor(trader.expiry),
+      title: `${trader.character} · ${trader.location}`,
+      thumbnail,
+      select: picker,
+    };
+
+    if (!category) {
+      const shown = filled.reduce(
+        (sum, [, items]) => sum + Math.min(items.length, TRADER_PEEK),
+        0,
+      );
+      return card({
+        ...head,
+        subtitle: `Departs ${relative(trader.expiry)} · ${stock.length} items`,
+        blocks: [
+          filled.map(([name, items]) => ({
+            heading: `${VoidTraderCategoryLabel[name]} · ${items.length}`,
+            // 가로 나열 + ducats만 — 크레딧은 병목이 아니라서 두 값을 다 쓰면 줄만 두 배가 된다
+            lines: [
+              items
+                .slice(0, TRADER_PEEK)
+                .map((item) => `${bold(item.item)} ${item.ducats}dt`)
+                .join(' · '),
+            ],
+          })),
+        ],
+        buttons,
+        footer: this.fresh(
+          foldedLine(shown, stock.length, 'cheapest first'),
+          'dt = ducats',
+        ),
+      });
+    }
+
+    const items = grouped.get(category) ?? [];
     const view = paged({
-      key: TargetCommand.VoidTrader,
-      items: stock,
+      // 카테고리를 customId에 실어야 페이지를 넘겨도 필터가 살아남는다
+      key: `${TargetCommand.VoidTrader}/${category}`,
+      items,
       page,
       sort: 'cheapest first',
     });
 
     return card({
-      accent: accentFor(trader.expiry),
-      title: `${trader.character} · ${trader.location}`,
-      subtitle: `Departs ${relative(trader.expiry)} · ${stock.length} items`,
-      thumbnail,
+      ...head,
+      subtitle: `Departs ${relative(trader.expiry)} · ${VoidTraderCategoryLabel[category]} · ${items.length} items`,
       blocks: [
         [
           {
-            // API는 카테고리를 주지 않는다 — 모드/무기로 나누려면 재고마다 아이템 DB를 뒤져야 해서 한 목록으로 둔다
             lines: view.items.map(
               (item) =>
                 `- ${bold(item.item)} · ${item.ducats}dt / ${item.credits.toLocaleString()}cr`,

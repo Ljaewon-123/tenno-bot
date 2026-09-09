@@ -2,6 +2,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
+  StringSelectMenuBuilder,
   type ContainerBuilder,
 } from 'discord.js';
 import { subtext } from '../markdown';
@@ -20,6 +21,27 @@ export const button = (
     .setLabel(label)
     .setStyle(style)
     .setDisabled(disabled);
+
+/**
+ * 목록이 버튼 5개로 안 끊길 때. 셀렉트는 한 행을 통째로 먹어서 카드당 하나만 쓴다.
+ * 고른 값은 `@StringSelect(customId)` + `@SelectedStrings()`로 돌아온다.
+ */
+export const select = (
+  customId: string,
+  placeholder: string,
+  options: { label: string; value: string; description?: string }[],
+  // 고른 뒤에도 어느 화면인지가 남아야 한다 — 안 그러면 placeholder로 되돌아가 현재 위치를 잃는다
+  current?: string,
+) =>
+  new StringSelectMenuBuilder()
+    .setCustomId(customId)
+    .setPlaceholder(placeholder)
+    .addOptions(
+      options.map((option) => ({
+        ...option,
+        default: option.value === current,
+      })),
+    );
 
 /** 위키 등 외부 링크. 상호작용이 없어 customId가 없다 */
 export const linkButton = (label: string, url: string) =>
