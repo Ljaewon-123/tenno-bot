@@ -32,16 +32,27 @@ export const ArchonReward = {
 };
 
 /**
- * 임베드용 CDN imageName. wfcd items에 집정관 본체 이미지가 없어
- * 보스는 모드 세트 헤더(집정관 마스크 엠블럼)로 대신한다.
+ * 임베드용 아이템 uniqueName. **png 파일명을 손으로 적지 않는다** — 그림 주소는 아이템 DB가 아는 것이고,
+ * 손으로 적은 이름이 어긋나면 디스코드가 조용히 안 그리고 끝나 눈으로는 회귀를 못 잡는다.
+ * uniqueName은 게임 내부 경로라 imageName보다 안 흔들린다.
+ *
+ * 집정관 본체 이미지는 DB에 없어 보스는 모드 세트 헤더(집정관 마스크 엠블럼)로 대신한다.
+ * **샤드는 산출물에 없지만 일부러 남긴다** — 이번 주에 무슨 색 샤드가 나오나가
+ * 이 카드에서 사람이 실제로 보는 정보고, 색은 글자보다 그림이 빠르다.
  */
 export const ArchonImage = {
   [ArchonBoss.Boreal]: {
-    boss: 'BorealHeader.png',
-    shard: 'ArchonShardBoreal.png',
+    boss: '/Lotus/Upgrades/Mods/Sets/Boreal/BorealSetMod',
+    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalBoreal',
   },
-  [ArchonBoss.Amar]: { boss: 'AmarHeader.png', shard: 'ArchonShardAmar.png' },
-  [ArchonBoss.Nira]: { boss: 'NiraHeader.png', shard: 'ArchonShardNira.png' },
+  [ArchonBoss.Amar]: {
+    boss: '/Lotus/Upgrades/Mods/Sets/Amar/AmarSetMod',
+    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalAmar',
+  },
+  [ArchonBoss.Nira]: {
+    boss: '/Lotus/Upgrades/Mods/Sets/Nira/NiraSetMod',
+    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalNira',
+  },
 };
 
 /** 보이드 상인 본인 이미지 — 아이템이 아니라 글리프 이미지를 쓴다 */

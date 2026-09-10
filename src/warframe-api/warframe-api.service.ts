@@ -119,11 +119,14 @@ export class WarframeApiService {
     return card({
       accent: accentFor(archon.expiry),
       title: `Archon Hunt · ${archon.boss}`,
-      subtitle: `Resets ${relative(archon.expiry)}`,
+      // 보상은 블록이 아니라 subtitle이다 — 샤드 색 하나는 구분선을 세울 만한 정보가 아니고,
+      // 만료와 같은 줄에 있어야 "언제까지 뭘 얻나"가 한 번에 읽힌다
+      subtitle: `Resets ${relative(archon.expiry)} · Reward Shard ${bold(ArchonReward[archon.boss])}`,
       // 보스는 엠블럼이라 80px 썸네일에서도 읽힌다 — V2에는 Section 액세서리가 유일한 썸네일 자리다
-      thumbnail: this.wfcdItemsService.imgUrl(image.boss),
-      // 샤드는 256px라 큰 슬롯을 써도 폭을 다 먹지 않는다
-      image: this.wfcdItemsService.imgUrl(image.shard),
+      thumbnail: this.wfcdItemsService.findItemImg(image.boss),
+      // 이번 주에 무슨 색 샤드가 나오나가 이 카드의 핵심 정보다 — 색은 글자보다 그림이 빠르다.
+      // 256x256 정사각이라 큰 슬롯을 써도 폭을 다 먹지 않는다
+      image: this.wfcdItemsService.findItemImg(image.shard),
       blocks: [
         [
           {
@@ -133,7 +136,6 @@ export class WarframeApiService {
             ),
           },
         ],
-        [`Reward Shard · ${bold(ArchonReward[archon.boss])}`],
       ],
       // 보스 공략은 API에 없다 — 위키가 유일한 다음 행동이라 링크 버튼으로 내보낸다
       buttons: [
@@ -157,7 +159,9 @@ export class WarframeApiService {
         sortie.variants.map((variant, index) => ({
           lines: [
             bold(`${index + 1} · ${variant.node} — ${variant.missionType}`),
-            subtext(variant.modifierDescription),
+            // 조건은 이름과 설명이 한 쌍이다 — 설명만 두면 "무슨 조건인지"를 부를 이름이 사라져
+            // 위키를 찾거나 남에게 말할 때 쓸 말이 없다
+            subtext(`${variant.modifier} — ${variant.modifierDescription}`),
           ],
         })),
       ],

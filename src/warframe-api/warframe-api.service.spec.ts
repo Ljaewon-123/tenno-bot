@@ -1,6 +1,7 @@
 import { ComponentType, type ContainerBuilder } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { WarframeApiService } from './warframe-api.service';
+import Items from '@wfcd/items';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
 import { DropCategory } from './drop-table/vo/enum';
 import dayjs from '@/utils/dayjs';
@@ -8,6 +9,7 @@ import { markStale } from './world-state/stale';
 import {
   ArchimedeaType,
   ArchonBoss,
+  ArchonReward,
   NightwaveFilter,
   VoidTraderCategory,
 } from './world-state/vo/enum';
@@ -80,10 +82,22 @@ describe('WarframeApiService 카드 이미지', () => {
   const build = (worldState: object) =>
     new WarframeApiService(worldState as never, wfcdItemsService, {} as never);
 
+  /**
+   * 이 케이스만 진짜 아이템 DB를 물린다 — 검사할 것이 "uniqueName이 실제로 그림에 닿나"이기 때문이다.
+   * 빈 배열로 두면 `findItemImg`가 전부 undefined를 주고, 오타 난 경로가 그대로 통과한다.
+   * 샤드는 Misc, 보스 세트 모드는 Mods라 두 종만 실으면 된다(All은 세 배 느리다).
+   */
+  const withItems = (worldState: object) =>
+    new WarframeApiService(
+      worldState as never,
+      new WfcdItemsService(new Items({ category: ['Misc', 'Mods'] })),
+      {} as never,
+    );
+
   it.each(Object.values(ArchonBoss))(
-    '%s — 썸네일은 보스 엠블럼, 큰 슬롯은 해당 색 샤드',
+    '%s — 썸네일은 보스 엠블럼, 큰 슬롯은 해당 색 샤드, 보상은 subtitle',
     async (boss) => {
-      const service = build({
+      const service = withItems({
         archonHunt: vi.fn().mockResolvedValue({
           boss,
           expiry: '2099-09-08T00:00:00Z',
@@ -93,7 +107,7 @@ describe('WarframeApiService 카드 이미지', () => {
       });
 
       const view = await service.archonHunt();
-      const { thumbnail, image } = parts(view);
+      const { thumbnail, image, contents } = parts(view);
       const name = boss.replace('Archon ', '');
       // 보스 공략은 API에 없다 — 위키가 유일한 다음 행동이다
       expect(linkUrls(view)).toEqual([
@@ -102,11 +116,42 @@ describe('WarframeApiService 카드 이미지', () => {
       expect(thumbnail).toBe(
         `https://cdn.warframestat.us/img/${name}Header.png`,
       );
+      // 이번 주 샤드 색이 이 카드의 핵심 정보라 산출물에 없어도 남긴다 —
+      // URL이 비면 디스코드가 조용히 안 그리고 끝나서 눈으로는 회귀를 못 잡는다
       expect(image).toBe(
         `https://cdn.warframestat.us/img/ArchonShard${name}.png`,
       );
+      // 보상 한 줄로 구분선을 세우지 않는다. 만료와 같은 줄이라야 "언제까지 뭘 얻나"가 한 번에 읽힌다
+      expect(contents[0]).toContain(`Reward Shard **${ArchonReward[boss]}**`);
     },
   );
+
+  /**
+   * 조건은 이름과 설명이 한 쌍이다. 설명만 남기면 그 조건을 부를 말이 사라져
+   * 위키를 찾거나 파티에 말할 때 쓸 이름이 없다 — 산출물 4a가 둘을 같이 그린 이유다.
+   */
+  it('소티 조건은 이름과 설명을 같이 적는다', async () => {
+    const { text } = parts(
+      await build({
+        sortie: vi.fn().mockResolvedValue({
+          boss: 'Vay Hek',
+          expiry: '2099-09-08T00:00:00Z',
+          variants: [
+            {
+              node: 'Cinxia (Ceres)',
+              missionType: 'Spy',
+              modifier: 'Enemy Energy Drain',
+              modifierDescription: 'Enemies drain your energy on hit.',
+            },
+          ],
+        }),
+      }).sortie(),
+    );
+
+    expect(text).toContain(
+      '-# Enemy Energy Drain — Enemies drain your energy on hit.',
+    );
+  });
 
   /** 30분 창 안의 스테일 값에 `cached 60s`를 적으면 나이를 축소해 말하는 게 된다 */
   it('만료된 캐시로 내준 값이면 footer가 TTL이 아니라 실제 나이를 적는다', async () => {

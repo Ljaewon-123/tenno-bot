@@ -1,6 +1,7 @@
-import { AlarmService } from '@/alarm/alarm.service';
+import { ALARM_LIMIT_PER_GUILD, AlarmService } from '@/alarm/alarm.service';
 import { CreateAlarmCommand } from '@/alarm/dto/create-alarm.command.dto';
 import { DeleteAlarmCommand } from '@/alarm/dto/delete-alarm.command.dto';
+import { commandPath } from '@/alarm/vo/target-command.vo';
 import {
   bold,
   button,
@@ -55,7 +56,7 @@ export class AlarmCommandService {
       payload(
         okCard(
           `Alarm registered · \`${saved.id}\``,
-          `/${saved.targetCommand.target} every ${saved.intervalValue} min · first run ${relative(saved.doneAt)}`,
+          `${commandPath(saved.targetCommand)} every ${saved.intervalValue} min · first run ${relative(saved.doneAt)}`,
           `/alarm delete id:${saved.id} to remove`,
         ),
       ),
@@ -155,12 +156,12 @@ export class AlarmCommandService {
 
     return payload(
       manageCard({
-        title: `Alarms · ${alarms.length}`,
+        title: `Alarms · ${alarms.length} / ${ALARM_LIMIT_PER_GUILD}`,
         rows: view.items.map((alarm) => ({
           text: [
             bold(alarm.name),
             subtext(
-              `/${alarm.targetCommand.target} · every ${alarm.intervalValue} min · next ${relative(alarm.doneAt)}`,
+              `${commandPath(alarm.targetCommand)} · every ${alarm.intervalValue} min · next ${relative(alarm.doneAt)}`,
             ),
           ].join('\n'),
           // 페이지를 customId에 실어야 지운 뒤에도 보던 자리로 돌아온다

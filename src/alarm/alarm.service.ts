@@ -21,6 +21,7 @@ import { CreateAlarm } from './dto/create-alarm.dto';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmConfigRepository } from './repositories/alarm-config.repository';
 import { AlarmStatus } from './vo/enum';
+import { commandPath } from './vo/target-command.vo';
 
 /** 이 시간을 넘도록 RUNNING인 알람은 프로세스가 죽은 것으로 본다 */
 const STALE_AFTER_MINUTES = 10;
@@ -227,7 +228,7 @@ export class AlarmService {
    */
   private pushLines(alarm: AlarmConfig): [string, string, string] {
     const { target, options } = alarm.targetCommand;
-    const path = `/${target}`;
+    const path = commandPath(alarm.targetCommand);
     if (!alarm.intervalValue)
       return [
         // DM이 막혀 채널로 떨어져도 누구 것인지 알려면 멘션이 본문에 있어야 한다 —
