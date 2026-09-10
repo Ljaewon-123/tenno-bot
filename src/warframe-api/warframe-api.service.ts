@@ -650,10 +650,10 @@ export class WarframeApiService {
           heading: `${index + 1} · ${mission.missionType}`,
           lines: [
             `Deviation ${bold(mission.deviation.name)}`,
-            // 엘리트에만 붙는 위험만 굵게 — 미사용이던 isHard의 유일한 시각적 쓸모다
+            // 굵게는 subtext의 회색 위에서 거의 구분이 안 된다 — 엘리트 전용 위험은 아이콘으로 찍는다
             subtext(
               `Risks · ${mission.risks
-                .map((risk) => (risk.isHard ? bold(risk.name) : risk.name))
+                .map((risk) => (risk.isHard ? `☠️ ${risk.name}` : risk.name))
                 .join(' · ')}`,
             ),
           ],
@@ -668,7 +668,7 @@ export class WarframeApiService {
       subtitle: `Resets ${relative(targets[0].expiry)}`,
       blocks,
       buttons: [...filters, ...(buttons ?? [])],
-      footer: this.fresh(archimedeas, 'Bold risks are elite-only'),
+      footer: this.fresh(archimedeas, '☠️ risks are elite-only'),
     });
   }
 

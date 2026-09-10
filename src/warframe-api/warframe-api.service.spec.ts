@@ -664,9 +664,9 @@ describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
     // 하나뿐이면 제목이 이미 말하고 있어 본문에서 라벨을 뺀다
     expect(onlyHex.text).toContain('## Temporal Archimedea');
     expect(onlyHex.text).not.toContain('**Temporal Archimedea**');
-    // 엘리트 위험만 굵게 — isHard의 유일한 시각적 쓸모다
-    expect(onlyHex.text).toContain('-# Risks · **Fortified Foes**');
-    expect(onlyHex.text).toContain('-# Bold risks are elite-only');
+    // 엘리트 위험만 아이콘 — isHard의 유일한 시각적 쓸모다
+    expect(onlyHex.text).toContain('-# Risks · ☠️ Fortified Foes');
+    expect(onlyHex.text).toContain('-# ☠️ risks are elite-only');
   });
 
   it('detail이면 편차·위험마다 설명을 붙이고 elite 안내는 뺀다', async () => {
