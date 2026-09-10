@@ -1,6 +1,6 @@
 import dayjs from '@/utils/dayjs';
 import { BadRequestException, Logger } from '@nestjs/common';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { Party } from './entities/party.entity';
 import { PartyMessageService } from './party-message.service';
 import { PartyService } from './party.service';
@@ -34,6 +34,8 @@ interface Overrides {
   deadChannels?: string[];
   /** save()가 던질 에러 — 1인 1파티 인덱스 위반 흉내 */
   saveError?: unknown;
+  /** 이미 다른 파티에 들어가 있는가 — create의 사전 검사 */
+  joinedElsewhere?: boolean;
 }
 
 const build = (overrides: Overrides = {}) => {
@@ -61,6 +63,7 @@ const build = (overrides: Overrides = {}) => {
         overrides.found === undefined ? party() : overrides.found,
       ),
     findBy: vi.fn().mockResolvedValue([]),
+    existsBy: vi.fn().mockResolvedValue(overrides.joinedElsewhere ?? false),
     delete: vi.fn().mockResolvedValue({ affected: 2 }),
   };
 
@@ -122,8 +125,8 @@ describe('affected 0일 때 사유 분기', () => {
     ['join', party({ status: PartyStatus.CLOSE }), 'closed'],
     ['join', party({ members: ['host', 'u1'] }), 'already joined'],
     ['join', party({ members: ['a', 'b', 'c', 'd'] }), 'full'],
+    ['join', party(), 'already in a party'],
     ['leave', party({ status: PartyStatus.CLOSE }), 'closed'],
-    ['leave', party({ hostUserId: 'u1' }), 'host cannot leave'],
     ['leave', party(), 'not joined'],
     ['close', party({ status: PartyStatus.CLOSE }), 'already closed'],
     ['close', party(), 'Only the host'],
@@ -189,5 +192,66 @@ describe('expire', () => {
     const { service, edit } = build({ expired: [party({ messageId: null })] });
     await service.expire();
     expect(edit).not.toHaveBeenCalled();
+  });
+});
+
+describe('host 이탈 승계', () => {
+  /** leave()의 조건부 UPDATE는 host를 안 지운다 — 0행으로 떨어져야 handOver가 받는다 */
+  const asHost = (found: Party) => {
+    const built = build({ affected: 1, found });
+    (built.qb.execute as Mock).mockResolvedValueOnce({ affected: 0 });
+    return built;
+  };
+
+  it('가장 먼저 들어온 남은 멤버가 이어받는다', async () => {
+    const { service, qb } = asHost(
+      party({ hostUserId: 'u1', members: ['u1', 'u2', 'u3'] }),
+    );
+    await service.leave('p1', 'u1');
+    expect(qb.set).toHaveBeenCalledWith(
+      expect.objectContaining({ hostUserId: 'u2' }),
+    );
+  });
+
+  it('받을 사람이 없으면 마감한다 — 0명 파티는 존재하지 않는다', async () => {
+    const { service, qb } = asHost(
+      party({ hostUserId: 'u1', members: ['u1'] }),
+    );
+    await service.leave('p1', 'u1');
+    expect(qb.set).toHaveBeenCalledWith({ status: PartyStatus.CLOSE });
+  });
+
+  it('승계가 1인 1파티 인덱스에 걸리면 마감으로 떨어진다', async () => {
+    const { service, qb } = asHost(
+      party({ hostUserId: 'u1', members: ['u1', 'u2'] }),
+    );
+    (qb.execute as Mock).mockRejectedValueOnce({ code: '23505' });
+    await service.leave('p1', 'u1');
+    expect(qb.set).toHaveBeenLastCalledWith({ status: PartyStatus.CLOSE });
+  });
+
+  it('host가 아닌 사람의 이탈은 그대로 성공한다', async () => {
+    const { service } = build({
+      affected: 1,
+      found: party({ members: ['host'] }),
+    });
+    await expect(service.leave('p1', 'u1')).resolves.toMatchObject({
+      hostUserId: 'host',
+    });
+  });
+});
+
+describe('한 서버 한 파티', () => {
+  it('다른 파티에 들어가 있으면 새 파티를 못 만든다', async () => {
+    const { service, save } = build({ joinedElsewhere: true });
+    await expect(
+      service.create({
+        guildId: 'g1',
+        hostUserId: 'u1',
+        name: 'n',
+        mission: 'm',
+      } as never),
+    ).rejects.toThrow(/already in a party/i);
+    expect(save).not.toHaveBeenCalled();
   });
 });

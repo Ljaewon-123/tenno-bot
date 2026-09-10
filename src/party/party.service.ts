@@ -2,7 +2,7 @@ import dayjs from '@/utils/dayjs';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
-import { FindOptionsWhere } from 'typeorm';
+import { ArrayContains, FindOptionsWhere } from 'typeorm';
 import { Party } from './entities/party.entity';
 import {
   PARTY_EXPIRE_HOURS,
@@ -26,6 +26,8 @@ export class PartyService {
 
   /** members에 host 포함해서 생성 */
   async create(input: CreateParty): Promise<Party> {
+    await this.assertNotInAnotherParty(input.guildId, input.hostUserId);
+
     const entity = this.partyRepository.create({
       ...input,
       members: [input.hostUserId],
@@ -73,6 +75,10 @@ export class PartyService {
       .andWhere('status = :open', { open: PartyStatus.OPEN })
       .andWhere('cardinality(members) < party_size')
       .andWhere('NOT (:userId = ANY(members))')
+      // 한 서버에서 두 파티에 동시에 못 들어간다 — 안 막으면 호스트 승계가 인덱스를 깬다(아래 handOver)
+      .andWhere(
+        `NOT EXISTS (SELECT 1 FROM "party" other WHERE other."guild_id" = "party"."guild_id" AND other."status" = :open AND :userId = ANY(other."members"))`,
+      )
       .setParameter('userId', userId)
       .execute();
 
@@ -83,13 +89,15 @@ export class PartyService {
           ? 'This party is closed.'
           : party.members.includes(userId)
             ? 'You have already joined.'
-            : 'This party is full.',
+            : party.members.length >= party.partySize
+              ? 'This party is full.'
+              : 'You are already in a party in this server.',
       );
     }
     return party;
   }
 
-  /** host는 나갈 수 없다 — 마감을 쓰라고 안내 */
+  /** host가 나가면 다음 멤버가 이어받는다 — 조건부 UPDATE는 host를 안 지우고 handOver가 받는다 */
   async leave(id: string, userId: string): Promise<Party> {
     const { affected } = await this.partyRepository
       .createQueryBuilder()
@@ -104,15 +112,61 @@ export class PartyService {
 
     const party = await this.get(id);
     if (!affected) {
-      throw new BadRequestException(
-        party.status !== PartyStatus.OPEN
-          ? 'This party is closed.'
-          : party.hostUserId === userId
-            ? 'The host cannot leave — close the party instead.'
-            : 'You have not joined this party.',
-      );
+      if (party.status !== PartyStatus.OPEN)
+        throw new BadRequestException('This party is closed.');
+      if (party.hostUserId === userId) return this.handOver(party);
+      throw new BadRequestException('You have not joined this party.');
     }
     return party;
+  }
+
+  /**
+   * 호스트 이탈 승계 — 가장 먼저 들어온 남은 멤버가 이어받는다(members는 가입 순서대로 쌓인다).
+   * 받을 사람이 없으면 마감이다. 마지막 한 명이 나가는 순간은 0명이 아니라 CLOSE라서
+   * 산출물 4f의 "0명" 카드는 도달하지 않는다.
+   */
+  private async handOver(party: Party): Promise<Party> {
+    const [next] = party.members.filter(
+      (userId) => userId !== party.hostUserId,
+    );
+    if (!next) return this.close(party.id, party.hostUserId);
+
+    return (
+      this.partyRepository
+        .createQueryBuilder()
+        .update(Party)
+        .set({
+          hostUserId: next,
+          members: () => 'array_remove(members, :userId)',
+        })
+        .where('id = :id', { id: party.id })
+        .andWhere('status = :open', { open: PartyStatus.OPEN })
+        .andWhere('host_user_id = :userId')
+        .setParameter('userId', party.hostUserId)
+        .execute()
+        .then(() => this.get(party.id))
+        // 승계를 막기 전에 만들어진 겹치는 행이 남아 있으면 1인 1파티 인덱스가 23505로 막는다
+        .catch((error: { code?: string }) => {
+          if (error?.code !== '23505') throw error;
+          return this.close(party.id, party.hostUserId);
+        })
+    );
+  }
+
+  /**
+   * 부분 유니크 인덱스는 "호스트 중복"만 본다 — 멤버로 참가한 사람이 새 파티를 여는 건 안 걸린다.
+   * 그대로 두면 그 사람이 승계 대상이 됐을 때 인덱스가 터진다.
+   */
+  private async assertNotInAnotherParty(guildId: string, userId: string) {
+    const joined = await this.partyRepository.existsBy({
+      guildId,
+      status: PartyStatus.OPEN,
+      members: ArrayContains([userId]),
+    });
+    if (joined)
+      throw new BadRequestException(
+        'You are already in a party in this server.',
+      );
   }
 
   /** host만 마감 가능 */

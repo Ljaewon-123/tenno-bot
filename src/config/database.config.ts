@@ -1,3 +1,4 @@
+import { AlarmOneShotReminder1789000000000 } from '@/migrations/1789000000000-alarm-one-shot-reminder';
 import { PartyVisibility1788912000000 } from '@/migrations/1788912000000-party-visibility';
 import { Injectable } from '@nestjs/common';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
@@ -5,7 +6,10 @@ import { AppConfig } from './config.service';
 import { NodeEnv } from './enum';
 
 // glob 대신 직접 나열 — nest build가 dist로 옮기면 경로 패턴이 깨진다
-const migrations = [PartyVisibility1788912000000];
+const migrations = [
+  PartyVisibility1788912000000,
+  AlarmOneShotReminder1789000000000,
+];
 
 @Injectable()
 export class DatabaseConfig {
