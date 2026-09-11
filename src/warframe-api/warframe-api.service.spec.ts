@@ -31,7 +31,7 @@ const parts = (view: ContainerBuilder) => {
   const children = view.toJSON().components as unknown as Node[];
   const contents: string[] = [];
   let thumbnail: string | undefined;
-  let image: string | undefined;
+  let images: string[] = [];
 
   for (const child of children) {
     if (child.type === ComponentType.TextDisplay && child.content)
@@ -41,10 +41,16 @@ const parts = (view: ContainerBuilder) => {
       thumbnail = child.accessory?.media?.url;
     }
     if (child.type === ComponentType.MediaGallery)
-      image = child.items?.[0].media?.url;
+      images = (child.items ?? []).map((item) => item.media?.url ?? '');
   }
 
-  return { contents, thumbnail, image, text: contents.join('\n') };
+  return {
+    contents,
+    thumbnail,
+    images,
+    image: images[0],
+    text: contents.join('\n'),
+  };
 };
 
 /** 페이저 버튼의 customId — 필터가 실려 있는지, 애초에 붙었는지를 여기서 본다 */
@@ -107,24 +113,48 @@ describe('WarframeApiService 카드 이미지', () => {
       });
 
       const view = await service.archonHunt();
-      const { thumbnail, image, contents } = parts(view);
+      const { thumbnail, images, text } = parts(view);
       const name = boss.replace('Archon ', '');
       // 보스 공략은 API에 없다 — 위키가 유일한 다음 행동이다
       expect(linkUrls(view)).toEqual([
         `https://wiki.warframe.com/w/${boss.replace(' ', '_')}`,
       ]);
-      expect(thumbnail).toBe(
-        `https://cdn.warframestat.us/img/${name}Header.png`,
-      );
-      // 이번 주 샤드 색이 이 카드의 핵심 정보라 산출물에 없어도 남긴다 —
+      // 256² 소스는 갤러리 2칸(칸당 약 254px)이라야 원본 그대로 선명하다. 한 장이면 풀폭으로 늘어나 뭉갠다 —
       // URL이 비면 디스코드가 조용히 안 그리고 끝나서 눈으로는 회귀를 못 잡는다
-      expect(image).toBe(
+      expect(images).toEqual([
+        `https://cdn.warframestat.us/img/${name}Header.png`,
         `https://cdn.warframestat.us/img/ArchonShard${name}.png`,
+      ]);
+      // 2-up이 섰으면 썸네일 자리는 비어야 한다 — 같은 보스 그림이 두 번 나온다
+      expect(thumbnail).toBeUndefined();
+      // Steel Path·보상은 3미션 공통이라 줄마다가 아니라 아래 한 줄
+      expect(text).toContain(
+        `All three on Steel Path · reward ${ArchonReward[boss]} Archon Shard`,
       );
-      // 보상 한 줄로 구분선을 세우지 않는다. 만료와 같은 줄이라야 "언제까지 뭘 얻나"가 한 번에 읽힌다
-      expect(contents[0]).toContain(`Reward Shard **${ArchonReward[boss]}**`);
     },
   );
+
+  /** 한 칸짜리 갤러리는 풀폭으로 늘어나 금지안이 된다 — 짝이 깨지면 갤러리를 아예 접어야 한다 */
+  it('샤드 이미지가 없으면 2-up 대신 썸네일로 내려간다', async () => {
+    const service = new WarframeApiService(
+      {
+        archonHunt: vi.fn().mockResolvedValue({
+          boss: ArchonBoss.Nira,
+          expiry: '2099-09-08T00:00:00Z',
+          missions: [],
+        }),
+      } as never,
+      {
+        findItemImg: (uniqueName: string) =>
+          uniqueName.includes('SetMod') ? 'boss.png' : undefined,
+      } as never,
+      {} as never,
+    );
+
+    const { thumbnail, images } = parts(await service.archonHunt());
+    expect(images).toEqual([]);
+    expect(thumbnail).toBe('boss.png');
+  });
 
   /**
    * 조건은 이름과 설명이 한 쌍이다. 설명만 남기면 그 조건을 부를 말이 사라져

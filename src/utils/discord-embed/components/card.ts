@@ -31,7 +31,11 @@ export type CardInput = {
   subtitle?: Line;
   /** 80px. 세로로 긴 그림(모드 카드)은 여기 넣으면 읽히지 않는다 */
   thumbnail?: string;
-  image?: string;
+  /**
+   * 한 장이면 풀폭, 두 장이면 갤러리 2칸(칸당 약 254px).
+   * 256² 소스를 풀폭에 넣으면 4배로 늘어나 뭉갠다 — 정사각 아트는 2칸으로 짝지어 넣는다.
+   */
+  image?: string | string[];
   /**
    * 바깥 배열은 구분선으로, 안쪽은 빈 줄로 나뉜다.
    * 디자인이 쓰는 구분은 이 둘뿐이다 — 소티 미션 3개는 빈 줄, 균열 티어 6개는 구분선.
@@ -161,10 +165,12 @@ export const card = ({
       : head,
   ];
 
-  if (image)
+  if (image?.length)
     children.push(
       new MediaGalleryBuilder().addItems(
-        new MediaGalleryItemBuilder().setURL(image),
+        ...[image]
+          .flat()
+          .map((url) => new MediaGalleryItemBuilder().setURL(url)),
       ),
     );
 

@@ -114,26 +114,30 @@ export class WarframeApiService {
   /** 집정관 */
   async archonHunt(buttons?: Buttons) {
     const archon = await this.worldStateService.archonHunt();
-    const image = ArchonImage[archon.boss];
+    const art = ArchonImage[archon.boss];
+    const boss = this.wfcdItemsService.findItemImg(art.boss);
+    const shard = this.wfcdItemsService.findItemImg(art.shard);
+    // 소스가 256²뿐이라 풀폭 1장은 4배로 늘어나 뭉갠다. 갤러리 2칸은 칸당 약 254px라 원본 그대로 선명하다 —
+    // 한 칸짜리 갤러리는 다시 풀폭으로 늘어나므로 짝이 안 맞으면 2-up을 접고 썸네일로 내린다
+    const gallery = boss && shard ? [boss, shard] : undefined;
 
     return card({
       accent: accentFor(archon.expiry),
       title: `Archon Hunt · ${archon.boss}`,
-      // 보상은 블록이 아니라 subtitle이다 — 샤드 색 하나는 구분선을 세울 만한 정보가 아니고,
-      // 만료와 같은 줄에 있어야 "언제까지 뭘 얻나"가 한 번에 읽힌다
-      subtitle: `Resets ${relative(archon.expiry)} · Reward Shard ${bold(ArchonReward[archon.boss])}`,
-      // 보스는 엠블럼이라 80px 썸네일에서도 읽힌다 — V2에는 Section 액세서리가 유일한 썸네일 자리다
-      thumbnail: this.wfcdItemsService.findItemImg(image.boss),
-      // 이번 주에 무슨 색 샤드가 나오나가 이 카드의 핵심 정보다 — 색은 글자보다 그림이 빠르다.
-      // 256x256 정사각이라 큰 슬롯을 써도 폭을 다 먹지 않는다
-      image: this.wfcdItemsService.findItemImg(image.shard),
+      subtitle: `Resets ${relative(archon.expiry)}`,
+      // 2-up이 못 서면 86px 썸네일이 폴백이다 — 보스는 엠블럼이라 그 크기에서도 읽힌다
+      thumbnail: gallery ? undefined : boss,
+      // 샤드 색이 이 커맨드의 진짜 관심사라 두 번째 칸은 장식이 아니라 정보다
+      image: gallery,
       blocks: [
         [
           {
-            lines: archon.missions.map(
-              (mission, index) =>
-                `${index + 1} · ${bold(mission.node)} — ${mission.type}`,
+            lines: archon.missions.map((mission, index) =>
+              bold(`${index + 1} · ${mission.node} — ${mission.type}`),
             ),
+            // Steel Path와 보상은 3미션 공통값이다 — 줄마다 반복하면 갤러리가 먹은 세로를 두 번 잃는다.
+            // 집정관 사냥은 항상 Steel Path 난이도라 API에 없어도 고정으로 적을 수 있다
+            more: `All three on Steel Path · reward ${ArchonReward[archon.boss]} Archon Shard`,
           },
         ],
       ],
