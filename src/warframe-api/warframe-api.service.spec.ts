@@ -101,7 +101,7 @@ describe('WarframeApiService 카드 이미지', () => {
     );
 
   it.each(Object.values(ArchonBoss))(
-    '%s — 썸네일은 보스 엠블럼, 큰 슬롯은 해당 색 샤드, 보상은 subtitle',
+    '%s — 갤러리 2칸은 보스 엠블럼 + 해당 색 샤드, 보상은 하단 한 줄',
     async (boss) => {
       const service = withItems({
         archonHunt: vi.fn().mockResolvedValue({
@@ -146,14 +146,16 @@ describe('WarframeApiService 카드 이미지', () => {
       } as never,
       {
         findItemImg: (uniqueName: string) =>
-          uniqueName.includes('SetMod') ? 'boss.png' : undefined,
+          uniqueName.includes('SetMod')
+            ? 'https://cdn.warframestat.us/img/NiraHeader.png'
+            : undefined,
       } as never,
       {} as never,
     );
 
     const { thumbnail, images } = parts(await service.archonHunt());
     expect(images).toEqual([]);
-    expect(thumbnail).toBe('boss.png');
+    expect(thumbnail).toBe('https://cdn.warframestat.us/img/NiraHeader.png');
   });
 
   /**
