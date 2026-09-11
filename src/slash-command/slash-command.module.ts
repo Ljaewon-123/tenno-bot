@@ -7,6 +7,7 @@ import { AlarmCommandService } from './alarm-command.service';
 import { NotificationCommandService } from './notification-command.service';
 import { PartyCommandService } from './party-command.service';
 import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor';
+import { IncarnonWeaponAutocompleteInterceptor } from './interceptors/incarnon-weapon-autocomplete.interceptor';
 import { SlashCommandService } from './slash-command.service';
 
 @Module({
@@ -17,6 +18,7 @@ import { SlashCommandService } from './slash-command.service';
     NotificationCommandService,
     PartyCommandService,
     DropItemAutocompleteInterceptor,
+    IncarnonWeaponAutocompleteInterceptor,
   ],
 })
 export class SlashCommandModule {}

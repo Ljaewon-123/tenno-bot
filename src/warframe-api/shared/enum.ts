@@ -8,6 +8,8 @@ export enum HttpMethod {
 
 export enum CacheKey {
   DropTable = 'drop-table',
+  /** 위키에서 긁은 인카논 퍽·해금 조건 45개. 만료 없이 월 1회 직접 갱신한다 */
+  Incarnon = 'incarnon',
   LastSortieId = 'last-sortie-id',
   LastArchonHuntId = 'last-archon-hunt-id',
   LastEventsId = 'last-events-id',

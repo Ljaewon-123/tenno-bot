@@ -16,4 +16,6 @@ export const ALLOWED_PATHS = new Set<string>([
   'pc/cambionCycle',
   'data/all.json',
   'data/info.json',
+  // wiki.warframe.com MediaWiki API — 인카논 퍽 표. 실제 질의는 params로 나간다
+  'api.php',
 ]);

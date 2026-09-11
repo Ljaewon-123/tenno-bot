@@ -4,6 +4,8 @@
  */
 export interface DropItem {
   name: string;
+  /** 레시피·재료 상수의 키. 이름과 달리 게임 업데이트에도 안 바뀐다 */
+  uniqueName: string;
   type?: string;
   /** 'Mods' · 'Primary' · 'Skins' … 바로 재고를 분류하는 근거 */
   category?: string;

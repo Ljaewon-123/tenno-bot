@@ -54,8 +54,10 @@ import {
 } from 'necord';
 import { ArchimedeaCommand } from './dto/archimedea.command.dto';
 import { DropCommand } from './dto/drop.command.dto';
+import { IncarnonCommand } from './dto/incarnon.command.dto';
 import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
 import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor';
+import { IncarnonWeaponAutocompleteInterceptor } from './interceptors/incarnon-weapon-autocomplete.interceptor';
 
 /**
  * 🔔 기준 시각 몇 분 전에 DM으로 한 번 오는 개인 리마인더. 다시 누르면 취소된다.
@@ -331,12 +333,20 @@ export class SlashCommandService {
     );
   }
 
+  /** weapon을 주면 그 무기 상세, 없으면 이번 주 서킷 로테이션 */
+  @UseInterceptors(IncarnonWeaponAutocompleteInterceptor)
   @SlashCommand({
     name: 'incarnon',
-    description: 'Get this week Incarnon Genesis rotation from the Circuit',
+    description:
+      'Get this week Incarnon Genesis rotation, or one weapon detail',
   })
-  async incarnon(@Context() [interaction]: SlashCommandContext) {
-    const incarnon = await this.warframeApi.incarnon();
+  async incarnon(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { weapon }: IncarnonCommand,
+  ) {
+    const incarnon = weapon
+      ? await this.warframeApi.incarnonWeapon(weapon)
+      : await this.warframeApi.incarnon();
     return interaction.editReply(payload(incarnon));
   }
 

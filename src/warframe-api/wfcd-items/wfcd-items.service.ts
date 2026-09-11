@@ -14,7 +14,7 @@ export class WfcdItemsService {
   constructor(private readonly wfcdItems: Items) {}
 
   /** uniqueName으로 원본(기본 언어) 아이템 데이터 조회 */
-  private findItem(uniqueName: string) {
+  findItem(uniqueName: string) {
     return this.wfcdItems.find((item) => item.uniqueName === uniqueName);
   }
 
@@ -74,6 +74,16 @@ export class WfcdItemsService {
   findPrimedMods(): DropItem[] {
     return [...(this.wfcdItems as unknown as DropItem[])].filter((item) =>
       item.name?.startsWith('Primed '),
+    );
+  }
+
+  /**
+   * 인카논 제네시스 45종. `/incarnon weapon` 자동완성 소스이자 위키 페이지 목록이다 —
+   * 이름이 위키 페이지명과 45/45 그대로 일치해서 페이지 검색을 따로 안 해도 된다.
+   */
+  findIncarnonGenesis(): DropItem[] {
+    return [...(this.wfcdItems as unknown as DropItem[])].filter((item) =>
+      item.name?.endsWith(' Incarnon Genesis'),
     );
   }
 

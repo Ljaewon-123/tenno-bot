@@ -1,12 +1,19 @@
 import { Module } from '@nestjs/common';
 import { DropTableModule } from './drop-table/drop-table.module';
+import { IncarnonModule } from './incarnon/incarnon.module';
 import { SharedModule } from './shared/modules/shared.module';
 import { WarframeApiService } from './warframe-api.service';
 import { WfcdItemsModule } from './wfcd-items/wfcd-items.module';
 import { WorldStateModule } from './world-state/world-state.module';
 
 @Module({
-  imports: [WorldStateModule, DropTableModule, WfcdItemsModule, SharedModule],
+  imports: [
+    WorldStateModule,
+    DropTableModule,
+    WfcdItemsModule,
+    IncarnonModule,
+    SharedModule,
+  ],
   providers: [WarframeApiService],
   exports: [WarframeApiService],
 })

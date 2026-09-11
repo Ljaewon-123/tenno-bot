@@ -86,7 +86,12 @@ describe('WarframeApiService 카드 이미지', () => {
   const wfcdItemsService = new WfcdItemsService([] as never);
 
   const build = (worldState: object) =>
-    new WarframeApiService(worldState as never, wfcdItemsService, {} as never);
+    new WarframeApiService(
+      worldState as never,
+      wfcdItemsService,
+      {} as never,
+      {} as never,
+    );
 
   /**
    * 이 케이스만 진짜 아이템 DB를 물린다 — 검사할 것이 "uniqueName이 실제로 그림에 닿나"이기 때문이다.
@@ -97,6 +102,7 @@ describe('WarframeApiService 카드 이미지', () => {
     new WarframeApiService(
       worldState as never,
       new WfcdItemsService(new Items({ category: ['Misc', 'Mods'] })),
+      {} as never,
       {} as never,
     );
 
@@ -150,6 +156,7 @@ describe('WarframeApiService 카드 이미지', () => {
             ? 'https://cdn.warframestat.us/img/NiraHeader.png'
             : undefined,
       } as never,
+      {} as never,
       {} as never,
     );
 
@@ -241,6 +248,7 @@ describe('WarframeApiService 카드 이미지', () => {
         { name: 'Prisma Gorgon', category: 'Primary', imageName: 'b.png' },
       ] as never),
       {} as never,
+      {} as never,
     );
 
     const { text } = parts(await service.voidTrader());
@@ -287,13 +295,20 @@ describe('WarframeApiService 카드 이미지', () => {
   });
 
   const dropService = (item: object) =>
-    new WarframeApiService({} as never, new WfcdItemsService([item] as never), {
-      findDropSources: vi
-        .fn()
-        .mockResolvedValue([
-          { itemName: 'Vitality', sourceName: 'Grineer Lancer', chance: 1.01 },
+    new WarframeApiService(
+      {} as never,
+      new WfcdItemsService([item] as never),
+      {
+        findDropSources: vi.fn().mockResolvedValue([
+          {
+            itemName: 'Vitality',
+            sourceName: 'Grineer Lancer',
+            chance: 1.01,
+          },
         ]),
-    } as never);
+      } as never,
+      {} as never,
+    );
 
   it('카드 이미지가 없는 모드는 최대 랭크 효과를 첫 블록으로 적는다', async () => {
     const service = dropService({
@@ -330,12 +345,17 @@ describe('WarframeApiService 카드 이미지', () => {
 
   /** 확률은 숫자만으로 위계가 안 보인다 — 최고 확률이 8칸을 다 채운다 */
   it('막대는 최고 확률 대비 상대값이다', async () => {
-    const service = new WarframeApiService({} as never, wfcdItemsService, {
-      findDropSources: vi.fn().mockResolvedValue([
-        { itemName: 'Braton Prime', sourceName: 'Lith B4', chance: 11.06 },
-        { itemName: 'Braton Prime', sourceName: 'Meso B3', chance: 2.51 },
-      ]),
-    } as never);
+    const service = new WarframeApiService(
+      {} as never,
+      wfcdItemsService,
+      {
+        findDropSources: vi.fn().mockResolvedValue([
+          { itemName: 'Braton Prime', sourceName: 'Lith B4', chance: 11.06 },
+          { itemName: 'Braton Prime', sourceName: 'Meso B3', chance: 2.51 },
+        ]),
+      } as never,
+      {} as never,
+    );
 
     const { text } = parts(await service.dropSources('braton'));
     expect(text).toContain('- 🟢 Lith B4 ▰▰▰▰▰▰▰▰ 11.06%');
@@ -344,14 +364,19 @@ describe('WarframeApiService 카드 이미지', () => {
 
   /** 막대는 상대 위계라 둘 다 8칸에 가까워도 실제 확률은 100배 차이일 수 있다 */
   it('확률 등급 이모지는 절대값으로 갈린다', async () => {
-    const service = new WarframeApiService({} as never, wfcdItemsService, {
-      findDropSources: vi.fn().mockResolvedValue([
-        { itemName: 'X', sourceName: 'A', chance: 5 },
-        { itemName: 'X', sourceName: 'B', chance: 4.99 },
-        { itemName: 'X', sourceName: 'C', chance: 1 },
-        { itemName: 'X', sourceName: 'D', chance: 0.99 },
-      ]),
-    } as never);
+    const service = new WarframeApiService(
+      {} as never,
+      wfcdItemsService,
+      {
+        findDropSources: vi.fn().mockResolvedValue([
+          { itemName: 'X', sourceName: 'A', chance: 5 },
+          { itemName: 'X', sourceName: 'B', chance: 4.99 },
+          { itemName: 'X', sourceName: 'C', chance: 1 },
+          { itemName: 'X', sourceName: 'D', chance: 0.99 },
+        ]),
+      } as never,
+      {} as never,
+    );
 
     const { text } = parts(await service.dropSources('x'));
     expect(text).toContain('🟢 A');
@@ -369,9 +394,14 @@ describe('WarframeApiService 카드 이미지', () => {
     }));
 
   const withSources = (sources: object[]) =>
-    new WarframeApiService({} as never, wfcdItemsService, {
-      findDropSources: vi.fn().mockResolvedValue(sources),
-    } as never);
+    new WarframeApiService(
+      {} as never,
+      wfcdItemsService,
+      {
+        findDropSources: vi.fn().mockResolvedValue(sources),
+      } as never,
+      {} as never,
+    );
 
   /** 아이템이 하나로 좁혀졌으면 자를 이유가 없다 — 나머지는 페이지 버튼이 가져온다 */
   it('아이템 하나면 페이지로 펴고 접힌 줄을 쓰지 않는다', async () => {
@@ -464,7 +494,12 @@ describe('WarframeApiService 카드 이미지', () => {
 
 describe('WarframeApiService 균열/사이클', () => {
   const build = (worldState: object) =>
-    new WarframeApiService(worldState as never, {} as never, {} as never);
+    new WarframeApiService(
+      worldState as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
 
   const fissure = (over: object) => ({
     node: 'Ukko (Jupiter)',
@@ -590,7 +625,12 @@ describe('WarframeApiService 균열/사이클', () => {
 
 describe('WarframeApiService 나이트웨이브/아르키메디아', () => {
   const build = (worldState: object) =>
-    new WarframeApiService(worldState as never, {} as never, {} as never);
+    new WarframeApiService(
+      worldState as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
 
   const challenge = (over: object) => ({
     id: 'c',
@@ -827,6 +867,7 @@ describe('WarframeApiService 인카논 로테이션', () => {
     { duviriCycle: vi.fn().mockResolvedValue(duviriCycle) } as never,
     new WfcdItemsService([] as never),
     {} as never,
+    {} as never,
   );
 
   it('스틸패스(hard) 목록만 위키 링크로 나가고 노말은 이름만 나간다', async () => {
@@ -845,10 +886,163 @@ describe('WarframeApiService 인카논 로테이션', () => {
       { duviriCycle: vi.fn().mockResolvedValue({ choices: [] }) } as never,
       {} as never,
       {} as never,
+      {} as never,
     );
 
     const { text } = parts(await empty.incarnon());
     expect(text).toContain('## No Circuit rotation');
     expect(text).not.toContain('Steel Path Circuit');
+  });
+});
+
+/**
+ * 인카논 상세는 이 봇에서 한 카드에 글자가 제일 많은 화면이다 —
+ * 재료·해금 조건·퍽이 한 군데라도 빠지면 "위키를 대신 본다"는 목적이 통째로 깨진다.
+ */
+describe('WarframeApiService 인카논 상세', () => {
+  const weapon = {
+    name: 'Braton',
+    adapter: 'adapter/Braton',
+    reference: 'Braton Prime',
+    thumbnail: 'https://cdn/BratonIncarnonAdapter.png',
+    materials: [
+      { name: 'Pathos Clamp', count: 20 },
+      { name: 'Rune Marrow', count: 60 },
+      { name: 'Tasoma Extract', count: 60 },
+    ],
+    tiers: [
+      {
+        evolution: 1,
+        perks: [
+          {
+            name: 'Incarnon Form',
+            icon: 'a.png',
+            effect: ['Gain Radial Heat damage.'],
+          },
+        ],
+      },
+      {
+        evolution: 2,
+        challenge: 'Complete a solo mission with this weapon equipped.',
+        perks: [
+          {
+            name: 'Daring Reverie',
+            icon: 'b.png',
+            effect: ['Increase Base Damage by +4.'],
+          },
+          {
+            name: 'Munitions Grit',
+            icon: 'c.png',
+            effect: ['Increase Base Damage by +2.'],
+          },
+        ],
+      },
+    ],
+  };
+
+  const build = (found: unknown, genesis = ['Braton Incarnon Genesis']) =>
+    new WarframeApiService(
+      {} as never,
+      {
+        findIncarnonGenesis: () =>
+          genesis.map((name) => ({ name, uniqueName: `u/${name}` })),
+      } as never,
+      {} as never,
+      { findWeapon: vi.fn().mockResolvedValue(found) } as never,
+    );
+
+  it('재료 3종을 한 줄로 잇는다', async () => {
+    const { text } = parts(await build(weapon).incarnonWeapon('Braton'));
+
+    expect(text).toContain(
+      '20 Pathos Clamp · 60 Rune Marrow · 60 Tasoma Extract',
+    );
+  });
+
+  it('해금 조건과 퍽을 EVO별로 적는다', async () => {
+    const { text } = parts(await build(weapon).incarnonWeapon('Braton'));
+
+    expect(text).toContain('EVO2');
+    expect(text).toContain(
+      'Complete a solo mission with this weapon equipped.',
+    );
+    expect(text).toContain('Daring Reverie');
+    expect(text).toContain('Increase Base Damage by +4.');
+  });
+
+  it('EVO1에는 해금 조건 줄이 없다', async () => {
+    // 설치하면 바로 열린다 — 없는 조건을 'Unlock —' 빈 줄로 남기면 빠진 것처럼 읽힌다.
+    // EVO 4개가 한 TextDisplay에 빈 줄로 이어지므로 EVO1 단락만 잘라서 본다
+    const { contents } = parts(await build(weapon).incarnonWeapon('Braton'));
+    const evo1 = (
+      contents.find((block) => block.includes('**EVO1**')) ?? ''
+    ).split('\n\n')[0];
+
+    expect(evo1).toContain('EVO1');
+    expect(evo1).not.toContain('Unlock');
+  });
+
+  it('수치 기준 변종을 subtitle에 적는다', async () => {
+    const { text } = parts(await build(weapon).incarnonWeapon('Braton'));
+
+    expect(text).toContain('Values shown for Braton Prime');
+  });
+
+  it('기준 변종이 무기 자신이면 적지 않는다', async () => {
+    // 'Values shown for Torid'는 아무것도 알려주지 않는다
+    const { text } = parts(
+      await build({
+        ...weapon,
+        name: 'Torid',
+        reference: 'Torid',
+      }).incarnonWeapon('Torid'),
+    );
+
+    expect(text).not.toContain('Values shown for');
+  });
+
+  it('썸네일은 어댑터 아이콘을 쓴다', async () => {
+    const { thumbnail } = parts(await build(weapon).incarnonWeapon('Braton'));
+
+    expect(thumbnail).toBe('https://cdn/BratonIncarnonAdapter.png');
+  });
+
+  it('이름은 맞는데 수집 전이면 "없는 무기"라고 하지 않는다', async () => {
+    // 자동완성 목록은 wfcd에서 나와 첫 부팅에도 뜬다 — 고른 이름이 없다고 하면 오해를 부른다
+    const { text } = parts(await build(undefined).incarnonWeapon('Braton'));
+
+    expect(text).toContain('Evolution data has not been collected yet.');
+    expect(text).not.toContain('No Incarnon Genesis');
+  });
+
+  it('인카논이 없는 무기는 없다고 말한다', async () => {
+    const { text } = parts(await build(undefined).incarnonWeapon('Ignis'));
+
+    expect(text).toContain('No Incarnon Genesis for Ignis.');
+  });
+});
+
+/** 자동완성이 비면 유저가 45종 이름을 외워서 쳐야 한다 */
+describe('WarframeApiService.searchIncarnonNames', () => {
+  const service = new WarframeApiService(
+    {} as never,
+    new WfcdItemsService(new Items({ category: ['Misc'] })),
+    {} as never,
+    {} as never,
+  );
+
+  it('제네시스 접미사를 떼고 돌려준다', () => {
+    expect(service.searchIncarnonNames('braton')).toEqual(['Braton']);
+  });
+
+  it('부분 일치로 찾는다', () => {
+    expect(service.searchIncarnonNames('dual')).toEqual(
+      expect.arrayContaining(['Dual Ichor', 'Dual Toxocyst']),
+    );
+  });
+
+  it('디스코드 상한인 25개를 넘기지 않는다', () => {
+    // 45종이라 빈 질의면 전부 걸린다 — 자르지 않으면 자동완성 응답이 통째로 거절된다
+    expect(service.searchIncarnonNames('').length).toBe(25);
   });
 });

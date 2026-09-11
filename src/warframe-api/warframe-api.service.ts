@@ -21,6 +21,8 @@ import { ButtonBuilder } from 'discord.js';
 import { DropTableService } from './drop-table/drop-table.service';
 import type { DropSource } from './drop-table/entities/drop-source.entity';
 import { DropCategory } from './drop-table/vo/enum';
+import { IncarnonService } from './incarnon/incarnon.service';
+import type { IncarnonTier } from './incarnon/types';
 import { AlarmRequest, RemindTarget, TargetCommand } from './enum';
 import { DropItem } from './wfcd-items/vo/drop-item.interface';
 import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
@@ -96,6 +98,7 @@ export class WarframeApiService {
     private readonly worldStateService: WorldStateService,
     private readonly wfcdItemsService: WfcdItemsService,
     private readonly dropTableService: DropTableService,
+    private readonly incarnonService: IncarnonService,
   ) {}
 
   /**
@@ -812,6 +815,60 @@ export class WarframeApiService {
     });
   }
 
+  /** EVO 한 칸. 해금 조건을 퍽 위에 두는 건 "이걸 깨야 아래가 열린다"는 순서 그대로다 */
+  private incarnonTier(tier: IncarnonTier): Block {
+    return {
+      heading: `EVO${tier.evolution}`,
+      lines: [
+        tier.challenge && subtext(`Unlock — ${tier.challenge}`),
+        ...tier.perks.map(
+          (perk) => `${bold(perk.name)} · ${perk.effect.join(' ')}`,
+        ),
+      ],
+    };
+  }
+
+  /** `/incarnon weapon:` 상세. 자동완성 목록은 wfcd에서 나오므로 데이터 수집 전에도 이름은 고를 수 있다 */
+  async incarnonWeapon(name: string) {
+    const weapon = await this.incarnonService.findWeapon(name);
+    if (!weapon) {
+      // 이름은 맞는데 데이터가 없으면 아직 수집 전이다 — "그런 무기 없음"으로 보이면 오해를 부른다
+      const known = this.wfcdItemsService
+        .findIncarnonGenesis()
+        .some((item) => item.name === `${name} Incarnon Genesis`);
+      return emptyCard(
+        known ? `${name} Incarnon Genesis` : 'Unknown Incarnon Genesis',
+        known
+          ? 'Evolution data has not been collected yet.'
+          : `No Incarnon Genesis for ${name}.`,
+        known ? 'It is refreshed monthly' : 'Pick one from the autocomplete',
+      );
+    }
+
+    return card({
+      title: `${weapon.name} Incarnon Genesis`,
+      // 같은 이름이면 적지 않는다 — 'Values: Torid'는 아무것도 알려주지 않는다
+      subtitle:
+        weapon.reference !== weapon.name &&
+        `Values shown for ${weapon.reference}`,
+      thumbnail: weapon.thumbnail,
+      blocks: [
+        [
+          {
+            heading: 'Installation',
+            lines: [
+              weapon.materials
+                .map((material) => `${material.count} ${material.name}`)
+                .join(' · '),
+            ],
+          },
+        ],
+        weapon.tiers.map((tier) => this.incarnonTier(tier)),
+      ],
+      footer: `Perks and unlocks from ${this.wikiUrl(`${weapon.name} Incarnon Genesis`)}`,
+    });
+  }
+
   /**
    * 필터·복귀 버튼도 페이저와 같은 customId를 쓴다 — 아이템 이름이 유저 입력이라
    * 100자를 넘으면 버튼을 포기한다(넘긴 채로 보내면 메시지가 통째로 400이다).
@@ -1065,5 +1122,19 @@ export class WarframeApiService {
   /** 드랍 커맨드 오토컴플리트용 아이템 이름 목록 */
   async searchItemNames(keyword: string) {
     return this.dropTableService.searchItemNames(keyword);
+  }
+
+  /**
+   * `/incarnon weapon` 자동완성. 45개뿐이라 DB를 타지 않는다 —
+   * 위키 수집 전에도 목록은 떠야 해서 캐시가 아니라 wfcd가 소스다. 디스코드 선택지 상한은 25개.
+   */
+  searchIncarnonNames(keyword: string) {
+    const wanted = keyword.trim().toLowerCase();
+    return this.wfcdItemsService
+      .findIncarnonGenesis()
+      .map((item) => item.name.replace(' Incarnon Genesis', ''))
+      .filter((name) => name.toLowerCase().includes(wanted))
+      .sort()
+      .slice(0, 25);
   }
 }
