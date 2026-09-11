@@ -900,6 +900,12 @@ describe('WarframeApiService 인카논 로테이션', () => {
  * 재료·해금 조건·퍽이 한 군데라도 빠지면 "위키를 대신 본다"는 목적이 통째로 깨진다.
  */
 describe('WarframeApiService 인카논 상세', () => {
+  const perk = (name: string) => ({
+    name,
+    icon: `${name}.png`,
+    effect: [`${name} does a thing.`],
+  });
+
   const weapon = {
     name: 'Braton',
     adapter: 'adapter/Braton',
@@ -911,44 +917,38 @@ describe('WarframeApiService 인카논 상세', () => {
       { name: 'Tasoma Extract', count: 60 },
     ],
     tiers: [
-      {
-        evolution: 1,
-        perks: [
-          {
-            name: 'Incarnon Form',
-            icon: 'a.png',
-            effect: ['Gain Radial Heat damage.'],
-          },
-        ],
-      },
+      { evolution: 1, perks: [perk('Incarnon Form')] },
       {
         evolution: 2,
         challenge: 'Complete a solo mission with this weapon equipped.',
-        perks: [
-          {
-            name: 'Daring Reverie',
-            icon: 'b.png',
-            effect: ['Increase Base Damage by +4.'],
-          },
-          {
-            name: 'Munitions Grit',
-            icon: 'c.png',
-            effect: ['Increase Base Damage by +2.'],
-          },
-        ],
+        perks: [perk('Daring Reverie'), perk('Munitions Grit')],
       },
     ],
   };
 
-  const build = (found: unknown, genesis = ['Braton Incarnon Genesis']) =>
+  /** 퍽마다 Section이 하나씩 떨어지므로 `parts`의 썸네일 한 칸으로는 짝을 못 본다 */
+  const sections = (view: ContainerBuilder) =>
+    (view.toJSON().components as unknown as Node[])
+      .filter((child) => child.type === ComponentType.Section)
+      .map((child) => ({
+        text: (child.components ?? []).map((line) => line.content).join('\n'),
+        icon: child.accessory?.media?.url,
+      }));
+
+  const build = (
+    found: unknown,
+    install?: unknown,
+    suggest: { closest: string[]; total: number } = { closest: [], total: 45 },
+  ) =>
     new WarframeApiService(
       {} as never,
-      {
-        findIncarnonGenesis: () =>
-          genesis.map((name) => ({ name, uniqueName: `u/${name}` })),
-      } as never,
       {} as never,
-      { findWeapon: vi.fn().mockResolvedValue(found) } as never,
+      {} as never,
+      {
+        findWeapon: vi.fn().mockResolvedValue(found),
+        install: vi.fn().mockReturnValue(install),
+        suggest: vi.fn().mockReturnValue(suggest),
+      } as never,
     );
 
   it('재료 3종을 한 줄로 잇는다', async () => {
@@ -962,34 +962,80 @@ describe('WarframeApiService 인카논 상세', () => {
   it('해금 조건과 퍽을 EVO별로 적는다', async () => {
     const { text } = parts(await build(weapon).incarnonWeapon('Braton'));
 
-    expect(text).toContain('EVO2');
+    expect(text).toContain('**EVO II**');
     expect(text).toContain(
       'Complete a solo mission with this weapon equipped.',
     );
-    expect(text).toContain('Daring Reverie');
-    expect(text).toContain('Increase Base Damage by +4.');
+    expect(text).toContain('**Daring Reverie**');
+    expect(text).toContain('Daring Reverie does a thing.');
   });
 
-  it('EVO1에는 해금 조건 줄이 없다', async () => {
-    // 설치하면 바로 열린다 — 없는 조건을 'Unlock —' 빈 줄로 남기면 빠진 것처럼 읽힌다.
-    // EVO 4개가 한 TextDisplay에 빈 줄로 이어지므로 EVO1 단락만 잘라서 본다
-    const { contents } = parts(await build(weapon).incarnonWeapon('Braton'));
-    const evo1 = (
-      contents.find((block) => block.includes('**EVO1**')) ?? ''
-    ).split('\n\n')[0];
+  it('EVO1은 조건 자리를 문구로 메운다', async () => {
+    // 설치하면 바로 열린다 — 유일하게 조건이 없는 단계라 비워 두면 데이터 누락으로 읽힌다
+    const { text } = parts(await build(weapon).incarnonWeapon('Braton'));
 
-    expect(evo1).toContain('EVO1');
-    expect(evo1).not.toContain('Unlock');
+    expect(text).toContain('**EVO I**\n-# Unlocked on install');
+  });
+
+  it('퍽 아이콘은 자기 퍽 옆에 붙는다', async () => {
+    // 갤러리로 모아 놓으면 순서로만 짝이 맞아 하나만 빠져도 전부 밀린다
+    const rows = sections(await build(weapon).incarnonWeapon('Braton'));
+
+    expect(rows).toContainEqual({
+      text: '**Daring Reverie**\n-# Daring Reverie does a thing.',
+      icon: 'https://wiki.warframe.com/w/Special:FilePath/Daring%20Reverie.png',
+    });
+  });
+
+  it('퍽 9개까지는 아이콘을 붙이고도 안 잘린다', async () => {
+    // 실측 최대가 9개다. 여기서 한 칸이라도 넘치면 잘리는 건 뒤에 있는 위키 버튼·푸터다
+    const nine = {
+      ...weapon,
+      tiers: [1, 2, 3, 4].map((evolution) => ({
+        evolution,
+        challenge: 'Do the thing.',
+        perks: Array.from({ length: evolution === 1 ? 3 : 2 }, (_, index) =>
+          perk(`Perk ${evolution}-${index}`),
+        ),
+      })),
+    };
+
+    const view = await build(nine).incarnonWeapon('Braton');
+
+    // 헤더 1 + 퍽 9
+    expect(sections(view)).toHaveLength(10);
+    expect(parts(view).text).not.toContain('more hidden');
+    expect(linkUrls(view)).toHaveLength(1);
+  });
+
+  it('퍽이 많아 40칸을 넘기면 아이콘을 통째로 뺀다', async () => {
+    // 일부만 붙이면 아이콘 유무가 의미처럼 읽히고, 넘긴 채로 보내면 메시지가 통째로 400이다
+    const many = {
+      ...weapon,
+      tiers: [
+        {
+          evolution: 1,
+          perks: Array.from({ length: 12 }, (_, index) =>
+            perk(`Perk ${index}`),
+          ),
+        },
+      ],
+    };
+
+    const view = await build(many).incarnonWeapon('Braton');
+    // 남는 Section은 어댑터 썸네일이 붙은 헤더 하나뿐이다
+    expect(sections(view)).toHaveLength(1);
+    expect(parts(view).text).toContain('**Perk 11**');
   });
 
   it('수치 기준 변종을 subtitle에 적는다', async () => {
     const { text } = parts(await build(weapon).incarnonWeapon('Braton'));
 
-    expect(text).toContain('Values shown for Braton Prime');
+    expect(text).toContain('Numbers shown for Braton Prime');
   });
 
   it('기준 변종이 무기 자신이면 적지 않는다', async () => {
-    // 'Values shown for Torid'는 아무것도 알려주지 않는다
+    // 'Numbers shown for Torid'는 아무것도 알려주지 않는다
     const { text } = parts(
       await build({
         ...weapon,
@@ -998,27 +1044,44 @@ describe('WarframeApiService 인카논 상세', () => {
       }).incarnonWeapon('Torid'),
     );
 
-    expect(text).not.toContain('Values shown for');
+    expect(text).not.toContain('Numbers shown for');
   });
 
   it('썸네일은 어댑터 아이콘을 쓴다', async () => {
-    const { thumbnail } = parts(await build(weapon).incarnonWeapon('Braton'));
+    const [header] = sections(await build(weapon).incarnonWeapon('Braton'));
 
-    expect(thumbnail).toBe('https://cdn/BratonIncarnonAdapter.png');
+    expect(header.icon).toBe('https://cdn/BratonIncarnonAdapter.png');
   });
 
-  it('이름은 맞는데 수집 전이면 "없는 무기"라고 하지 않는다', async () => {
+  it('이름은 맞는데 수집 전이면 재료만 있는 부분 카드를 준다', async () => {
     // 자동완성 목록은 wfcd에서 나와 첫 부팅에도 뜬다 — 고른 이름이 없다고 하면 오해를 부른다
-    const { text } = parts(await build(undefined).incarnonWeapon('Braton'));
+    const { text } = parts(
+      await build(undefined, {
+        name: 'Braton',
+        thumbnail: 'https://cdn/BratonIncarnonAdapter.png',
+        materials: weapon.materials,
+      }).incarnonWeapon('Braton'),
+    );
 
-    expect(text).toContain('Evolution data has not been collected yet.');
-    expect(text).not.toContain('No Incarnon Genesis');
+    expect(text).toContain('## Braton · data not collected yet');
+    expect(text).toContain(
+      '20 Pathos Clamp · 60 Rune Marrow · 60 Tasoma Extract',
+    );
+    expect(text).not.toContain('No Incarnon weapon');
   });
 
-  it('인카논이 없는 무기는 없다고 말한다', async () => {
-    const { text } = parts(await build(undefined).incarnonWeapon('Ignis'));
+  it('이름이 틀렸으면 근접 매치와 돌아갈 버튼을 준다', async () => {
+    const view = await build(undefined, undefined, {
+      closest: ['Braton', 'Boltor'],
+      total: 45,
+    }).incarnonWeapon('Bratton');
 
-    expect(text).toContain('No Incarnon Genesis for Ignis.');
+    const { text } = parts(view);
+    expect(text).toContain('No Incarnon weapon named “Bratton”');
+    expect(text).toContain('Closest matches: **Braton** · **Boltor**');
+    expect(text).toContain('45 weapons have an Incarnon Genesis');
+    // 45종을 다시 치게 하지 않는 유일한 진입
+    expect(pagerIds(view)).toContain('incarnon');
   });
 });
 

@@ -192,4 +192,57 @@ describe('IncarnonService', () => {
       await expect(service.findWeapon('Braton')).resolves.toBeUndefined();
     });
   });
+
+  /** 수집 전에도 재료는 있다 — 여기가 비면 "그런 무기 없음"과 구분이 사라진다 */
+  describe('install', () => {
+    it('캐시가 비어도 재료와 썸네일을 준다', () => {
+      const { service } = build();
+
+      expect(service.install('braton')).toEqual({
+        name: 'Braton',
+        thumbnail: 'https://cdn/Braton.png',
+        materials: [
+          { name: 'Pathos Clamp', count: 20 },
+          { name: 'Rune Marrow', count: 60 },
+          { name: 'Tasoma Extract', count: 60 },
+        ],
+      });
+    });
+
+    it('인카논이 없는 무기는 undefined다', () => {
+      const { service } = build();
+
+      expect(service.install('Ignis')).toBeUndefined();
+    });
+  });
+
+  describe('suggest', () => {
+    const service = () =>
+      new IncarnonService(
+        {} as never,
+        {} as never,
+        {
+          findIncarnonGenesis: () =>
+            ['Braton', 'Boltor', 'Bo', 'Latron'].map((name) => ({
+              name: `${name} Incarnon Genesis`,
+            })),
+        } as never,
+      );
+
+    it('오타 난 이름에서 원래 이름을 짚는다', () => {
+      expect(service().suggest('Bratton')).toEqual({
+        closest: ['Braton'],
+        total: 4,
+      });
+    });
+
+    it('많이 겹치는 순으로 둘만 준다', () => {
+      expect(service().suggest('Bolt').closest).toEqual(['Boltor', 'Bo']);
+    });
+
+    it('한 글자만 겹치는 이름은 버린다', () => {
+      // 'Lex'에 Latron을 들이밀면 오타를 고치는 데 방해만 된다 — 없으면 줄 자체를 뺀다
+      expect(service().suggest('Lex').closest).toEqual([]);
+    });
+  });
 });

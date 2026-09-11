@@ -21,7 +21,19 @@ import { Accent, LIMIT } from '../types';
 export type Line = string | false | null | undefined;
 
 /** 헤딩 + 목록 + 접힌 개수. 문자열 하나만 넘겨도 된다 */
-export type Block = Line | { heading?: string; lines: Line[]; more?: string };
+export type Block =
+  | Line
+  | {
+      heading?: string;
+      lines: Line[];
+      more?: string;
+      /**
+       * 이 블록만 따로 Section으로 떨어져 오른쪽에 아이콘이 붙는다 — 그림과 글이
+       * 위치가 아니라 구조로 묶이는 유일한 자리다(갤러리는 순서로만 맞아 하나만 빠져도 전부 밀린다).
+       * 대신 Section 하나가 칸 3개를 먹으므로 몇 개까지 붙일지는 호출단이 먼저 세야 한다.
+       */
+      thumbnail?: string;
+    };
 
 export type CardInput = {
   /** 기본 Accent.Default. 만료가 있으면 accentFor(expiry)를 그대로 넘긴다 */
@@ -79,6 +91,39 @@ const renderBlock = (block: Block) => {
 
 const renderGroup = (group: Block[]) =>
   kept(group.map(renderBlock)).join('\n\n');
+
+/**
+ * 그룹 하나를 자식들로 편다. 썸네일이 붙은 블록에서만 끊기고 나머지는 지금까지처럼
+ * TextDisplay 하나로 합쳐진다 — 아이콘을 안 쓰는 카드는 자식 수가 그대로다.
+ */
+const groupChildren = (group: Block[]) => {
+  const children: Child[] = [];
+  let merged: Block[] = [];
+  const flush = () => {
+    const content = renderGroup(merged);
+    merged = [];
+    if (content) children.push(text(content));
+  };
+
+  for (const block of group) {
+    const thumbnail = typeof block === 'object' ? block?.thumbnail : undefined;
+    const content = thumbnail ? renderBlock(block) : '';
+    // 글이 빈 Section은 디스코드가 거절한다 — 아이콘만 남기느니 합치는 쪽으로 떨어뜨린다
+    if (!thumbnail || !content) {
+      merged.push(block);
+      continue;
+    }
+    flush();
+    children.push(
+      new SectionBuilder()
+        .addTextDisplayComponents(text(content))
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(thumbnail)),
+    );
+  }
+  flush();
+
+  return children;
+};
 
 /**
  * 40개 한도는 중첩까지 합산한다 — 버튼 5개짜리 행은 1개가 아니라 6개다.
@@ -175,9 +220,9 @@ export const card = ({
     );
 
   for (const group of blocks) {
-    const content = renderGroup(group);
+    const rendered = groupChildren(group);
     // 항목 0개인 그룹은 구분선까지 통째로 만들지 않는다 — 빈 칸이 남으면 데이터가 빠진 것처럼 읽힌다
-    if (content) children.push(divider(), text(content));
+    if (rendered.length) children.push(divider(), ...rendered);
   }
 
   if (buttons?.length)

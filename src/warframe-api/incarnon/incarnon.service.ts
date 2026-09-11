@@ -108,13 +108,62 @@ export class IncarnonService implements OnApplicationBootstrap {
       ...found,
       thumbnail:
         found.imageName && this.wfcdItemsService.imgUrl(found.imageName),
-      materials: (INCARNON_MATERIALS[found.adapter] ?? []).flatMap(
-        (material) => {
-          const item = this.wfcdItemsService.findItem(material.uniqueName);
-          return item?.name ? [{ name: item.name, count: material.count }] : [];
-        },
-      ),
+      materials: this.materials(found.adapter),
     };
+  }
+
+  /**
+   * 위키 수집 전에도 쓸 수 있는 부분. 설치 재료·어댑터 아이콘은 DE 익스포트에서 오므로
+   * 퍽이 비어 있어도 있다 — "그런 무기 없음"과 "아직 안 모았음"을 가르는 근거이기도 하다.
+   */
+  install(name: string) {
+    const wanted = `${name.trim().toLowerCase()}${GENESIS_SUFFIX.toLowerCase()}`;
+    const item = this.wfcdItemsService
+      .findIncarnonGenesis()
+      .find((genesis) => genesis.name.toLowerCase() === wanted);
+    if (!item) return;
+
+    return {
+      name: item.name.replace(GENESIS_SUFFIX, ''),
+      thumbnail: item.imageName && this.wfcdItemsService.imgUrl(item.imageName),
+      materials: this.materials(item.uniqueName),
+    };
+  }
+
+  /**
+   * 오타 났을 때 되짚을 이름. 앞글자가 겹치는 순으로 둘만 준다 —
+   * 45종을 통째로 나열하는 건 답이 아니고, 재시도는 한 번에 끝나야 한다.
+   */
+  suggest(name: string) {
+    const wanted = name.trim().toLowerCase();
+    const names = this.wfcdItemsService
+      .findIncarnonGenesis()
+      .map((item) => item.name.replace(GENESIS_SUFFIX, ''));
+
+    const shared = (candidate: string) => {
+      let index = 0;
+      const lower = candidate.toLowerCase();
+      while (index < wanted.length && wanted[index] === lower[index])
+        index += 1;
+      return index;
+    };
+
+    return {
+      total: names.length,
+      // 1글자만 겹치는 건 우연이다 — 엉뚱한 이름을 들이밀면 오타를 고치는 데 더 방해된다
+      closest: names
+        .filter((candidate) => shared(candidate) >= 2)
+        .sort((a, b) => shared(b) - shared(a) || a.localeCompare(b))
+        .slice(0, 2),
+    };
+  }
+
+  /** 재료 이름은 uniqueName으로 wfcd에서 붙인다 — 상수에는 개수와 uniqueName만 있다 */
+  private materials(adapter: string) {
+    return (INCARNON_MATERIALS[adapter] ?? []).flatMap((material) => {
+      const item = this.wfcdItemsService.findItem(material.uniqueName);
+      return item?.name ? [{ name: item.name, count: material.count }] : [];
+    });
   }
 
   private async read() {

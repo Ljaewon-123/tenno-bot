@@ -65,6 +65,23 @@ const TRADER_PEEK = 5;
 /** 카테고리를 안 고른 상태. 셀렉트에서 되돌아올 자리가 없으면 기본 화면이 막다른 길이 된다 */
 const TRADER_ALL = 'all';
 
+/** 무기 상세에서 이번 주 로테이션으로 돌아가는 버튼 — 핸들러의 `@Button('incarnon')`과 같아야 한다 */
+export const INCARNON_KEY = 'incarnon';
+
+/** 로마자로 적는 건 위키·인게임 표기 그대로다. 5단계는 없다 */
+const EVO_NUMERAL: Record<number, string> = {
+  1: 'I',
+  2: 'II',
+  3: 'III',
+  4: 'IV',
+};
+
+/** 퍽 1개 = Section(자기 자신 + 글 + 아이콘) = 칸 3개 */
+const PERK_SLOTS = 3;
+
+/** 퍽을 뺀 나머지: 헤더 Section 3 + 재료·EVO 헤딩 4 + 구분선 2 + 버튼 행 2 + 푸터 1 */
+const INCARNON_FIXED_SLOTS = 12;
+
 /** `/drop` 페이저의 customId 앞자리 — 핸들러의 `@Button('drop/:category/:item/page/:page')`와 같아야 한다 */
 export const DROP_KEY = 'drop';
 const DROP_ALL = 'all';
@@ -815,58 +832,111 @@ export class WarframeApiService {
     });
   }
 
-  /** EVO 한 칸. 해금 조건을 퍽 위에 두는 건 "이걸 깨야 아래가 열린다"는 순서 그대로다 */
-  private incarnonTier(tier: IncarnonTier): Block {
-    return {
-      heading: `EVO${tier.evolution}`,
-      lines: [
-        tier.challenge && subtext(`Unlock — ${tier.challenge}`),
-        ...tier.perks.map(
-          (perk) => `${bold(perk.name)} · ${perk.effect.join(' ')}`,
-        ),
-      ],
-    };
+  /**
+   * 퍽 아이콘은 위키 File: 이름으로만 온다. `Special:FilePath`로 넘기는 이유는
+   * 파일 페이지가 다른 이름으로 리다이렉트된 경우가 섞여 있어서다 — `/images/{이름}`은 그때 404다.
+   */
+  private perkIcon(icon?: string) {
+    return (
+      icon &&
+      `https://wiki.warframe.com/w/Special:FilePath/${encodeURIComponent(icon)}`
+    );
+  }
+
+  /** 설치 재료 한 줄. 항상 정확히 3종이고 크레딧이 없어서 필드로 쪼갤 값이 아니다 */
+  private installLine(materials: { name: string; count: number }[]) {
+    return materials
+      .map((material) => `${material.count} ${material.name}`)
+      .join(' · ');
+  }
+
+  /**
+   * EVO 한 칸 = 헤딩 블록 + 퍽 블록들. 해금 조건은 **해야 할 일**이라 헤딩에 붙이고
+   * 퍽은 그중 **고르는 것**이라 같은 층위로 편다 — 둘을 같은 줄 두께로 쓰면 무엇이 선택지인지 사라진다.
+   */
+  private incarnonTier(tier: IncarnonTier, icons: boolean): Block[] {
+    return [
+      {
+        heading: `EVO ${EVO_NUMERAL[tier.evolution] ?? tier.evolution}`,
+        // EVO1만 조건이 없다(설치하면 바로 열린다) — 빈 줄로 두면 데이터가 빠진 것처럼 읽힌다
+        lines: [subtext(tier.challenge ?? 'Unlocked on install')],
+      },
+      ...tier.perks.map((perk) => ({
+        // 이름 줄이 항상 같은 자리라 효과가 1줄이든 5줄이든 눈이 이름만 타고 내려간다
+        lines: [bold(perk.name), subtext(perk.effect.join(' '))],
+        thumbnail: icons ? this.perkIcon(perk.icon) : undefined,
+      })),
+    ];
   }
 
   /** `/incarnon weapon:` 상세. 자동완성 목록은 wfcd에서 나오므로 데이터 수집 전에도 이름은 고를 수 있다 */
   async incarnonWeapon(name: string) {
     const weapon = await this.incarnonService.findWeapon(name);
-    if (!weapon) {
-      // 이름은 맞는데 데이터가 없으면 아직 수집 전이다 — "그런 무기 없음"으로 보이면 오해를 부른다
-      const known = this.wfcdItemsService
-        .findIncarnonGenesis()
-        .some((item) => item.name === `${name} Incarnon Genesis`);
-      return emptyCard(
-        known ? `${name} Incarnon Genesis` : 'Unknown Incarnon Genesis',
-        known
-          ? 'Evolution data has not been collected yet.'
-          : `No Incarnon Genesis for ${name}.`,
-        known ? 'It is refreshed monthly' : 'Pick one from the autocomplete',
-      );
-    }
+    if (!weapon) return this.incarnonMiss(name);
+
+    const perks = weapon.tiers.reduce(
+      (count, tier) => count + tier.perks.length,
+      0,
+    );
+    /**
+     * 아이콘을 다 붙이면 40칸을 넘기는 무기(퍽 10개 이상)는 통째로 텍스트로 떨어뜨린다.
+     * 일부만 붙이면 아이콘 유무가 의미처럼 읽히고, 넘긴 채로 보내면 메시지가 통째로 400이다.
+     */
+    const icons = perks * PERK_SLOTS + INCARNON_FIXED_SLOTS < LIMIT.components;
 
     return card({
-      title: `${weapon.name} Incarnon Genesis`,
-      // 같은 이름이면 적지 않는다 — 'Values: Torid'는 아무것도 알려주지 않는다
+      title: `${weapon.name} · Incarnon Genesis`,
+      // 같은 이름이면 적지 않는다 — 'Numbers shown for Torid'는 아무것도 알려주지 않는다
       subtitle:
         weapon.reference !== weapon.name &&
-        `Values shown for ${weapon.reference}`,
+        `Numbers shown for ${weapon.reference}`,
       thumbnail: weapon.thumbnail,
       blocks: [
         [
-          {
-            heading: 'Installation',
-            lines: [
-              weapon.materials
-                .map((material) => `${material.count} ${material.name}`)
-                .join(' · '),
-            ],
-          },
+          this.installLine(weapon.materials),
+          ...weapon.tiers.flatMap((tier) => this.incarnonTier(tier, icons)),
         ],
-        weapon.tiers.map((tier) => this.incarnonTier(tier)),
       ],
-      footer: `Perks and unlocks from ${this.wikiUrl(`${weapon.name} Incarnon Genesis`)}`,
+      // 🔔는 없다 — 무기 상세는 시간에 안 묶인다. 링크 버튼은 인터랙션 비용도 만료도 없어서 칸값을 한다
+      buttons: [
+        linkButton('Wiki', this.wikiUrl(`${weapon.name} Incarnon Genesis`)),
+      ],
+      footer:
+        'Perks from wiki.warframe.com (CC BY-SA) · materials from DE export',
     });
+  }
+
+  /**
+   * 못 찾은 두 경우는 섞이면 안 된다 — "이름이 틀렸다"와 "아직 안 모았다"는
+   * 유저가 할 일이 정반대다. accent·제목·문구가 전부 달라야 하는 이유.
+   */
+  private incarnonMiss(name: string) {
+    const install = this.incarnonService.install(name);
+    if (install)
+      return card({
+        // 에러가 아니라 일시 상태라 빨강이 아닌 주황. 수집이 월 1회라 재시도 버튼은 두지 않는다
+        accent: Accent.Soon,
+        title: `${install.name} · data not collected yet`,
+        thumbnail: install.thumbnail,
+        blocks: [
+          [
+            "This weapon exists — its perks haven't been pulled from the wiki yet. Try again later today.",
+          ],
+          // DE 데이터에서 오는 재료는 이때도 있다. 빈 카드가 아니라 부분 카드다
+          [this.installLine(install.materials)],
+        ],
+        footer: 'Materials come from DE export · perks pull monthly',
+      });
+
+    const { closest, total } = this.incarnonService.suggest(name);
+    return emptyCard(
+      `No Incarnon weapon named “${name}”`,
+      closest.length > 0 &&
+        `Closest matches: ${closest.map((match) => bold(match)).join(' · ')}`,
+      `${total} weapons have an Incarnon Genesis`,
+      // 막다른 길을 만들지 않는 진입 하나 — 이름을 모르면 이번 주 목록에서 고르는 게 빠르다
+      [button(INCARNON_KEY, "This week's rotation")],
+    );
   }
 
   /**

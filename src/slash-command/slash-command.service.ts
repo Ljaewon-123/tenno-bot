@@ -22,6 +22,7 @@ import {
   DROP_KEY,
   FILTER_OFF,
   FISSURE_HARD,
+  INCARNON_KEY,
   WarframeApiService,
 } from '@/warframe-api/warframe-api.service';
 import {
@@ -348,6 +349,13 @@ export class SlashCommandService {
       ? await this.warframeApi.incarnonWeapon(weapon)
       : await this.warframeApi.incarnon();
     return interaction.editReply(payload(incarnon));
+  }
+
+  /** 이름을 잘못 친 카드에서 돌아올 자리 — 없으면 커맨드 재입력이 유일한 길이 된다 */
+  @Button(INCARNON_KEY)
+  async incarnonRotation(@Context() [interaction]: ButtonContext) {
+    const incarnon = await this.warframeApi.incarnon();
+    return interaction.update(payload(incarnon));
   }
 
   @UseInterceptors(DropItemAutocompleteInterceptor)
