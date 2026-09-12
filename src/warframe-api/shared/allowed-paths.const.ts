@@ -1,5 +1,8 @@
-/** HttpJsonService가 요청을 보낼 수 있는 상대 경로 화이트리스트. 새 엔드포인트를 추가할 땐 여기에도 등록해야 함. */
-// path를 직접 받지는 않아서 괜찮을거
+/**
+ * HttpJsonService가 요청을 보낼 수 있는 상대 경로 화이트리스트. 새 엔드포인트를 추가할 땐 여기에도 등록해야 함.
+ * 지금은 path에 유저 입력이 안 섞이지만, 절대 URL이 들어오면 axios가 baseURL을 무시해 SSRF가 된다 —
+ * 그때 막는 게 아니라 처음부터 못 들어오게 둔다.
+ */
 export const ALLOWED_PATHS = new Set<string>([
   'pc/archonHunt',
   'pc/sortie',

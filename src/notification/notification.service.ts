@@ -54,7 +54,10 @@ export class NotificationService {
     return this.notificationRepository.findBy({ guildId });
   }
 
-  /** 발송 대상이 사라진 구독 정리 — 봇 추방/채널 삭제 시. 이력도 같이 지운다 */
+  /**
+   * 발송 대상이 사라진 구독 정리 — 봇 추방/채널 삭제 시.
+   * 실패 이력은 안 건드린다(길드 컬럼이 없어 좁힐 수도 없다) — 30일 뒤 purgeHistory가 쓸어간다
+   */
   async cleanup(where: FindOptionsWhere<Notification>) {
     const { affected } = await this.notificationRepository.delete(where);
     return affected ?? 0;
