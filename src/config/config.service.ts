@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 import { NodeEnv } from './enum';
 
 export class AppConfig {
-  @Expose()
+  @Expose({ name: 'NODE_ENV' })
   @IsEnum(NodeEnv)
   nodeEnv: NodeEnv = NodeEnv.Development;
 
