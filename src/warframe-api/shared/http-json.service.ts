@@ -20,13 +20,6 @@ export class HttpJsonService {
         ...config,
         method,
         url: path,
-        // 기본 axios UA면 Cloudflare 뒤의 wiki.warframe.com이 데이터센터 IP를 502(Retry-After: 60)로 튕긴다.
-        // MediaWiki API 정책도 식별 가능한 UA를 요구한다 — 로컬은 되고 Railway에서만 죽던 원인.
-        headers: {
-          'User-Agent':
-            'teno-bot/0.0.1 (https://github.com/Ljaewon-123/teno-bot)',
-          ...config?.headers,
-        },
       })
       .then((res) => res.data);
   }
