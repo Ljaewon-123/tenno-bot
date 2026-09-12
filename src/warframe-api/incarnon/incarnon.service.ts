@@ -26,16 +26,29 @@ export class IncarnonService implements OnApplicationBootstrap {
 
   onApplicationBootstrap() {
     // await 하지 않는다 — 위키 응답을 기다리는 동안 디스코드 로그인이 막히면 안 된다
-    void this.seedIfEmpty().catch((error) =>
-      this.logger.error('인카논 초기 수집 실패', error),
-    );
+    void this.seedIfEmpty();
   }
 
   /** 캐시가 차 있으면 네트워크를 아예 안 탄다 — 퍽은 밸런스 패치 때나 바뀐다 */
   async seedIfEmpty() {
     const cached = await this.read();
     if (cached?.length) return;
-    await this.sync();
+
+    // 시딩이 한 번 실패하면 다음 월간 크론까지 퍽이 빈 채로 한 달을 산다(재시도 경로가 여기밖에 없다).
+    // 위키가 Retry-After: 60으로 튕기는 게 흔해 10분 뒤 딱 한 번 더 본다 — 에러 객체를 그대로 넘기면
+    // axios 소켓 덤프가 로그를 수백 줄 먹으므로 message만 남긴다.
+    await this.sync().catch((error: Error) => {
+      this.logger.error(
+        `인카논 초기 수집 실패, 10분 뒤 재시도: ${error.message}`,
+      );
+      setTimeout(
+        () =>
+          void this.sync().catch((retry: Error) =>
+            this.logger.error(`인카논 재시도도 실패: ${retry.message}`),
+          ),
+        600_000,
+      );
+    });
   }
 
   /**
