@@ -1,5 +1,11 @@
 import { Expose, plainToInstance } from 'class-transformer';
-import { IsEnum, IsInt, IsString, validateSync } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  validateSync,
+} from 'class-validator';
 import dotenv from 'dotenv';
 import { NodeEnv } from './enum';
 
@@ -31,6 +37,11 @@ export class AppConfig {
   @Expose()
   @IsString()
   PG_DATABASE_URL: string;
+
+  @Expose()
+  @IsOptional()
+  @IsString()
+  PG_CA_CERT?: string;
 }
 
 export function loadConfig(): AppConfig {
