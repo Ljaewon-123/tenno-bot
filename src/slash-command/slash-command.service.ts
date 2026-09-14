@@ -91,6 +91,14 @@ export class SlashCommandService {
   ) {}
 
   @SlashCommand({
+    name: 'status',
+    description: "Check the Warframe data API's status",
+  })
+  async status(@Context() [interaction]: SlashCommandContext) {
+    return interaction.editReply(payload(await this.warframeApi.health()));
+  }
+
+  @SlashCommand({
     name: 'archon-hunt',
     description: 'Get the current Archon Hunt information',
   })

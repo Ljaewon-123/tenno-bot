@@ -1109,3 +1109,29 @@ describe('WarframeApiService.searchIncarnonNames', () => {
     expect(service.searchIncarnonNames('').length).toBe(25);
   });
 });
+
+describe('WarframeApiService.health', () => {
+  const build = (ping: () => Promise<number>) =>
+    new WarframeApiService(
+      { ping } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+  it('응답하면 온라인 카드 + 지연시간을 낸다', async () => {
+    const service = build(() => Promise.resolve(42));
+
+    const { text } = parts(await service.health());
+    expect(text).toContain('WFCD API · online');
+    expect(text).toContain('Responded in 42ms');
+  });
+
+  it('실패하면 오프라인 카드에 에러 메시지를 낸다', async () => {
+    const service = build(() => Promise.reject(new Error('timeout')));
+
+    const { text } = parts(await service.health());
+    expect(text).toContain('WFCD API · offline');
+    expect(text).toContain('timeout');
+  });
+});

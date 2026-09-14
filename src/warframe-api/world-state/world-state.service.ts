@@ -83,6 +83,16 @@ export class WorldStateService {
   }
 
   /**
+   * 헬스체크 전용 — `get()`은 실패해도 캐시가 있으면 성공한 척 삼켜서 장애를 못 알아챈다.
+   * 캐시를 안 타고 직접 때려서 지금 이 순간 WFCD가 살아있는지만 잰다.
+   */
+  async ping(): Promise<number> {
+    const start = performance.now();
+    await this.httpJsonService.request(HttpMethod.Get, 'pc/sortie');
+    return performance.now() - start;
+  }
+
+  /**
    * 요청이 실패하면 아무것도 쓰지 않아 다음 호출이 그대로 재시도한다.
    * 밀리초 단위로 겹친 동시 호출은 각자 API를 때린다 — 필요해지면 in-flight Promise 맵을 얹으면 됨.
    */

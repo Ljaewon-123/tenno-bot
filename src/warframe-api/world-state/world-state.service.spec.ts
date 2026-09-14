@@ -90,3 +90,28 @@ describe('WorldStateService 스테일 폴백', () => {
     await expect(service.sortie()).rejects.toThrow('502');
   });
 });
+
+/** get()은 캐시가 있으면 실패를 삼킨다 — ping()은 그걸 우회해서 지금 이 순간의 상태를 알아야 한다 */
+describe('WorldStateService ping', () => {
+  it('캐시를 거치지 않고 직접 요청한다', async () => {
+    const request = vi.fn().mockResolvedValue({});
+    const service = new WorldStateService(
+      { request } as never,
+      { findOneBy: vi.fn() } as never,
+    );
+
+    await service.ping();
+
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('요청이 실패하면 그대로 던진다', async () => {
+    const request = vi.fn().mockRejectedValue(new Error('502'));
+    const service = new WorldStateService(
+      { request } as never,
+      { findOneBy: vi.fn() } as never,
+    );
+
+    await expect(service.ping()).rejects.toThrow('502');
+  });
+});

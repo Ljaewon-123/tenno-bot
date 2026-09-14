@@ -7,7 +7,9 @@ import {
   button,
   card,
   emptyCard,
+  errorCard,
   linkButton,
+  okCard,
   paged,
   relative,
   select,
@@ -1127,6 +1129,16 @@ export class WarframeApiService {
     return clean(
       [`${item.type} · Rank ${rank}/${rank}`, ...maxRank].join('\n'),
     );
+  }
+
+  /** WFCD worldstate API 상태 — 커맨드 대부분이 이 API 하나에 걸려 있어 죽으면 원인 파악용으로 필요하다 */
+  async health() {
+    return this.worldStateService
+      .ping()
+      .then((ms) =>
+        okCard('WFCD API · online', `Responded in ${Math.round(ms)}ms`),
+      )
+      .catch((error: Error) => errorCard('WFCD API · offline', error.message));
   }
 
   /** 알람용 디스패치 — 슬래시 커맨드와 동일한 카드를 만든다 */
