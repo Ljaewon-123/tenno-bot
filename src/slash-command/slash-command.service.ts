@@ -5,6 +5,7 @@ import {
 } from '@/alarm/alarm.service';
 import {
   button,
+  card,
   ephemeral,
   okCard,
   payload,
@@ -89,6 +90,63 @@ export class SlashCommandService {
     private readonly warframeApi: WarframeApiService,
     private readonly alarmService: AlarmService,
   ) {}
+
+  @SlashCommand({
+    name: 'help',
+    description: 'List all commands',
+  })
+  async help(@Context() [interaction]: SlashCommandContext) {
+    return interaction.editReply(
+      payload(
+        card({
+          title: '📖 Commands',
+          blocks: [
+            [
+              {
+                heading: 'Info',
+                lines: [
+                  '`/status` — Warframe data API health',
+                  '`/archon-hunt` — Current Archon Hunt',
+                  '`/sortie` — Current Sortie',
+                  '`/events` — Current Events',
+                  '`/void-fissures` — Void Fissures by tier',
+                  "`/void-trader` — Baro Ki'Teer",
+                  '`/cycles` — Open world day/night cycles',
+                  '`/nightwave` — Nightwave challenges (alias `/shockwave`)',
+                  '`/archimedea` — Deep and Temporal Archimedea',
+                  '`/incarnon` — Incarnon Genesis rotation, or one weapon',
+                  '`/drop` — Find where an item drops from',
+                ],
+              },
+            ],
+            [
+              {
+                heading: 'Alarm',
+                lines: [
+                  '`/alarm register|delete|list` — Repeating reminders for the commands above',
+                ],
+              },
+            ],
+            [
+              {
+                heading: 'Notification',
+                lines: [
+                  '`/notification on|off|list` — Subscribe this server to worldstate changes',
+                ],
+              },
+            ],
+            [
+              {
+                heading: 'Party',
+                lines: ['`/party create|list|history` — Recruit a squad'],
+              },
+            ],
+          ],
+          footer: 'Press 🔔 on a card for a one-time reminder',
+        }),
+      ),
+    );
+  }
 
   @SlashCommand({
     name: 'status',
