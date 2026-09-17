@@ -2,6 +2,7 @@ import { card } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
 import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
 import { CycleName } from '@/warframe-api/world-state/vo/enum';
+import { BadRequestException } from '@nestjs/common';
 import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ALARM_LIMIT_PER_GUILD, AlarmService } from './alarm.service';
@@ -35,7 +36,7 @@ const build = (pending: AlarmConfig[] = []) => {
     findOneBy: vi.fn().mockResolvedValue(null),
     countBy: vi.fn().mockResolvedValue(0),
     update: vi.fn(),
-    save: vi.fn((value: object) => value),
+    save: vi.fn((value: object) => Promise.resolve(value)),
     create: vi.fn((value: object) => Object.assign(new AlarmConfig(), value)),
     delete: vi.fn(),
   };
@@ -286,6 +287,20 @@ describe('AlarmService.remind', () => {
 
     await expect(service.remind(input)).rejects.toThrow();
     expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('🔔 동시 클릭 레이스(부분 유니크 인덱스 23505)는 500이 아니라 안내로 바꾼다', async () => {
+    const { service, alarmConfigRepository } = build();
+    alarmConfigRepository.save.mockRejectedValueOnce({ code: '23505' });
+
+    await expect(service.remind(input)).rejects.toThrow(BadRequestException);
+  });
+
+  it('그 외 DB 에러는 그대로 올린다', async () => {
+    const { service, alarmConfigRepository } = build();
+    alarmConfigRepository.save.mockRejectedValueOnce(new Error('boom'));
+
+    await expect(service.remind(input)).rejects.toThrow('boom');
   });
 });
 

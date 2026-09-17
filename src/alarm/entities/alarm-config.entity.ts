@@ -19,6 +19,10 @@ import { AlarmStatus } from '../vo/enum';
 import { TargetCommandAlarm } from '../vo/target-command.vo';
 
 @Entity()
+@Index(['guildId', 'userId', 'name'], {
+  unique: true,
+  where: 'user_id IS NOT NULL',
+})
 export class AlarmConfig extends CommonWithGuildChannel {
   @IsString()
   @Expose()

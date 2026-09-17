@@ -6,12 +6,12 @@ import {
   TargetCommand,
   TargetCommandLabel,
 } from '@/warframe-api/enum';
+import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import {
   CycleLabel,
   CycleName,
   VoidTier,
 } from '@/warframe-api/world-state/vo/enum';
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Client, type ContainerBuilder } from 'discord.js';
@@ -147,7 +147,17 @@ export class AlarmService {
       targetCommand: { target, options: option },
       doneAt: at,
     });
-    await this.alarmConfigRepository.save(entity);
+    // 🔔 동시 클릭 레이스 — findOneBy가 둘 다 "없음"을 본 뒤 나란히 insert하면
+    // 부분 유니크 인덱스(23505)가 뒤늦게 막는다. 파티 생성과 같은 처리 방식.\
+    await this.alarmConfigRepository
+      .save(entity)
+      .catch((error: { code?: string }) => {
+        if (error?.code === '23505')
+          throw new BadRequestException(
+            'That reminder is already set — press 🔔 again to cancel it.',
+          );
+        throw error;
+      });
     return at;
   }
 
