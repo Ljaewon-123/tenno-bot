@@ -67,19 +67,19 @@ const pagerIds = (view: ContainerBuilder) =>
     .map((child) => child.custom_id);
 
 /**
- * 줄마다 붙는 버튼은 ActionRow가 아니라 Section의 accessory 자리에 있어서 pagerIds에 안 잡힌다.
- * "이 줄을 눌러 어디로 가나"는 여기서만 보인다.
+ * Section 액세서리에 붙은 것들. 줄마다 아이콘이냐 버튼이냐가 여기서만 보인다 —
+ * 액세서리는 한 칸이라 둘은 서로를 밀어낸다.
  */
-const rowButtonIds = (view: ContainerBuilder) =>
+const rowAccessories = (view: ContainerBuilder) =>
   (
     view.toJSON().components as unknown as {
       type: ComponentType;
-      accessory?: { custom_id?: string };
+      accessory?: { custom_id?: string } & Media;
     }[]
   )
     .filter((child) => child.type === ComponentType.Section)
-    .map((child) => child.accessory?.custom_id)
-    .filter(Boolean);
+    .map((child) => child.accessory)
+    .map((accessory) => accessory?.custom_id ?? accessory?.media?.url);
 
 /** 링크 버튼은 customId가 없다 — 눌러서 어디로 나가는지는 url만이 말한다 */
 const linkUrls = (view: ContainerBuilder) =>
@@ -569,11 +569,17 @@ describe('WarframeApiService 카드 이미지', () => {
     },
   ];
 
+  const relicItems = [
+    { name: 'Axi A1 Intact', imageName: 'RelicAxiD.png', vaulted: true },
+    { name: 'Braton Prime', imageName: 'BratonPrime.png' },
+    { name: 'Nikana Prime', imageName: 'NikanaPrime.png' },
+  ];
+
   /** 보상은 최대 8개다 — 페이저도 접힌 줄도 없는 유일한 목록이다 */
   it('성유물 카드는 보상을 전부 펴고 보상마다 두 확률을 적는다', async () => {
-    const view = await withRewards(relicRewards, [
-      { name: 'Axi A1 Intact', imageName: 'RelicAxiD.png', vaulted: true },
-    ]).relic('Axi A1 Relic');
+    const view = await withRewards(relicRewards, relicItems).relic(
+      'Axi A1 Relic',
+    );
 
     const { text, thumbnail } = parts(view);
     expect(text).toContain('Axi A1 Relic');
@@ -582,16 +588,20 @@ describe('WarframeApiService 카드 이미지', () => {
     expect(text).toContain('2% → 10%');
     expect(text).not.toContain('Showing');
     expect(thumbnail).toBe('https://cdn.warframestat.us/img/RelicAxiD.png');
-    // 보상마다 자기 버튼으로 정방향으로 나간다 — 셀렉트를 열지 않는다.
-    // 목적지가 `/drop`이라 페이저와 같은 customId를 쓴다(새 핸들러가 없다)
-    expect(rowButtonIds(view)).toEqual([
-      'drop/all/Braton%20Prime%20Stock/page/0',
-      'drop/all/Nikana%20Prime%20Blueprint/page/0',
+    /**
+     * 부품 이름만으로는 어느 무기였는지가 안 읽힌다 — 줄마다 상위 아이템 아이콘이 붙는다.
+     * 부품 자체 아이콘은 공용(GenericComponentPrime…)이라 쓰지 않는다
+     */
+    expect(rowAccessories(view)).toEqual([
+      'https://cdn.warframestat.us/img/RelicAxiD.png',
+      'https://cdn.warframestat.us/img/BratonPrime.png',
+      'https://cdn.warframestat.us/img/NikanaPrime.png',
     ]);
-    expect(pagerIds(view)).toEqual([]);
+    // 액세서리를 아이콘이 쓰므로 정방향으로 나가는 길은 셀렉트다
+    expect(pagerIds(view)).toContain('relic/reward');
   });
 
-  /** Section 하나가 칸 3개다 — 보상 8개(24칸)에 헤더·푸터까지 넣어도 40칸 안에 들어야 한다 */
+  /** Section 하나가 칸 3개다 — 보상 8개(24칸)에 헤더·셀렉트·푸터까지 넣어도 40칸 안에 들어야 한다 */
   it('보상 8개여도 카드가 잘리지 않는다', async () => {
     const view = await withRewards(
       Array.from({ length: 8 }, (_, index) => ({
@@ -599,10 +609,27 @@ describe('WarframeApiService 카드 이미지', () => {
         chance: 25 - index,
         metadata: { radiantChance: 16 },
       })),
+      Array.from({ length: 8 }, (_, index) => ({
+        name: `Reward ${index}`,
+        imageName: `r${index}.png`,
+      })),
     ).relic('Axi A1 Relic');
 
-    expect(rowButtonIds(view)).toHaveLength(8);
+    // 헤더 아이콘이 없어(성유물 아이템 미포함) 보상 8개만 Section이 된다
+    expect(rowAccessories(view)).toHaveLength(8);
     expect(parts(view).text).not.toContain('more hidden');
+  });
+
+  it('아이콘이 없는 보상은 Section을 만들지 않는다', async () => {
+    // 글이 빈 Section은 디스코드가 거절한다 — 아이콘이 없으면 평범한 줄로 떨어져야 한다
+    const view = await withRewards(relicRewards, [relicItems[0]]).relic(
+      'Axi A1 Relic',
+    );
+
+    expect(rowAccessories(view)).toEqual([
+      'https://cdn.warframestat.us/img/RelicAxiD.png',
+    ]);
+    expect(parts(view).text).toContain('Braton Prime Stock');
   });
 
   it('wfcd가 모르는 성유물이면 볼팅 여부를 적지 않는다', async () => {

@@ -11,8 +11,10 @@ import { assemble, divider, kept, text, type Child, type Line } from './card';
 export type ManageRow = { text: string; button?: ButtonBuilder };
 
 /**
- * Section은 컨테이너당 1-3개고 빌더가 직접 검증한다.
- * 즉 "항목마다 삭제 버튼"은 3개에서 막히고, 이 3이 사실상의 페이지 크기다.
+ * 버튼 달린 항목을 한 화면에 몇 개까지 펴는가. **빌더 제약이 아니라 고른 페이지 크기다** —
+ * 컨테이너당 Section 개수에는 제한이 없다(`1-3`은 Section *안의* TextDisplay 개수 제한이고,
+ * 넷을 넣으면 그때 거부된다). `/incarnon`은 이미 퍽 9개를 Section으로 내고, `/relic`은 보상 8개를 낸다.
+ * 늘리려면 40칸 예산만 보면 된다 — Section 하나가 3칸이다.
  */
 export const SECTION_LIMIT = 3;
 

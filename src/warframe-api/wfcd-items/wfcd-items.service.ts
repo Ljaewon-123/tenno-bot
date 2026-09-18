@@ -64,7 +64,17 @@ export class WfcdItemsService {
       if (item) return item;
       words.pop();
     }
-    return;
+
+    // 상위 아이템 이름이 부품 이름의 접두사가 아니면 뒷 단어를 떼도 못 닿는다 —
+    // 'Kavasa Prime Band'의 상위는 'Kavasa Prime Kubrow Collar'다. components에서 거꾸로 찾는다.
+    // 여기서도 상위 아이템을 돌려준다: 부품 자체 이미지는 GenericComponentPrimeLatch 같은 공용이라 쓸모가 없다
+    return this.wfcdItems.find(
+      (candidate) =>
+        candidate.imageName &&
+        (candidate as DropItem).components?.some(
+          (component) => component.name === itemName,
+        ),
+    );
   }
 
   /**

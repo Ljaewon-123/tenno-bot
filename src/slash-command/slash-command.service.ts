@@ -25,6 +25,7 @@ import {
   FISSURE_HARD,
   INCARNON_KEY,
   RELIC_OPEN,
+  RELIC_REWARD,
   WarframeApiService,
 } from '@/warframe-api/warframe-api.service';
 import {
@@ -486,5 +487,15 @@ export class SlashCommandService {
   ) {
     const relic = await this.warframeApi.relic(relicName);
     return interaction.update(payload(relic));
+  }
+
+  /** 성유물 내용물 → 그 보상의 드랍처. 두 카드가 서로를 왕복하는 반대쪽 절반이다 */
+  @StringSelect(RELIC_REWARD)
+  async relicReward(
+    @Context() [interaction]: StringSelectContext,
+    @SelectedStrings() [itemName]: string[],
+  ) {
+    const dropSources = await this.warframeApi.dropSources(itemName);
+    return interaction.update(payload(dropSources));
   }
 }

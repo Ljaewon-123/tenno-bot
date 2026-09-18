@@ -18,4 +18,9 @@ export interface DropItem {
   levelStats?: { stats: string[] }[];
   /** 성유물만 — 지금 드랍되지 않으면 true. @see WfcdItemsService.findRelic */
   vaulted?: boolean;
+  /**
+   * 부품 목록. 부품 이름으로 상위 아이템을 되짚는 유일한 경로다 —
+   * 부품 자체 imageName은 공용 아이콘이라 쓰지 않는다. @see WfcdItemsService.findItemByName
+   */
+  components?: { name: string; imageName?: string }[];
 }
