@@ -26,6 +26,8 @@ export const LIMIT = {
   content: 4000,
   /** 버튼·셀렉트 customId. 여기에 유저 입력을 실으면 길이를 먼저 재야 한다 */
   customId: 100,
+  /** 셀렉트 선택지 수. 넘치면 잘리는 게 아니라 메시지가 거절된다 — 호출단이 먼저 자른다 */
+  selectOptions: 25,
 } as const;
 
 /**

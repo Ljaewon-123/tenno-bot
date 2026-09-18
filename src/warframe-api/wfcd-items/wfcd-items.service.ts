@@ -68,6 +68,21 @@ export class WfcdItemsService {
   }
 
   /**
+   * 성유물 이름 -> wfcd 아이템. 드랍 인덱스는 'Axi A1 Relic'인데 wfcd는 상태별로 쪼개
+   * 'Axi A1 Intact'로 들고 있어 접미사를 바꿔 찾는다(이미지는 네 상태가 같은 티어 아이콘).
+   *
+   * 볼팅 여부가 여기에만 있다 — 드랍 테이블에는 "지금 뜨는가"가 미션·바운티 보상 쪽에
+   * 흩어져 있을 뿐이다. 772개 중 34개만 vaulted:false이고, 그 34종은 all.json에서
+   * 실제로 드랍되는 성유물 34종과 정확히 일치한다(교차검증함).
+   */
+  findRelic(relicName: string): DropItem | undefined {
+    const base = relicName.replace(/ Relic$/, '');
+    return this.wfcdItems.find(
+      (candidate) => candidate.name === `${base} Intact`,
+    );
+  }
+
+  /**
    * 바로 키티어 전용 프라임드 모드 전체. 드랍 테이블(all.json)에는 한 줄도 없어서
    * 드랍 인덱스를 만들 때 여기서 채워 넣는다. 두캇 값은 이 데이터에 없다 — 바로 재고에만 있다
    */

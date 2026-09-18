@@ -17,7 +17,7 @@ import { DropCategory } from './vo/enum';
 // 3. 특정 미션에서만 얻을수있는 모드 또한 표시 (상승 미션 등등)
 // 인덱스 구축 규칙(제외 목록·평탄화)을 바꾸면 올린다 — 원본 hash가 그대로여도
 // 재구축이 필요한데, 이걸 hash에 붙여두면 다음 부팅에 알아서 다시 만든다
-const INDEX_VERSION = 'v3';
+export const INDEX_VERSION = 'v4';
 
 @Injectable()
 export class DropTableService implements OnApplicationBootstrap {
@@ -75,10 +75,37 @@ export class DropTableService implements OnApplicationBootstrap {
       .where('drop.itemName ILIKE :like', { like: `%${itemName}%` })
       .orderBy('drop.itemName ILIKE :exact', 'DESC')
       .addOrderBy('drop.chance', 'DESC')
+      // 확률 동률이 흔하다 — Braton Prime Blueprint는 25.33% 성유물이 45개다.
+      // 2차 기준이 없으면 DB 반환 순서라 페이지를 넘길 때마다 순서가 흔들린다
+      .addOrderBy('drop.sourceName', 'ASC')
       .setParameter('exact', itemName)
       .take(50);
     if (category) query.andWhere('drop.category = :category', { category });
     return query.getMany();
+  }
+
+  /**
+   * 역방향. 같은 테이블을 itemName이 아니라 sourceName으로 읽는다 —
+   * 이 성유물에 뭐가 들었나. 보상은 최대 8개라 상한을 걸지 않는다.
+   */
+  async findRelicRewards(relicName: string) {
+    return this.dropSourceRepository.find({
+      where: { category: DropCategory.Relic, sourceName: relicName },
+      order: { chance: 'DESC', itemName: 'ASC' },
+    });
+  }
+
+  /** `/relic` 오토컴플리트용 성유물 이름 검색. 성유물은 773개고 선택지 상한은 25개다 */
+  async searchRelicNames(keyword: string) {
+    const rows = await this.dropSourceRepository
+      .createQueryBuilder('drop')
+      .select('DISTINCT drop.sourceName', 'sourceName')
+      .where('drop.category = :category', { category: DropCategory.Relic })
+      .andWhere('drop.sourceName ILIKE :keyword', { keyword: `%${keyword}%` })
+      .orderBy('drop.sourceName')
+      .limit(25)
+      .getRawMany<{ sourceName: string }>();
+    return rows.map((row) => row.sourceName);
   }
 
   /** 오토컴플리트용 이름 검색. 디스코드 선택지 상한이 25개라 거기서 자른다 */

@@ -16,4 +16,6 @@ export interface DropItem {
   baseDrain?: number;
   fusionLimit?: number;
   levelStats?: { stats: string[] }[];
+  /** 성유물만 — 지금 드랍되지 않으면 true. @see WfcdItemsService.findRelic */
+  vaulted?: boolean;
 }

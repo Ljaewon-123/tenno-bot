@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DropSourceService } from './drop-source.service';
 import type { DropSource } from './entities/drop-source.entity';
-import type { DropTableData } from './types';
+import type { DropTableData, Relic } from './types';
 import { DropCategory } from './vo/enum';
 
 // @Transactional()은 초기화된 CLS 네임스페이스 + DataSource를 요구한다.
@@ -180,6 +180,64 @@ describe('DropSourceService.rebuildDropSources', () => {
     );
 
     expect(harness.rows.map((row) => row.itemName)).toEqual(['Pressure Point']);
+  });
+
+  const relic = (state: string, chance: number) =>
+    ({
+      _id: state,
+      tier: 'Axi',
+      relicName: 'A1',
+      state,
+      rewards: [reward({ itemName: 'Nikana Prime Blueprint', chance })],
+    }) as Relic;
+
+  /**
+   * 상태 4단은 확률만 다른 같은 성유물이다. 네 행으로 넣으면 검색 한 화면을 성유물 하나가
+   * 네 번 먹고 take(50)도 4배로 깎인다 — Forma Blueprint는 성유물 380개 = 1520행이었다.
+   */
+  it('성유물 상태 4단을 순정 1행으로 접고 빛나는 확률을 metadata에 남긴다', async () => {
+    await harness.service.rebuildDropSources(
+      data({
+        relics: [
+          relic('Intact', 2),
+          relic('Exceptional', 4),
+          relic('Flawless', 6),
+          relic('Radiant', 10),
+        ],
+      }),
+    );
+
+    expect(harness.rows).toEqual([
+      expect.objectContaining({
+        itemName: 'Nikana Prime Blueprint',
+        category: DropCategory.Relic,
+        // 미션 보상 쪽 itemName('Axi A1 Relic')과 표기가 같아야 양방향 공통 키가 된다
+        sourceName: 'Axi A1 Relic',
+        // 남는 확률은 순정이다 — 정제 상태를 기준으로 삼으면 정제 안 한 사람이 틀린 판단을 한다
+        chance: 2,
+      }),
+    ]);
+    expect(harness.rows[0].metadata.radiantChance).toBe(10);
+  });
+
+  it('상태가 하나뿐인 성유물은 빛나는 확률을 비워 둔다', async () => {
+    // 레퀴엠 성유물 2개는 Intact 문서만 있다 — 순정 확률로 채우면 '9.5% → 9.5%'가 나간다
+    await harness.service.rebuildDropSources(
+      data({ relics: [relic('Intact', 9.5)] }),
+    );
+
+    expect(harness.rows[0].metadata.radiantChance).toBeUndefined();
+  });
+
+  it('relicName이 없는 성유물은 인덱스에 넣지 않는다', async () => {
+    // 원본에 이 항목이 있어서 'Requiem undefined'라는 출처가 검색에 잡히고 있었다
+    await harness.service.rebuildDropSources(
+      data({
+        relics: [{ ...relic('Intact', 2), relicName: undefined as never }],
+      }),
+    );
+
+    expect(harness.rows).toEqual([]);
   });
 
   // all.json에 프라임드 모드는 한 줄도 없다 — 이게 없으면 검색·오토컴플리트에서 통째로 빠진다

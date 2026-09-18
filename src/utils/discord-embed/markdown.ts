@@ -15,7 +15,12 @@ export const bold = (text: string) => `**${text}**`;
  * 회색 보조 줄. 디스코드에 "회색 본문"은 없고 이것뿐이라
  * 부가 정보·안내·데이터 신선도는 전부 여기로 내린다 (footer는 마크다운이 안 먹는다).
  */
-export const subtext = (text: string) => `-# ${text}`;
+export const subtext = (text: string) =>
+  // `-#`는 줄 단위다 — 여러 줄을 한 번만 감싸면 둘째 줄부터 본문 크기로 튀어 위계가 깨진다
+  text
+    .split('\n')
+    .map((line) => `-# ${line}`)
+    .join('\n');
 
 /** "1시간 12분 뒤" — 기본값. 서버가 시각을 문자열로 굽지 않으니 뷰어 시간대 문제가 사라진다 */
 export const relative = (date: ConfigType) => `<t:${dayjs(date).unix()}:R>`;

@@ -88,6 +88,14 @@ const INCARNON_FIXED_SLOTS = 12;
 export const DROP_KEY = 'drop';
 const DROP_ALL = 'all';
 
+/**
+ * 성유물 왕복 셀렉트. 둘 다 customId가 고정이고 **고른 값에 이름을 싣는다** —
+ * 페이저처럼 이름을 customId에 넣으면 100자를 재야 하지만, 셀렉트 값은 옵션당 100자라
+ * 성유물 이름(최대 22자)·보상 이름(최대 36자) 모두 여유가 있다.
+ */
+export const RELIC_OPEN = 'relic/open';
+export const RELIC_REWARD = 'relic/reward';
+
 /** customId의 필터 축에서 "안 걸림"을 뜻하는 값. 축을 비워 두면 세그먼트 수가 달라져 라우팅이 깨진다 */
 export const FILTER_OFF = 'all';
 /** 아르키메디아 customId의 detail 축 — `archimedea/:type/:detail/page/:page` */
@@ -107,6 +115,18 @@ const foldedLine = (shown: number, total: number, sort: string, path?: Line) =>
 /** 막대는 최고 확률 대비 상대 위계라 "흔한 건지"를 못 말한다 — 절대 등급은 이모지 3단으로 (색맹도 형태로 구분된다) */
 const chanceIcon = (chance: number) =>
   chance >= 5 ? '🟢' : chance >= 1 ? '🟠' : '🔴';
+
+/**
+ * 성유물만 확률이 두 값이다 — 순정(chance) → 빛나는(metadata.radiantChance).
+ * 정제하면 레어가 오르고 커먼이 내려가 순위가 뒤집히므로 한쪽만 적으면 판단이 틀어진다.
+ * 상태가 하나뿐인 레퀴엠 성유물 2개는 화살표를 붙이지 않는다 — `9.5% → 9.5%`는 거짓말이다.
+ */
+const chanceText = ({ chance, metadata }: DropSource) => {
+  const radiant = metadata?.radiantChance as number | null | undefined;
+  return radiant == null || radiant === chance
+    ? `${chance}%`
+    : `${chance}% → ${radiant}%`;
+};
 
 /** 버튼은 컴포넌트가 정하지 않는다 — 어떤 버튼을 붙일지는 커맨드 핸들러가 안다 */
 type Buttons = ButtonBuilder[] | undefined;
@@ -1022,6 +1042,16 @@ export class WarframeApiService {
         sort: 'highest chance first',
       });
 
+    // 성유물은 이름만으로 뭐가 드는지 알 수 없다 — 이 카드에서 역방향으로 넘어가는 유일한 경로다.
+    // 목록이 확률 순으로 오므로 앞에서 자르면 그게 곧 확률 상위 25개가 된다
+    const relics = [
+      ...new Set(
+        sources
+          .filter((source) => source.category === DropCategory.Relic)
+          .map((source) => source.sourceName),
+      ),
+    ].slice(0, LIMIT.selectOptions);
+
     return card({
       title: `Drop Sources · ${itemName}`,
       // 접힌 개수는 그룹마다 다르다 — 여기서 "top 6"을 또 말하면 그룹 줄과 어긋난다
@@ -1045,14 +1075,81 @@ export class WarframeApiService {
         widen,
         ...(buttons ?? []),
       ].filter((child): child is ButtonBuilder => Boolean(child)),
+      select: relics.length
+        ? select(
+            RELIC_OPEN,
+            'Open a relic to see everything in it',
+            relics.map((name) => ({ label: name, value: name })),
+          )
+        : undefined,
       // 드랍 테이블은 월드스테이트가 아니라 DB라 신선도 표기 대상이 아니다
       footer: [
         view && view.footer,
+        relics.length > 0 && 'Relic chance: Intact → Radiant',
         'Bar is relative to the best source · 🟢 ≥5% · 🟠 1-5% · 🔴 <1%',
       ]
         .filter(Boolean)
         .join('\n'),
     });
+  }
+
+  /**
+   * 역방향 카드 — 이 성유물에 뭐가 들었나. `/drop`이 답하는 "부품이 어디서 나오나"의 반대편이고,
+   * 읽는 테이블은 같다(`sourceName`으로 조회). 보상이 최대 8개라 **페이저가 없는 유일한 목록**이다.
+   * 셀렉트는 보상 하나를 골라 다시 정방향으로 나가는 자리 — 두 카드가 서로를 왕복한다.
+   */
+  async relic(relicName: string) {
+    const rewards = await this.dropTableService.findRelicRewards(relicName);
+    if (!rewards.length)
+      return emptyCard(
+        `No relic named “${relicName}”`,
+        'Nothing in the drop tables matches that name.',
+        'Pick one from the list on a /drop card, or check the tier (Lith · Meso · Neo · Axi · Requiem)',
+      );
+
+    const item = this.wfcdItemsService.findRelic(relicName);
+    // 막대 기준은 목록의 최고 확률이다 — 절대 막대는 8칸에서 2%가 0칸이 되어 못 쓴다
+    const best = rewards[0].chance;
+
+    return card({
+      title: relicName,
+      subtitle: [
+        `${rewards.length} rewards`,
+        // wfcd가 모르는 이름이면 이 칸을 비운다 — 모름을 "지금 뜬다"로 말하면 안 된다
+        item?.vaulted === true && 'Vaulted',
+        item?.vaulted === false && 'Currently dropping',
+        'chance: Intact → Radiant',
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      thumbnail:
+        item?.imageName && this.wfcdItemsService.imgUrl(item.imageName),
+      blocks: [
+        [
+          {
+            lines: rewards.map(
+              (reward) =>
+                `- ${chanceIcon(reward.chance)} ${reward.itemName} ${bar((reward.chance / best) * 100)} ${chanceText(reward)}`,
+            ),
+          },
+        ],
+      ],
+      select: select(
+        RELIC_REWARD,
+        'Pick a reward to see its other sources',
+        rewards.slice(0, LIMIT.selectOptions).map((reward) => ({
+          label: reward.itemName.slice(0, 100),
+          value: reward.itemName,
+        })),
+      ),
+      footer:
+        'Bar is Intact, relative to the best reward · 🟢 ≥5% · 🟠 1-5% · 🔴 <1%',
+    });
+  }
+
+  /** @see DropTableService.searchRelicNames */
+  async searchRelicNames(keyword: string) {
+    return this.dropTableService.searchRelicNames(keyword);
   }
 
   /**
@@ -1098,7 +1195,7 @@ export class WarframeApiService {
         // 바로가 와 있으면 두캇 값이, 아니면 아무것도 안 붙는다
         if (source.category === DropCategory.Trader)
           return `- 🛒 ${source.sourceName}${tail}${prices.has(name) ? ` · ${prices.get(name)}` : ''}`;
-        return `- ${chanceIcon(source.chance)} ${source.sourceName}${tail} ${bar((source.chance / best) * 100)} ${source.chance}%`;
+        return `- ${chanceIcon(source.chance)} ${source.sourceName}${tail} ${bar((source.chance / best) * 100)} ${chanceText(source)}`;
       }),
       // 페이저가 붙었으면 접힌 줄이 없다 — 버튼이 나머지를 보는 경로다
       more:

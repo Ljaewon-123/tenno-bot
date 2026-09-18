@@ -490,6 +490,102 @@ describe('WarframeApiService 카드 이미지', () => {
     );
     expect(pagerIds(empty)).toEqual(['drop/all/braton%20prime/page/0']);
   });
+
+  const relicSources = [
+    {
+      itemName: 'Nikana Prime Blueprint',
+      sourceName: 'Axi N12 Relic',
+      category: DropCategory.Relic,
+      chance: 25.33,
+      metadata: { radiantChance: 16.67 },
+    },
+    {
+      itemName: 'Nikana Prime Blueprint',
+      sourceName: 'Neo S8 Relic',
+      category: DropCategory.Relic,
+      chance: 11,
+      metadata: { radiantChance: 20 },
+    },
+  ];
+
+  /**
+   * 정제하면 순위가 뒤집힌다 — Neo S8은 순정 11%로 2등이지만 빛나는 20%로 Axi N12(16.67%)를
+   * 앞지른다. 한쪽만 적으면 그 역전이 사라져 어느 성유물을 깔지의 판단이 틀어진다.
+   */
+  it('성유물 줄은 순정 → 빛나는 두 확률을 한 줄에 적는다', async () => {
+    const view = await withSources(relicSources).dropSources('nikana prime');
+
+    const { text } = parts(view);
+    expect(text).toContain('25.33% → 16.67%');
+    expect(text).toContain('11% → 20%');
+    // `-#`는 줄 단위다 — 푸터가 세 줄로 늘어도 전부 작은 글씨여야 위계가 유지된다
+    expect(text).toContain('-# Relic chance: Intact → Radiant');
+    // 성유물 이름만으로는 뭐가 드는지 모른다 — 역방향으로 넘어가는 자리가 카드에 있어야 한다
+    expect(pagerIds(view)).toContain('relic/open');
+  });
+
+  it('성유물 출처가 없으면 역조회 셀렉트를 붙이지 않는다', async () => {
+    // 고르면 빈 화면이 나오는 선택지는 미끼다
+    const view = await withSources([mixedSources[1]]).dropSources('braton');
+
+    expect(pagerIds(view)).not.toContain('relic/open');
+    expect(parts(view).text).not.toContain('Intact → Radiant');
+  });
+
+  const withRewards = (rewards: object[], items: object[] = []) =>
+    new WarframeApiService(
+      {} as never,
+      new WfcdItemsService(items as never),
+      { findRelicRewards: vi.fn().mockResolvedValue(rewards) } as never,
+      {} as never,
+    );
+
+  const relicRewards = [
+    {
+      itemName: 'Braton Prime Stock',
+      chance: 25.33,
+      metadata: { radiantChance: 16.67 },
+    },
+    {
+      itemName: 'Nikana Prime Blueprint',
+      chance: 2,
+      metadata: { radiantChance: 10 },
+    },
+  ];
+
+  /** 보상은 최대 8개다 — 페이저도 접힌 줄도 없는 유일한 목록이다 */
+  it('성유물 카드는 보상을 전부 펴고 보상마다 두 확률을 적는다', async () => {
+    const view = await withRewards(relicRewards, [
+      { name: 'Axi A1 Intact', imageName: 'RelicAxiD.png', vaulted: true },
+    ]).relic('Axi A1 Relic');
+
+    const { text, thumbnail } = parts(view);
+    expect(text).toContain('Axi A1 Relic');
+    expect(text).toContain('2 rewards · Vaulted · chance: Intact → Radiant');
+    expect(text).toContain('25.33% → 16.67%');
+    expect(text).toContain('2% → 10%');
+    expect(text).not.toContain('Showing');
+    expect(thumbnail).toBe('https://cdn.warframestat.us/img/RelicAxiD.png');
+    // 여기서 정방향으로 돌아가는 자리 — 없으면 왕복이 한쪽으로만 흐른다
+    expect(pagerIds(view)).toContain('relic/reward');
+  });
+
+  it('wfcd가 모르는 성유물이면 볼팅 여부를 적지 않는다', async () => {
+    // 모르는 것을 "지금 뜬다"로 말하면 안 된다 — 칸을 비우는 게 유일하게 정직한 표기다
+    const { text } = parts(
+      await withRewards([relicRewards[0]]).relic('Axi Z9 Relic'),
+    );
+
+    expect(text).not.toContain('Vaulted');
+    expect(text).not.toContain('Currently dropping');
+    expect(text).toContain('1 rewards · chance: Intact → Radiant');
+  });
+
+  it('없는 성유물은 빈 카드로 끝낸다', async () => {
+    const { text } = parts(await withRewards([]).relic('Axi ZZ9 Relic'));
+
+    expect(text).toContain('No relic named “Axi ZZ9 Relic”');
+  });
 });
 
 describe('WarframeApiService 균열/사이클', () => {

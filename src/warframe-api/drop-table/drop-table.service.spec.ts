@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CacheKey } from '../shared/enum';
-import { DropTableService } from './drop-table.service';
+import { DropTableService, INDEX_VERSION } from './drop-table.service';
 import { DropCategory } from './vo/enum';
 
 /** 체이닝만 되는 QueryBuilder 흉내. 어떤 절이 붙었는지만 본다 */
@@ -56,7 +56,10 @@ describe('DropTableService', () => {
 
   describe('getAllDropTables', () => {
     it('hash가 같으면 all.json을 받지 않는다', async () => {
-      const { service, request, dropSourceService } = build('v3:new-hash');
+      // 인덱스 버전이 올라가면 같은 hash라도 다시 받아야 한다 — 스탬프는 둘의 합이다
+      const { service, request, dropSourceService } = build(
+        `${INDEX_VERSION}:new-hash`,
+      );
       await service.getAllDropTables();
 
       expect(request).toHaveBeenCalledTimes(1);
@@ -73,7 +76,7 @@ describe('DropTableService', () => {
       expect(cacheRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           key: CacheKey.DropTable,
-          cache: 'v3:new-hash',
+          cache: `${INDEX_VERSION}:new-hash`,
         }),
       );
     });

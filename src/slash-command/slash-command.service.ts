@@ -24,6 +24,8 @@ import {
   FILTER_OFF,
   FISSURE_HARD,
   INCARNON_KEY,
+  RELIC_OPEN,
+  RELIC_REWARD,
   WarframeApiService,
 } from '@/warframe-api/warframe-api.service';
 import {
@@ -57,9 +59,11 @@ import {
 import { ArchimedeaCommand } from './dto/archimedea.command.dto';
 import { DropCommand } from './dto/drop.command.dto';
 import { IncarnonCommand } from './dto/incarnon.command.dto';
+import { RelicCommand } from './dto/relic.command.dto';
 import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
 import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor';
 import { IncarnonWeaponAutocompleteInterceptor } from './interceptors/incarnon-weapon-autocomplete.interceptor';
+import { RelicAutocompleteInterceptor } from './interceptors/relic-autocomplete.interceptor';
 
 /**
  * 🔔 기준 시각 몇 분 전에 DM으로 한 번 오는 개인 리마인더. 다시 누르면 취소된다.
@@ -116,6 +120,7 @@ export class SlashCommandService {
                   '`/archimedea` — Deep and Temporal Archimedea',
                   '`/incarnon` — Incarnon Genesis rotation, or one weapon',
                   '`/drop` — Find where an item drops from',
+                  '`/relic` — Everything that drops from one relic',
                 ],
               },
             ],
@@ -454,6 +459,43 @@ export class SlashCommandService {
       undefined,
       Number(page),
     );
+    return interaction.update(payload(dropSources));
+  }
+
+  /** `/drop`의 반대 방향 — 성유물 이름을 주면 그 안에 든 것 전부 */
+  @UseInterceptors(RelicAutocompleteInterceptor)
+  @SlashCommand({
+    name: 'relic',
+    description: 'Show everything that drops from one relic',
+  })
+  async relic(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { relicName }: RelicCommand,
+  ) {
+    const relic = await this.warframeApi.relic(relicName);
+    return interaction.editReply(payload(relic));
+  }
+
+  /**
+   * `/drop` 카드 → 성유물 내용물. 이름이 customId가 아니라 **고른 값**으로 온다 —
+   * 페이저가 겪는 customId 100자 문제를 피하는 유일한 방법이다(옵션 값은 옵션당 100자).
+   */
+  @StringSelect(RELIC_OPEN)
+  async relicOpen(
+    @Context() [interaction]: StringSelectContext,
+    @SelectedStrings() [relicName]: string[],
+  ) {
+    const relic = await this.warframeApi.relic(relicName);
+    return interaction.update(payload(relic));
+  }
+
+  /** 성유물 내용물 → 그 보상의 드랍처. 두 카드가 서로를 왕복하는 반대쪽 절반이다 */
+  @StringSelect(RELIC_REWARD)
+  async relicReward(
+    @Context() [interaction]: StringSelectContext,
+    @SelectedStrings() [itemName]: string[],
+  ) {
+    const dropSources = await this.warframeApi.dropSources(itemName);
     return interaction.update(payload(dropSources));
   }
 }
