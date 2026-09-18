@@ -33,6 +33,12 @@ export type Block =
        * 대신 Section 하나가 칸 3개를 먹으므로 몇 개까지 붙일지는 호출단이 먼저 세야 한다.
        */
       thumbnail?: string;
+      /**
+       * 줄 하나에 딸린 버튼. 디스코드는 글줄 자체를 누르게 해주지 않아서, "이 줄을 눌러 들어간다"를
+       * 표현하는 유일한 수단이다(`/alarm list`의 줄마다 삭제 버튼과 같은 자리).
+       * **accessory는 한 칸뿐이라 `thumbnail`과 자리를 다툰다** — 둘 다 주면 버튼이 이긴다.
+       */
+      button?: ButtonBuilder;
     };
 
 export type CardInput = {
@@ -93,8 +99,8 @@ const renderGroup = (group: Block[]) =>
   kept(group.map(renderBlock)).join('\n\n');
 
 /**
- * 그룹 하나를 자식들로 편다. 썸네일이 붙은 블록에서만 끊기고 나머지는 지금까지처럼
- * TextDisplay 하나로 합쳐진다 — 아이콘을 안 쓰는 카드는 자식 수가 그대로다.
+ * 그룹 하나를 자식들로 편다. 액세서리(아이콘·버튼)가 붙은 블록에서만 끊기고 나머지는
+ * 지금까지처럼 TextDisplay 하나로 합쳐진다 — 액세서리를 안 쓰는 카드는 자식 수가 그대로다.
  */
 const groupChildren = (group: Block[]) => {
   const children: Child[] = [];
@@ -106,18 +112,27 @@ const groupChildren = (group: Block[]) => {
   };
 
   for (const block of group) {
-    const thumbnail = typeof block === 'object' ? block?.thumbnail : undefined;
-    const content = thumbnail ? renderBlock(block) : '';
-    // 글이 빈 Section은 디스코드가 거절한다 — 아이콘만 남기느니 합치는 쪽으로 떨어뜨린다
-    if (!thumbnail || !content) {
+    // accessory는 한 칸뿐이다 — 버튼과 아이콘이 같은 자리를 다투고, 버튼 쪽이 이긴다
+    const accessory =
+      typeof block === 'object'
+        ? (block?.button ?? block?.thumbnail)
+        : undefined;
+    const content = accessory ? renderBlock(block) : '';
+    // 글이 빈 Section은 디스코드가 거절한다 — 액세서리만 남기느니 합치는 쪽으로 떨어뜨린다
+    if (!accessory || !content) {
       merged.push(block);
       continue;
     }
     flush();
+    const section = new SectionBuilder().addTextDisplayComponents(
+      text(content),
+    );
     children.push(
-      new SectionBuilder()
-        .addTextDisplayComponents(text(content))
-        .setThumbnailAccessory(new ThumbnailBuilder().setURL(thumbnail)),
+      typeof accessory === 'string'
+        ? section.setThumbnailAccessory(
+            new ThumbnailBuilder().setURL(accessory),
+          )
+        : section.setButtonAccessory(accessory),
     );
   }
   flush();

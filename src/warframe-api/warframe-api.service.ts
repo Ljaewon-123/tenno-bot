@@ -89,12 +89,12 @@ export const DROP_KEY = 'drop';
 const DROP_ALL = 'all';
 
 /**
- * 성유물 왕복 셀렉트. 둘 다 customId가 고정이고 **고른 값에 이름을 싣는다** —
- * 페이저처럼 이름을 customId에 넣으면 100자를 재야 하지만, 셀렉트 값은 옵션당 100자라
- * 성유물 이름(최대 22자)·보상 이름(최대 36자) 모두 여유가 있다.
+ * `/drop` 카드에서 성유물을 여는 셀렉트. customId가 고정이고 **고른 값에 이름을 싣는다** —
+ * 페이저처럼 이름을 customId에 넣으면 100자를 재야 하지만 셀렉트 값은 옵션당 100자라 여유가 있다.
+ * 반대 방향(성유물 → 보상)은 셀렉트가 아니라 줄마다 붙는 버튼이다 — 보상이 6~8개로 끝나서
+ * 드롭다운을 여는 값이 없다.
  */
 export const RELIC_OPEN = 'relic/open';
-export const RELIC_REWARD = 'relic/reward';
 
 /** customId의 필터 축에서 "안 걸림"을 뜻하는 값. 축을 비워 두면 세그먼트 수가 달라져 라우팅이 깨진다 */
 export const FILTER_OFF = 'all';
@@ -1124,24 +1124,17 @@ export class WarframeApiService {
         .join(' · '),
       thumbnail:
         item?.imageName && this.wfcdItemsService.imgUrl(item.imageName),
+      // 보상마다 자기 버튼을 달아 그 줄에서 바로 정방향으로 나간다 — 셀렉트를 열지 않는다.
+      // 목록이 6~8개로 끝나서 Section 하나씩 써도 칸 예산(보상 8개 = 24칸/40)에 든다
       blocks: [
-        [
-          {
-            lines: rewards.map(
-              (reward) =>
-                `- ${chanceIcon(reward.chance)} ${reward.itemName} ${bar((reward.chance / best) * 100)} ${chanceText(reward)}`,
-            ),
-          },
-        ],
-      ],
-      select: select(
-        RELIC_REWARD,
-        'Pick a reward to see its other sources',
-        rewards.slice(0, LIMIT.selectOptions).map((reward) => ({
-          label: reward.itemName.slice(0, 100),
-          value: reward.itemName,
+        rewards.map((reward): Block => ({
+          lines: [
+            `${chanceIcon(reward.chance)} ${reward.itemName} ${bar((reward.chance / best) * 100)} ${chanceText(reward)}`,
+          ],
+          // 목적지가 `/drop`이라 페이저와 같은 customId를 쓴다 — 새 핸들러가 필요 없다
+          button: this.dropButton('Sources', reward.itemName, DROP_ALL),
         })),
-      ),
+      ],
       footer:
         'Bar is Intact, relative to the best reward · 🟢 ≥5% · 🟠 1-5% · 🔴 <1%',
     });

@@ -38,7 +38,8 @@ const parts = (view: ContainerBuilder) => {
       contents.push(child.content);
     if (child.type === ComponentType.Section) {
       contents.push(...(child.components ?? []).map((text) => text.content));
-      thumbnail = child.accessory?.media?.url;
+      // accessory 자리에는 버튼도 온다 — 그건 그림이 아니라서 썸네일을 덮어써선 안 된다
+      thumbnail ??= child.accessory?.media?.url;
     }
     if (child.type === ComponentType.MediaGallery)
       images = (child.items ?? []).map((item) => item.media?.url ?? '');
@@ -64,6 +65,21 @@ const pagerIds = (view: ContainerBuilder) =>
     .filter((child) => child.type === ComponentType.ActionRow)
     .flatMap((row) => row.components ?? [])
     .map((child) => child.custom_id);
+
+/**
+ * 줄마다 붙는 버튼은 ActionRow가 아니라 Section의 accessory 자리에 있어서 pagerIds에 안 잡힌다.
+ * "이 줄을 눌러 어디로 가나"는 여기서만 보인다.
+ */
+const rowButtonIds = (view: ContainerBuilder) =>
+  (
+    view.toJSON().components as unknown as {
+      type: ComponentType;
+      accessory?: { custom_id?: string };
+    }[]
+  )
+    .filter((child) => child.type === ComponentType.Section)
+    .map((child) => child.accessory?.custom_id)
+    .filter(Boolean);
 
 /** 링크 버튼은 customId가 없다 — 눌러서 어디로 나가는지는 url만이 말한다 */
 const linkUrls = (view: ContainerBuilder) =>
@@ -566,8 +582,27 @@ describe('WarframeApiService 카드 이미지', () => {
     expect(text).toContain('2% → 10%');
     expect(text).not.toContain('Showing');
     expect(thumbnail).toBe('https://cdn.warframestat.us/img/RelicAxiD.png');
-    // 여기서 정방향으로 돌아가는 자리 — 없으면 왕복이 한쪽으로만 흐른다
-    expect(pagerIds(view)).toContain('relic/reward');
+    // 보상마다 자기 버튼으로 정방향으로 나간다 — 셀렉트를 열지 않는다.
+    // 목적지가 `/drop`이라 페이저와 같은 customId를 쓴다(새 핸들러가 없다)
+    expect(rowButtonIds(view)).toEqual([
+      'drop/all/Braton%20Prime%20Stock/page/0',
+      'drop/all/Nikana%20Prime%20Blueprint/page/0',
+    ]);
+    expect(pagerIds(view)).toEqual([]);
+  });
+
+  /** Section 하나가 칸 3개다 — 보상 8개(24칸)에 헤더·푸터까지 넣어도 40칸 안에 들어야 한다 */
+  it('보상 8개여도 카드가 잘리지 않는다', async () => {
+    const view = await withRewards(
+      Array.from({ length: 8 }, (_, index) => ({
+        itemName: `Reward ${index}`,
+        chance: 25 - index,
+        metadata: { radiantChance: 16 },
+      })),
+    ).relic('Axi A1 Relic');
+
+    expect(rowButtonIds(view)).toHaveLength(8);
+    expect(parts(view).text).not.toContain('more hidden');
   });
 
   it('wfcd가 모르는 성유물이면 볼팅 여부를 적지 않는다', async () => {
