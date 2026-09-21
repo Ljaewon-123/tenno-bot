@@ -7,6 +7,7 @@ import {
   button,
   emptyCard,
   errorCard,
+  guildOnly,
   manageCard,
   okCard,
   paged,
@@ -28,7 +29,6 @@ import {
   type SlashCommandContext,
 } from 'necord';
 import { AlarmCommands } from './decorators/alarm-commands.decorator';
-import { guildOnly } from './guild-only';
 
 @AlarmCommands()
 @Injectable()

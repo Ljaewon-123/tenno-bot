@@ -9,4 +9,4 @@ export {
   select,
 } from './message';
 export { paged, type PagerInput } from './pager';
-export { emptyCard, errorCard, okCard } from './notice';
+export { emptyCard, errorCard, guildOnly, okCard } from './notice';

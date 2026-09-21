@@ -6,6 +6,7 @@ import {
   Accent,
   button,
   emptyCard,
+  guildOnly,
   manageCard,
   payload,
   relative,
@@ -30,7 +31,6 @@ import {
   type SlashCommandContext,
 } from 'necord';
 import { PartyCommands } from './decorators/party-commands.decorator';
-import { guildOnly } from './guild-only';
 
 /** 빈 화면 진입 버튼과 모달이 같은 id를 쓴다 — 버튼이 띄우는 모달이라 나눌 이유가 없다 */
 const PARTY_CREATE_ID = 'party/create';
