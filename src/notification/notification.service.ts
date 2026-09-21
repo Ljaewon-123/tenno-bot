@@ -125,10 +125,6 @@ export class NotificationService {
     const cached = await this.cacheRepository.findOneBy({ key });
     const prevIds = (cached?.cache as string[] | undefined) ?? [];
 
-    const entity = cached ?? this.cacheRepository.create({ key });
-    entity.cache = nextIds;
-    await this.cacheRepository.save(entity);
-
     /**
      * 이전 커서에 없던 id가 하나라도 있으면 변경으로 본다.
      * 단일 객체(소티/아콘헌트)는 id 하나짜리 배열이라 교체 = 변경,
@@ -138,10 +134,13 @@ export class NotificationService {
       nextIds.some((id) => !prevIds.includes(id));
 
     // 커서가 없던 첫 실행은 심어두기만 한다 — 신규 배포 때 알림이 쏟아지는 걸 막는다
-    if (!cached) return;
-    if (!hasNewId(prevIds, nextIds)) return;
+    if (cached && hasNewId(prevIds, nextIds)) await this.broadcast(eventType);
 
-    return this.broadcast(eventType);
+    // 커서는 발송 뒤에 옮긴다 — 먼저 옮기면 broadcast가 던졌을 때 그 변화는 영영 안 알려진다.
+    // 채널별 실패는 broadcast가 삼키고 이력으로 남기니 여기까지 오면 커서를 옮겨도 된다
+    const entity = cached ?? this.cacheRepository.create({ key });
+    entity.cache = nextIds;
+    await this.cacheRepository.save(entity);
   }
 
   private async broadcast(eventType: WatchTarget) {

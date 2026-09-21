@@ -246,6 +246,18 @@ describe('NotificationService 발송', () => {
     expect(notificationHistoryRepository.insert).not.toHaveBeenCalled();
   });
 
+  it('발송 경로가 통째로 실패하면 커서를 옮기지 않는다', async () => {
+    // 먼저 옮기면 다음 주기엔 변화가 안 보여 그 알림은 영영 안 나간다
+    const { service, cacheRepository, getAlarmTarget } = build(changed);
+    getAlarmTarget.mockRejectedValue(new Error('502'));
+
+    await service.detect();
+
+    expect(cacheRepository.save).not.toHaveBeenCalledWith(
+      expect.objectContaining({ key: CacheKey.LastSortieId }),
+    );
+  });
+
   it('구독이 하나도 없으면 임베드를 만들지 않는다', async () => {
     // 변화 감지마다 도는 재호출이라 구독 0건이면 아예 건너뛴다
     const { service, getAlarmTarget } = build(changed, { notifications: [] });

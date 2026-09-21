@@ -17,7 +17,7 @@ const build = (deferred = true) => {
     getType: () => 'necord',
     getArgs: () => [[interaction]],
   } as never;
-  return { interaction, host, filter: new CommandExceptionFilter() };
+  return { interaction, host, filter: new CommandExceptionFilter({} as never) };
 };
 
 const sent = (call: unknown[]) => {
@@ -56,6 +56,26 @@ describe('CommandExceptionFilter', () => {
     const text = sent(interaction.editReply.mock.calls[0]);
     expect(text).toContain('## Something went wrong');
     expect(text).not.toContain('ECONNREFUSED');
+  });
+
+  // 헬스체크가 503을 던졌는데 응답을 안 쓰면 요청이 타임아웃까지 매달린다
+  it('HTTP 요청은 상태 코드로 응답하고 5xx 내부 메시지는 숨긴다', async () => {
+    const reply = vi.fn();
+    const filter = new CommandExceptionFilter({
+      httpAdapter: { reply },
+    } as never);
+    const host = {
+      getType: () => 'http',
+      switchToHttp: () => ({ getResponse: () => 'res' }),
+    } as never;
+
+    await filter.catch(new Error('ECONNREFUSED 10.0.0.1:5432'), host);
+
+    expect(reply).toHaveBeenCalledWith(
+      'res',
+      { statusCode: 500, message: 'Internal server error' },
+      500,
+    );
   });
 
   // defer 전에 터지면 editReply가 없다 — 이 경로만 ephemeral을 직접 붙여야 한다
