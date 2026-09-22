@@ -15,6 +15,19 @@ export const TONE_CLASSES: Record<ChipTone, string> = {
   rare: 'bg-rare-bg text-rare',
 };
 
+// 사이드바 카테고리 점처럼 배경 전체를 톤 색으로 채워야 하는 자리용 — TONE_CLASSES는 옅은 배경 위에
+// 톤 텍스트를 얹는 조합이라 이 용도엔 못 쓴다. 같은 톤 이름 집합이라 여기 한곳에 모아둔다.
+export const DOT_CLASSES: Record<ChipTone, string> = {
+  intel: 'bg-intel',
+  loot: 'bg-loot',
+  ops: 'bg-ops',
+  comms: 'bg-comms',
+  squad: 'bg-squad',
+  common: 'bg-common',
+  uncommon: 'bg-uncommon',
+  rare: 'bg-rare',
+};
+
 interface ChipProps {
   label: string;
   tone: ChipTone;

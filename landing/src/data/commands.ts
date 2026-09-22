@@ -370,18 +370,20 @@ export const COMMANDS: Command[] = [
 
 export interface SidebarSection {
   title: string;
-  /** 사이드바 카테고리 점 배경색. Tailwind 정적 스캔 때문에 완성 클래스로 고정한다 */
-  dotClass: string;
+  /** 점 색으로 대표할 카테고리 — "Ops & comms"처럼 카테고리 둘을 한 섹션으로 묶을 때도 값은 카테고리 하나다.
+   * 클래스 문자열이 아니라 카테고리를 두는 이유: data/*는 의미만 담고, 카테고리→Tailwind 클래스 매핑은
+   * 컴포넌트 계층(Chip.ts의 DOT_CLASSES)이 가진다. */
+  dotCategory: CommandCategory;
   commands: Command[];
 }
 
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
-  { title: 'Intel', dotClass: 'bg-intel', commands: COMMANDS.filter((c) => c.category === 'intel') },
-  { title: 'Loot', dotClass: 'bg-loot', commands: COMMANDS.filter((c) => c.category === 'loot') },
+  { title: 'Intel', dotCategory: 'intel', commands: COMMANDS.filter((c) => c.category === 'intel') },
+  { title: 'Loot', dotCategory: 'loot', commands: COMMANDS.filter((c) => c.category === 'loot') },
   {
     title: 'Ops & comms',
-    dotClass: 'bg-ops',
+    dotCategory: 'ops',
     commands: COMMANDS.filter((c) => c.category === 'ops' || c.category === 'comms'),
   },
-  { title: 'Squad', dotClass: 'bg-squad', commands: COMMANDS.filter((c) => c.category === 'squad') },
+  { title: 'Squad', dotCategory: 'squad', commands: COMMANDS.filter((c) => c.category === 'squad') },
 ];

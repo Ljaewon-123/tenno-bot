@@ -11,9 +11,15 @@ function ExampleBlock(text: string): RawHtml {
   </div>`;
 }
 
-/** 옵션이 없으면 문장 끝에 "No options."을 붙인다 — 목업의 /alarm list와 같은 패턴 */
-function describeOptions(description: string, hasOptions: boolean): string {
-  return hasOptions ? description : `${description} No options.`;
+/**
+ * 옵션이 없으면 문장 끝에 "No options."을 붙인다 — 목업의 "Show alarms in this server. No options."와 같은 패턴.
+ * 등록된 설명 대부분이 마침표 없이 끝나(예: "List all commands") 그냥 이어붙이면 "commands No options."처럼
+ * 마침표가 빠진다 — 없을 때만 채운다. export해서 컴포넌트 밖에서도(테스트) 검증한다.
+ */
+export function describeOptions(description: string, hasOptions: boolean): string {
+  if (hasOptions) return description;
+  const period = description.endsWith('.') ? '' : '.';
+  return `${description}${period} No options.`;
 }
 
 function SubcommandBlock(commandId: string, sub: Subcommand): RawHtml {

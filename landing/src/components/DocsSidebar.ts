@@ -1,4 +1,5 @@
 import { html, type RawHtml } from '../lib/html.ts';
+import { DOT_CLASSES } from './Chip.ts';
 import { GETTING_STARTED, SIDEBAR_SECTIONS } from '../data/commands.ts';
 
 // data-cmd-name/data-cmd-desc는 scripts/docs-search.ts가 읽는 훅 — 데이터를 JS에 다시 심지 않고
@@ -20,7 +21,7 @@ function sidebarGroups(): RawHtml {
     ${SIDEBAR_SECTIONS.map(
       (section) => html`<div class="flex flex-col gap-0.5" data-sidebar-group>
         <div class="flex items-center gap-2 px-3.5 pb-1.5 text-xs font-bold text-text-faint">
-          <span class="h-2 w-2 rounded-full ${section.dotClass}" aria-hidden="true"></span>${section.title}
+          <span class="h-2 w-2 rounded-full ${DOT_CLASSES[section.dotCategory]}" aria-hidden="true"></span>${section.title}
         </div>
         ${section.commands.map(
           (command) =>
