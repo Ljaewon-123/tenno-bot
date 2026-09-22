@@ -24,7 +24,7 @@ export function describeOptions(description: string, hasOptions: boolean): strin
 
 function SubcommandBlock(commandId: string, sub: Subcommand): RawHtml {
   return html`<section id="${commandId}-${sub.id}" class="flex flex-col gap-4">
-    <h2 class="font-display text-2xl font-bold text-text">${sub.name}</h2>
+    <h3 class="font-display text-2xl font-bold text-text">${sub.name}</h3>
     <p class="text-lg leading-relaxed text-text-muted">${describeOptions(sub.description, sub.options.length > 0)}</p>
     ${sub.options.length ? OptionTable({ options: sub.options }) : ''}
     ${sub.example ? ExampleBlock(sub.example) : ''}
@@ -40,7 +40,7 @@ export function CommandSection(command: Command): RawHtml {
   return html`<section id="${command.id}" class="flex flex-col gap-9 border-t border-border pt-10 first:border-t-0 first:pt-0">
     <div class="flex flex-col gap-3.5">
       ${Chip({ label: CATEGORY_LABEL[command.category], tone: CATEGORY_TONE[command.category] })}
-      <h1 class="font-display text-4xl font-extrabold text-text sm:text-5xl">/${command.id}</h1>
+      <h2 class="font-display text-4xl font-extrabold text-text sm:text-5xl">/${command.id}</h2>
       <p class="max-w-2xl text-lg leading-relaxed text-text-muted sm:text-xl">
         ${hasGroup ? command.description : describeOptions(command.description, topOptions.length > 0)}
       </p>

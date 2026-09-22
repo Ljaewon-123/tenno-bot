@@ -12,11 +12,17 @@ export function matchesQuery(entry: SearchEntry, query: string): boolean {
   return entry.name.toLowerCase().includes(q) || entry.description.toLowerCase().includes(q);
 }
 
+/** 모바일 사이드바는 접힌 <details> 안에 결과가 있다 — 검색어가 있으면 펼쳐서 보이게 해야 한다. */
+export function shouldExpandSidebar(query: string): boolean {
+  return query.trim().length > 0;
+}
+
 // vitest는 기본 node 환경이라 `document`가 없다 — 순수 함수 테스트가 이 파일을 import할 때
 // 모듈 최상단에서 DOM을 건드리면 그 자체로 터진다. 브라우저에서만 초기화한다.
 if (typeof document !== 'undefined') {
   const input = document.querySelector<HTMLInputElement>('[data-docs-search]');
   const groups = document.querySelectorAll<HTMLElement>('[data-sidebar-group]');
+  const mobileSidebar = document.querySelector<HTMLDetailsElement>('details[data-docs-sidebar]');
 
   const applyFilter = (query: string): void => {
     groups.forEach((group) => {
@@ -28,6 +34,9 @@ if (typeof document !== 'undefined') {
       });
       group.hidden = visible === 0;
     });
+    // 검색 결과가 접힌 <details> 안에 묻히지 않도록 강제로 펼친다. 검색어를 지우는 건 사용자가
+    // 직접 닫을 수 있으니 여기서 다시 접지는 않는다.
+    if (mobileSidebar && shouldExpandSidebar(query)) mobileSidebar.open = true;
   };
 
   if (input) {

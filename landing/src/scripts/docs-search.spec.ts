@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchesQuery } from './docs-search.ts';
+import { matchesQuery, shouldExpandSidebar } from './docs-search.ts';
 
 describe('matchesQuery', () => {
   const entry = { name: '/void-fissures', description: 'Get the current Void Fissures information' };
@@ -19,5 +19,16 @@ describe('matchesQuery', () => {
   it('treats an empty or whitespace-only query as matching everything', () => {
     expect(matchesQuery(entry, '')).toBe(true);
     expect(matchesQuery(entry, '   ')).toBe(true);
+  });
+});
+
+describe('shouldExpandSidebar', () => {
+  it('expands once there is a non-whitespace query', () => {
+    expect(shouldExpandSidebar('fissure')).toBe(true);
+  });
+
+  it('does not expand for an empty or whitespace-only query', () => {
+    expect(shouldExpandSidebar('')).toBe(false);
+    expect(shouldExpandSidebar('   ')).toBe(false);
   });
 });

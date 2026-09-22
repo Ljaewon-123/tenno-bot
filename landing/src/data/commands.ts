@@ -1,4 +1,4 @@
-import type { ChipTone } from '../components/Chip.ts';
+import type { ChipTone } from './types.ts';
 
 // 실제 봇이 등록하는 커맨드만 옮긴다 — src/slash-command/**과 그 DTO들이 소스 오브 트루스.
 // 목업(Docs2.dc.html)의 문구·순서와 코드가 다르면 코드를 따른다(태스크 브리프 지시).

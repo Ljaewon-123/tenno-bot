@@ -1,11 +1,9 @@
 import { html, type RawHtml } from '../lib/html.ts';
 import { Avatar } from './Avatar.ts';
 import { LinkButton } from './Button.ts';
+import type { NavLink } from '../data/types.ts';
 
-export interface NavLink {
-  href: string;
-  label: string;
-}
+export type { NavLink };
 
 interface SiteNavProps {
   links: NavLink[];

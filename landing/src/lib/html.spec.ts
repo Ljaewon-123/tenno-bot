@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { html, raw } from './html';
+import { html, raw } from './html.ts';
 
 // html``의 반환값은 "이미 이스케이프됨" 표식을 들고 있는 래퍼(RawHtml)다 —
 // 중첩 html`` 호출을 다시 이스케이프하지 않으려면 순수 문자열이 아니라 이 표식이 필요하다.

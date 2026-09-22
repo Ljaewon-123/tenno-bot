@@ -2,10 +2,13 @@ import { html, raw, type RawHtml } from '../lib/html.ts';
 import { Avatar } from '../components/Avatar.ts';
 import { LinkButton } from '../components/Button.ts';
 import { Chip, TONE_CLASSES } from '../components/Chip.ts';
+import { CommandRef } from '../components/CommandRef.ts';
+import { FeatureIcon } from '../components/FeatureIcon.ts';
 import { SiteFooter } from '../components/SiteFooter.ts';
 import { SiteNav } from '../components/SiteNav.ts';
-import { FEATURES, FOOTER_LINKS, NAV_LINKS, STEPS } from '../data/landing.ts';
-import { DOCS_HREF, INVITE_URL, KOFI_URL, SPONSORS_URL } from '../data/links.ts';
+import { StepCard } from '../components/StepCard.ts';
+import { FEATURES, NAV_LINKS, STEPS } from '../data/landing.ts';
+import { DOCS_HREF, FOOTER_LINKS, INVITE_URL, KOFI_URL, SPONSORS_URL } from '../data/links.ts';
 
 // 목업 그대로 옮긴 고정 SVG(장식용 아이콘) — 사용자 입력이 섞이지 않아 raw()로 통째로 신뢰한다.
 const PLUS_ICON = raw(
@@ -41,7 +44,7 @@ function HeroChat(): RawHtml {
       <div class="flex flex-1 flex-col gap-1.5">
         <div class="flex items-center gap-2">
           <span class="text-base font-bold text-text">Teno</span>
-          <span class="rounded bg-indigo-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">APP</span>
+          <span class="rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-on-accent">APP</span>
         </div>
         <div class="flex gap-3 rounded-2xl bg-surface-2 p-4">
           <span class="flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-full bg-intel-bg text-intel">${CHECK_ICON}</span>
@@ -62,7 +65,7 @@ function HeroChat(): RawHtml {
 function FeatureCard(feature: (typeof FEATURES)[number]): RawHtml {
   return html`<div class="flex flex-col gap-3.5 rounded-3xl border border-border bg-surface p-7">
     <div class="flex items-center justify-between">
-      <span class="flex h-13 w-13 items-center justify-center rounded-2xl ${TONE_CLASSES[feature.tone]}">${feature.icon}</span>
+      <span class="flex h-13 w-13 items-center justify-center rounded-2xl ${TONE_CLASSES[feature.tone]}">${FeatureIcon({ iconKey: feature.iconKey })}</span>
       ${Chip({ label: feature.chipLabel, tone: feature.tone })}
     </div>
     <h3 class="font-display text-xl font-bold text-text">${feature.title}</h3>
@@ -82,6 +85,7 @@ export function render(): RawHtml {
   >
     ${SiteNav({ links: NAV_LINKS, inviteHref: INVITE_URL })}
 
+    <main>
     <section class="flex flex-col items-center gap-12 px-6 py-16 sm:px-10 lg:flex-row lg:items-center lg:gap-16 lg:px-24 lg:py-20">
       <div class="flex max-w-xl flex-col gap-6">
         <div class="flex items-end gap-4">
@@ -122,15 +126,7 @@ export function render(): RawHtml {
 
     <section id="how-it-works" class="flex flex-col gap-10 px-6 pt-24 sm:px-10 lg:px-24">
       <h2 class="text-center font-display text-3xl font-extrabold text-text sm:text-4xl">Up and running in a minute</h2>
-      <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        ${STEPS.map(
-          (step) => html`<div class="flex flex-col gap-3 rounded-3xl border border-border bg-surface p-7">
-            <span class="flex h-11 w-11 items-center justify-center rounded-2xl font-display text-xl font-extrabold ${step.swatchClass}">${step.num}</span>
-            <h3 class="font-display text-xl font-bold text-text">${step.title}</h3>
-            <p class="text-base leading-relaxed text-text-muted">${step.desc}</p>
-          </div>`,
-        )}
-      </div>
+      <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">${STEPS.map(StepCard)}</div>
     </section>
 
     <section id="features" class="flex flex-col gap-10 px-6 pt-24 sm:px-10 lg:px-24">
@@ -145,7 +141,7 @@ export function render(): RawHtml {
           class="flex flex-col justify-center gap-3 rounded-3xl border-2 border-dashed border-border p-7 text-text-muted"
         >
           <span class="font-display text-xl font-bold text-text">And there's more</span>
-          <span class="text-base leading-relaxed">Browse the docs, or type <span class="font-mono text-accent-text">/help</span> in any server.</span>
+          <span class="text-base leading-relaxed">Browse the docs, or type ${CommandRef({ children: '/help', tone: 'accent' })} in any server.</span>
         </a>
       </div>
     </section>
@@ -166,6 +162,7 @@ export function render(): RawHtml {
         ${LinkButton({ href: SPONSORS_URL, label: 'GitHub Sponsors', variant: 'outline', icon: HEART_ICON, class: 'min-h-13.5' })}
       </div>
     </section>
+    </main>
 
     ${SiteFooter({ links: FOOTER_LINKS })}
   </div>`;

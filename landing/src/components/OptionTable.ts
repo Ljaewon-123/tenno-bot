@@ -1,5 +1,6 @@
 import { html, type RawHtml } from '../lib/html.ts';
 import { Chip } from './Chip.ts';
+import { CommandRef } from './CommandRef.ts';
 import type { CommandOption } from '../data/commands.ts';
 
 interface OptionTableProps {
@@ -25,13 +26,9 @@ export function OptionTable({ options }: OptionTableProps): RawHtml {
     </div>
     ${options.map(
       (opt) => html`<div class="${OPTION_ROW}">
-        <span class="font-mono text-sm text-text">${opt.name}</span>
+        ${CommandRef({ children: opt.name })}
         <span class="text-[15px] text-text-muted">${opt.type}</span>
-        <span
-          >${opt.required
-            ? Chip({ label: 'yes', tone: 'comms' })
-            : html`<span class="inline-flex items-center rounded-full bg-surface-2 px-3 py-1 text-xs font-bold text-text-muted">optional</span>`}</span
-        >
+        <span>${opt.required ? Chip({ label: 'yes', tone: 'comms' }) : Chip({ label: 'optional', tone: 'muted' })}</span>
         <span class="basis-full leading-relaxed text-text-muted sm:basis-auto"
           >${opt.description}${opt.choices ? html` <span class="text-text-faint">(${opt.choices.join(', ')})</span>` : ''}</span
         >

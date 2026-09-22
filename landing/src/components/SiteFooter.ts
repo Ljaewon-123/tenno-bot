@@ -1,9 +1,7 @@
 import { html, type RawHtml } from '../lib/html.ts';
+import type { FooterLink } from '../data/types.ts';
 
-export interface FooterLink {
-  href: string;
-  label: string;
-}
+export type { FooterLink };
 
 interface SiteFooterProps {
   links: FooterLink[];
