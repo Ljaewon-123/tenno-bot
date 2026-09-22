@@ -19,6 +19,7 @@
   --color-on-accent: var(--on-accent);
   --color-accent-soft: var(--accent-soft);
   --color-support: var(--support);
+  --color-on-support: var(--on-support);
   --color-intel: var(--intel);
   --color-intel-bg: var(--intel-bg);
   --color-loot: var(--loot);
