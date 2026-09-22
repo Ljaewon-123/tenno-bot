@@ -1,7 +1,6 @@
 import { html, raw, type RawHtml } from '../lib/html.ts';
 import { Avatar } from './Avatar.ts';
 import { LinkButton } from './Button.ts';
-import { GITHUB_REPO_URL, HOME_HREF, INVITE_URL } from '../data/links.ts';
 
 // 목업 그대로 옮긴 고정 SVG — 사용자 입력이 섞이지 않아 raw()로 통째로 신뢰.
 const SEARCH_ICON = raw(
@@ -15,15 +14,18 @@ const SUN_ICON = raw(
 );
 
 interface DocsTopBarProps {
+  homeHref: string;
+  githubHref: string;
+  inviteHref: string;
   /** privacy/terms엔 검색할 커맨드 목록 자체가 없다 — docs-search.ts도 그 페이지들엔 안 실리므로 입력창을 아예 뺀다. */
   showSearch?: boolean;
 }
 
 // 라이트/다크 아이콘 전환은 JS 없이 dark: 변형으로만 한다 — anti-flash 스크립트가 이미 <head>에서
 // .dark를 건 채로 첫 페인트가 일어나므로 깜빡임이 없다. scripts/theme.ts는 클릭 처리만 담당.
-export function DocsTopBar({ showSearch = true }: DocsTopBarProps = {}): RawHtml {
+export function DocsTopBar({ homeHref, githubHref, inviteHref, showSearch = true }: DocsTopBarProps): RawHtml {
   return html`<header class="flex flex-wrap items-center gap-4 border-b border-border bg-surface px-6 py-4 sm:px-7">
-    <a href="${HOME_HREF}" class="flex items-center gap-2.5 text-text">
+    <a href="${homeHref}" class="flex items-center gap-2.5 text-text">
       ${Avatar({ size: 36 })}
       <span class="font-display text-lg font-extrabold">Teno</span>
       <span class="rounded-full bg-surface-2 px-2.5 py-0.5 text-[13px] font-bold text-text-faint">Docs</span>
@@ -41,7 +43,7 @@ export function DocsTopBar({ showSearch = true }: DocsTopBarProps = {}): RawHtml
     </label>`
       : ''}
     <div class="ml-auto flex items-center gap-2.5">
-      <a href="${GITHUB_REPO_URL}" class="px-3.5 py-2.5 text-[15px] font-bold text-text-faint">GitHub</a>
+      <a href="${githubHref}" class="px-3.5 py-2.5 text-[15px] font-bold text-text-faint">GitHub</a>
       <button
         type="button"
         data-theme-toggle
@@ -51,7 +53,7 @@ export function DocsTopBar({ showSearch = true }: DocsTopBarProps = {}): RawHtml
         <span class="dark:hidden">${MOON_ICON}</span>
         <span class="hidden dark:block">${SUN_ICON}</span>
       </button>
-      ${LinkButton({ href: INVITE_URL, label: 'Add to Discord', variant: 'primary', class: 'min-h-11 px-5 text-[15px]' })}
+      ${LinkButton({ href: inviteHref, label: 'Add to Discord', variant: 'primary', class: 'min-h-11 px-5 text-[15px]' })}
     </div>
   </header>`;
 }

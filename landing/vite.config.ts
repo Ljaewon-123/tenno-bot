@@ -6,6 +6,7 @@ import { render as renderDocs } from './src/pages/docs.ts';
 import { render as renderLanding } from './src/pages/landing.ts';
 import { render as renderPrivacy } from './src/pages/privacy.ts';
 import { render as renderTerms } from './src/pages/terms.ts';
+import { PLACEHOLDER_URLS, isPlaceholder } from './src/data/links.ts';
 
 const pageByEntry: Record<string, () => { toString(): string }> = {
   index: renderLanding,
@@ -28,8 +29,27 @@ function prerender(): Plugin {
   };
 }
 
+// CF_PAGES(Cloudflare Pages 배포 빌드)에서 links.ts 값이 여전히 [INVITE URL] 같은 대괄호
+// placeholder면 빌드를 실패시킨다 — 안 그러면 href가 /[INVITE URL]로 나가고 Cloudflare Pages가
+// 존재하지 않는 경로를 index.html로 폴백해서, 메인 CTA가 조용히 랜딩만 새로고침하게 된다.
+// 로컬/프리뷰 빌드(CF_PAGES 미설정)는 placeholder를 그대로 허용해 개발을 막지 않는다.
+function cfPagesPlaceholderGuard(): Plugin {
+  return {
+    name: 'teno-cf-pages-placeholder-guard',
+    buildStart() {
+      if (!process.env.CF_PAGES) return;
+      const remaining = PLACEHOLDER_URLS.filter(isPlaceholder);
+      if (remaining.length > 0) {
+        throw new Error(
+          `[teno-landing] links.ts still has placeholder URLs for a Cloudflare Pages build: ${remaining.join(', ')}. Fill them in before deploying.`,
+        );
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [tailwindcss(), prerender()],
+  plugins: [tailwindcss(), prerender(), cfPagesPlaceholderGuard()],
   build: {
     rollupOptions: {
       input: {

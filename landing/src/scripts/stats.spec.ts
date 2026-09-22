@@ -26,4 +26,18 @@ describe('mapStats', () => {
       online: true,
     });
   });
+
+  it('returns null when guilds is missing or not a number (e.g. an error body)', () => {
+    expect(mapStats({ error: 'Internal Server Error' })).toBeNull();
+    expect(mapStats({ guilds: '5', users: 10, ready: true })).toBeNull();
+  });
+
+  it('returns null when users is not a number', () => {
+    expect(mapStats({ guilds: 5, users: null, ready: true })).toBeNull();
+  });
+
+  it('returns null for non-object responses', () => {
+    expect(mapStats(null)).toBeNull();
+    expect(mapStats('NaN servers')).toBeNull();
+  });
 });
