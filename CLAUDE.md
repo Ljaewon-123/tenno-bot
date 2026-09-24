@@ -44,6 +44,7 @@ src/
 - 임베드 필드는 25개, 필드 name 256자·value 1024자 제한 — 항상 slice 한다.
 - 길드/채널이 사라지면 데이터를 지운다. `BotLifecycleHook`이 `guildDelete`/`channelDelete`에서 각 도메인 `cleanup(where)`를 호출한다. **새 도메인 엔티티를 만들면 `cleanup`을 구현하고 훅에 등록한다.**
 - **임베드 목업 정본은 `docs/design/discord/project/Discord Embed Forms.dc.html`** (핸드오프 폴더 안 사본은 구버전). 규격 제약은 `docs/design/embed-spec.md`. 산출물↔구현 차이 리포트는 전부 반영 후 삭제했다 — 다시 찾지 말 것.
+- **top.gg 등록·홍보 요구사항은 `todo/topgg-checklist.md`** (필수/권장/추천). 심사 영향 있는 변경(권한, help, 전역 커맨드 등록) 시 확인.
 
 ## 스타일
 
