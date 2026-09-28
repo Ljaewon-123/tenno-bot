@@ -223,6 +223,8 @@ export class PartyService {
     const results = await Promise.allSettled(
       parties.map(async (party) => {
         party.status = PartyStatus.CLOSE;
+        // 메모리 속 updatedAt은 마감 전 값이다 — 안 옮기면 카드 푸터가 "Closed 2 hours ago"로 찍힌다
+        party.updatedAt = dayjs();
         await this.refresh(party);
       }),
     );

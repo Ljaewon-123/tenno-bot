@@ -12,11 +12,10 @@ import {
   CycleName,
   VoidTier,
 } from '@/warframe-api/world-state/vo/enum';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Client, type ContainerBuilder } from 'discord.js';
 import { FindOptionsWhere, In, IsNull, LessThanOrEqual, Not } from 'typeorm';
-import { Propagation, Transactional } from 'typeorm-transactional';
 import { CreateAlarm } from './dto/create-alarm.dto';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmConfigRepository } from './repositories/alarm-config.repository';
@@ -59,6 +58,8 @@ export type RemindInput = {
 
 @Injectable()
 export class AlarmService {
+  private readonly logger = new Logger(AlarmService.name);
+
   constructor(
     private readonly alarmConfigRepository: AlarmConfigRepository,
     private readonly warframeApiService: WarframeApiService,
@@ -69,8 +70,13 @@ export class AlarmService {
   async cron() {
     // 실행
     const alarms = await this.getPendingAlarms();
+    // 스케줄러의 try/catch는 cron()까지만 감싼다 — 떼어 보낸 run()의 거절은 여기서 받지 않으면
+    // unhandled rejection으로 프로세스가 죽는다(catch 안의 afterFire가 DB 장애로 또 실패할 때).
+    // RUNNING으로 남은 행은 STALE_AFTER_MINUTES 뒤 getPendingAlarms가 회수한다
     alarms.forEach((alarm) => {
-      void this.run(alarm);
+      this.run(alarm).catch((error) =>
+        this.logger.error(`알람 ${alarm.id} 처리 실패`, error),
+      );
     });
   }
 
@@ -200,7 +206,10 @@ export class AlarmService {
     return alarms;
   }
 
-  @Transactional({ propagation: Propagation.REQUIRED })
+  /**
+   * 트랜잭션을 걸지 않는다 — catch가 에러를 다 삼켜 롤백될 일이 없는데, 걸면 외부 API·Discord 전송이
+   * 끝날 때까지 커넥션을 붙잡아 같은 분에 알람이 몰리면 풀이 차고 슬래시 커맨드가 줄을 선다
+   */
   async run(alarm: AlarmConfig) {
     try {
       // jsonb에서 올라온 값이라 "이 대상엔 이 좁힘 값"이라는 짝은 타입이 못 좁힌다 —

@@ -2,19 +2,12 @@ import { card } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
 import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
 import { CycleName } from '@/warframe-api/world-state/vo/enum';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ALARM_LIMIT_PER_GUILD, AlarmService } from './alarm.service';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmStatus } from './vo/enum';
-
-// @Transactional()은 초기화된 CLS 네임스페이스 + DataSource를 요구한다.
-// 트랜잭션 경계는 DB가 보장할 몫이라 여기선 벗겨내고 흐름만 본다.
-vi.mock('typeorm-transactional', () => ({
-  Transactional: () => () => {},
-  Propagation: { REQUIRED: 'REQUIRED' },
-}));
 
 const NOW = '2026-08-25T12:00:00Z';
 
@@ -147,6 +140,27 @@ describe('AlarmService.getPendingAlarms', () => {
     await service.getPendingAlarms();
 
     expect(alarmConfigRepository.update).not.toHaveBeenCalled();
+  });
+});
+
+/** 떼어 보낸 run()의 거절을 안 받으면 unhandled rejection으로 프로세스가 죽는다 */
+describe('AlarmService.cron', () => {
+  it('실패 기록 저장까지 실패해도 거절이 새지 않는다', async () => {
+    const alarm = alarmOf({ id: 'a1', doneAt: dayjs(NOW) });
+    const { service, getAlarmTarget, alarmConfigRepository } = build([alarm]);
+    getAlarmTarget.mockRejectedValue(new Error('api down'));
+    alarmConfigRepository.save.mockRejectedValue(new Error('db down'));
+    const logged = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => {});
+
+    await service.cron();
+    await vi.waitFor(() =>
+      expect(logged).toHaveBeenCalledWith(
+        '알람 a1 처리 실패',
+        expect.any(Error),
+      ),
+    );
   });
 });
 

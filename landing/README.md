@@ -40,8 +40,8 @@ npm test          # vitest
 - [ ] Cloudflare Pages 연결 — Production `main` / Root `landing` / Build `npm run build` / Output `dist` / Watch paths `landing/*`. Node는 `.node-version`(22)을 따른다.
 
 ### 봇 쪽 (스탯 알약용)
-- [ ] `src/app/app.controller.ts`에 `@Get('stats')` — 응답 `{ guilds: number, users: number, ready: boolean }` (`guilds.cache.size`, `memberCount` 합, `isReady()`)
-- [ ] `main.ts`에 `app.enableCors({ origin: '<랜딩 도메인>' })`
+- [x] `src/app/app.controller.ts`에 `@Get('stats')` — 응답 `{ guilds: number, users: number, ready: boolean }` (`guilds.cache.size`, `memberCount` 합, `isReady()`)
+- [x] `main.ts`에 `app.enableCors()` — 공개 GET뿐이라 origin 제한 없이 `*` (2026-09-28)
 - [ ] Railway 공개 도메인 발급 → Pages 환경변수 `VITE_STATS_URL`에 넣기. 비어 있거나 실패하면 스탯 영역은 숨겨진다.
 
 ### 콘텐츠

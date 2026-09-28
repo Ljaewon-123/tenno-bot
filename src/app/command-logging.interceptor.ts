@@ -1,10 +1,10 @@
 import {
   CallHandler,
   ExecutionContext,
+  GatewayTimeoutException,
   Injectable,
   Logger,
   NestInterceptor,
-  RequestTimeoutException,
 } from '@nestjs/common';
 import { NecordExecutionContext, type SlashCommandContext } from 'necord';
 import {
@@ -37,10 +37,13 @@ export class CommandLoggingInterceptor implements NestInterceptor {
           `${this.commandName(interaction)} ${Math.round(performance.now() - startedAt)}ms`,
         ),
       ),
-      timeout(5000),
+      // defer 뒤라 디스코드는 15분을 기다려 준다. 외부 API 타임아웃(5초)보다 짧거나 같으면
+      // API가 멈췄을 때 이쪽이 먼저 끊어 만료 캐시 폴백(WorldStateService.get)이 돌 기회가 없다
+      timeout(10_000),
       catchError((err) => {
+        // 408은 4xx라 필터가 "옵션을 확인하라"는 유저 실수 카드로 낸다 — 우리 쪽 지연이므로 5xx로 던진다
         if (err instanceof TimeoutError) {
-          return throwError(() => new RequestTimeoutException());
+          return throwError(() => new GatewayTimeoutException());
         }
         return throwError(() => err as unknown);
       }),

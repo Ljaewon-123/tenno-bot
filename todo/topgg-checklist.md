@@ -10,12 +10,12 @@ top.gg 심사 통과를 위한 요구사항 정리. 리뷰어는 위반 사항�
 - [ ] **심사 기간 내내 봇이 온라인** — 리뷰어가 접속했을 때 오프라인이면 즉시 반려
 - [ ] **Public 봇이고 초대 가능** — Developer Portal에서 `Public Bot` 켜져 있을 것
 - [ ] **메인 기능과 대부분의 명령어가 정상 동작**
-- [ ] **명확한 진입점(동작하는 help 명령어)** — `/help` 존재 (`src/slash-command/slash-command.service.ts`)
+- [x] **명확한 진입점(동작하는 help 명령어)** (2026-09-28 코드 확인: 실제 커맨드 목록과 일치) — `/help` 존재 (`src/slash-command/slash-command.service.ts`)
 - [ ] 슬래시 커맨드가 리뷰어 서버에서도 보일 것 — production은 전역 등록이라 OK. 개발 모드는 `DISCORD_DEVELOPMENT_GUILD_ID` 전용이므로 **심사 중 배포 환경이 production인지 확인**
 
 ### 권한
-- [ ] **Administrator 권한 요구 금지**
-- [ ] 초대 링크 권한은 명령어가 실제로 쓰는 것만 (메시지 전송, 임베드, 채널 보기 등)
+- [x] **Administrator 권한 요구 금지** (2026-09-28 코드 확인: `/notification`만 ManageGuild, intent는 Guilds뿐)
+- [ ] 초대 링크 권한은 명령어가 실제로 쓰는 것만 — 코드 기준 View Channel + Send Messages + Embed Links 세 개면 충분(알림·알람·파티가 채널에 직접 send). 버튼 update는 인터랙션 응답이라 권한 불필요
 
 ### 독창성·약관
 - [ ] 다른 봇의 무수정 포크/인스턴스가 아닐 것
@@ -30,7 +30,7 @@ top.gg 심사 통과를 위한 요구사항 정리. 리뷰어는 위반 사항�
 ## 권장 — 반려 사유는 아니지만 통과·첫인상에 영향
 
 - [ ] help 응답만 보고 주요 기능을 파악할 수 있을 것 (명령어 목록 + 한 줄 설명)
-- [ ] 에러 시 유저에게 이유가 보일 것 — 전역 `CommandExceptionFilter`가 처리하므로 대부분 OK, 외부 API 장애 시 메시지 확인
+- [x] 에러 시 유저에게 이유가 보일 것 — 전역 `CommandExceptionFilter` + WFCD 장애 시 "WFCD API · offline" 카드 (2026-09-28 확인)
 - [ ] 봇 페이지·명령어 응답 언어 통일 (영어)
 - [ ] 서포트 서버 링크 — 리뷰어·유저 문의 창구
 - [ ] 짧은 설명(한 줄 소개)을 기능 중심으로: "Warframe world state, alarms, and party finder for Discord"
@@ -50,3 +50,7 @@ top.gg 심사 통과를 위한 요구사항 정리. 리뷰어는 위반 사항�
 
 - 반려 사유가 전달되므로 해당 항목만 고치고 재제출
 - 가이드라인에 명시되지 않은 사유로도 반려될 수 있음 (리뷰어 재량)
+
+## top.gg 이후 — Discord 인증 (100서버 제한)
+
+top.gg 노출로 서버가 늘면 먼저 부딪히는 건 Discord 쪽이다. **미인증 봇은 100서버를 넘으면 초대가 막힌다.** 인증 신청은 75서버부터 가능하고 Privacy/Terms URL이 필요하다 — 랜딩에 페이지는 있으니 도메인 확정 후 Developer Portal에 등록. 75서버 근처에서 바로 신청할 것.

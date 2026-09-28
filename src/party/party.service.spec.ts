@@ -179,6 +179,14 @@ describe('expire', () => {
     expect(edit).toHaveBeenCalledTimes(2);
   });
 
+  // 카드 푸터 "Closed <t:..:R>"가 updatedAt을 읽는다 — 옛 값이면 방금 닫힌 파티가 몇 시간 전에 닫힌 걸로 보인다
+  it('마감 시각을 지금으로 옮겨 그린다', async () => {
+    const stale = party({ updatedAt: dayjs().subtract(3, 'hour') });
+    const { service } = build({ expired: [stale] });
+    await service.expire();
+    expect(dayjs().diff(stale.updatedAt, 'second')).toBeLessThan(5);
+  });
+
   it('한 건이 실패해도 나머지는 갱신된다', async () => {
     const { service, edit } = build({
       expired: [party({ id: 'p1', messageId: 'dead' }), party({ id: 'p2' })],
