@@ -35,11 +35,7 @@ export class AlarmConfig extends CommonWithGuildChannel {
   @Column({ nullable: true, type: 'text' })
   description?: string;
 
-  /**
-   * 반복 주기(분). 비어 있으면 임베드 🔔 버튼이 만든 1회용 리마인더다.
-   * 이 한 칸이 발송처(DM/채널)·발동 후 처리(삭제/재스케줄)·`/alarm list` 노출 셋을
-   * 동시에 가른다 — 셋이 항상 같이 움직여서 플래그를 따로 두지 않았다.
-   */
+  /** 반복 주기(분). null이면 🔔 1회용 리마인더 — 발송처·발동 후 처리·목록 노출이 이 값 하나로 갈린다 */
   @IsInt()
   @IsOptional()
   @Expose()
@@ -89,11 +85,13 @@ export class AlarmConfig extends CommonWithGuildChannel {
 
   /** 성공해도 지우지 않는다 — "마지막으로 언제 깨졌나"가 남아야 간헐적 API 실패를 판별할 수 있다 */
   fail(error: unknown) {
-    this.error = JSON.stringify(error, Object.getOwnPropertyNames(error));
+    this.error = JSON.stringify(
+      error,
+      error instanceof Object ? Object.getOwnPropertyNames(error) : undefined,
+    );
     this.failedAt = dayjs();
   }
 
-  /** 다음 발동 시각으로 밀고 다시 대기 상태로. 1회용은 여기 오지 않는다(발동 후 삭제된다) */
   reschedule() {
     const now = dayjs();
     const interval = this.intervalValue ?? 0;

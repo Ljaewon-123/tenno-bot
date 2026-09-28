@@ -82,7 +82,6 @@ export class NotificationCommandService {
       payload(
         manageCard({
           title: `Subscriptions · ${subscriptions.length} of ${targets.length}`,
-          // 끈 것도 자리를 남긴다 — 목록에 없는 것과 아직 없는 것을 구분할 방법이 이것뿐이다
           rows: targets.map((target) => {
             const on = subscriptions.find(
               ({ eventType }) => eventType === target,

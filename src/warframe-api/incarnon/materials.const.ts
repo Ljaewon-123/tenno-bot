@@ -1,14 +1,8 @@
 import { IncarnonMaterial } from './types';
 
 /**
- * 인카논 제네시스 설치 재료. 어댑터 uniqueName -> 재료 3종.
- *
- * 퍽과 달리 이건 위키를 파싱하지 않는다 — DE Public Export의 `ExportRecipes.json`
- * (`IncarnonAdapters/UnlockerBlueprints/*`)에 45개가 구조화돼 있어서 그걸 그대로 옮겼다.
- * 레시피에는 어댑터 자신도 재료로 들어 있지만 표시할 게 아니라 뺐다.
- * 재료 이름·아이콘은 여기 두지 않는다 — uniqueName으로 `WfcdItemsService`가 붙인다(180/180 해석됨).
- *
- * 새 인카논이 추가될 때만(연 2~3회) 다시 뽑으면 된다. 뽑는 법은 위 경로를 필터링하는 게 전부다.
+ * 어댑터 uniqueName → 설치 재료. DE Public Export `ExportRecipes.json`(IncarnonAdapters/UnlockerBlueprints/*)에서 옮겼다.
+ * 이름·아이콘은 uniqueName으로 WfcdItemsService가 붙인다. 새 인카논이 추가될 때만 다시 뽑는다.
  */
 export const INCARNON_MATERIALS: Record<string, IncarnonMaterial[]> = {
   // Ack & Brunt Incarnon Genesis

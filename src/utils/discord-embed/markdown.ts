@@ -5,16 +5,11 @@ import type { ConfigType } from 'dayjs';
 export const truncate = (text: string, max: number) =>
   text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 
-/** 컨테이너 제목. V2 헤딩(20px/700)은 h1이 아니라 h2다 */
 export const title = (text: string) => `## ${text}`;
 
-/** 그룹 헤더·강조. `Steel Path` 같은 배지도 이모지가 아니라 굵게 */
 export const bold = (text: string) => `**${text}**`;
 
-/**
- * 회색 보조 줄. 디스코드에 "회색 본문"은 없고 이것뿐이라
- * 부가 정보·안내·데이터 신선도는 전부 여기로 내린다 (footer는 마크다운이 안 먹는다).
- */
+/** 회색 보조 줄 — footer는 마크다운이 안 먹어 부가 정보는 전부 여기로 */
 export const subtext = (text: string) =>
   // `-#`는 줄 단위다 — 여러 줄을 한 번만 감싸면 둘째 줄부터 본문 크기로 튀어 위계가 깨진다
   text
@@ -22,17 +17,10 @@ export const subtext = (text: string) =>
     .map((line) => `-# ${line}`)
     .join('\n');
 
-/** "1시간 12분 뒤" — 기본값. 서버가 시각을 문자열로 굽지 않으니 뷰어 시간대 문제가 사라진다 */
+/** 뷰어 시간대로 렌더된다 — 서버가 시각을 문자열로 굽지 않는다 */
 export const relative = (date: ConfigType) => `<t:${dayjs(date).unix()}:R>`;
 
-/** "오후 11:40" — 주간 초기화처럼 시점이 고정된 값에만 */
-export const at = (date: ConfigType) => `<t:${dayjs(date).unix()}:t>`;
-
-/**
- * "▰▰▰▱▱▱▱▱" — 8칸 고정 텍스트 배지. 디스코드에 진행바 그래픽은 없다.
- * 칸 수를 데이터에 따라 늘리면 폭이 흔들려 모바일에서 줄이 접힌다.
- * 숫자는 붙이지 않는다 — 옆에 세울 값(실제 확률·점수)은 호출단이 안다.
- */
+/** 8칸 고정 — 칸 수가 바뀌면 폭이 흔들려 모바일에서 줄이 접힌다 */
 export const bar = (percent: number) => {
   const filled = Math.min(8, Math.max(0, Math.round(percent / 12.5)));
   return `${'▰'.repeat(filled)}${'▱'.repeat(8 - filled)}`;

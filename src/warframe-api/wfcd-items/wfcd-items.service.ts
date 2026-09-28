@@ -1,90 +1,60 @@
 import { Injectable } from '@nestjs/common';
-import Items, { Locale } from '@wfcd/items';
+import Items from '@wfcd/items';
+import { CDN_BASE_URL, REMOVED_VARIANT } from './constants';
 import { DropItem } from './vo/drop-item.interface';
-import { ItemI18n } from './vo/item-i18n.interface';
-
-// 게임에서 빠진 열화판/구 입문 모드. name이 정식판과 완전히 같아서(Serration이 셋)
-// 이름으로 찾으면 데이터 순서상 이쪽이 먼저 잡혀 +40% 카드가 나간다. uniqueName 경로로만 구분된다
-const REMOVED_VARIANT = /\/(Beginner|Intermediate)\//;
 
 @Injectable()
 export class WfcdItemsService {
-  private readonly CDN_BASE_URL = 'https://cdn.warframestat.us/img';
+  /** 이름 → 이미지 있는 아이템. /incarnon 자동완성처럼 키 입력마다 불려서 전체 스캔을 부팅 1회로 줄인다 */
+  private readonly byName = new Map<string, DropItem>();
+  /** 부품 이름 → 상위 아이템 */
+  private readonly byComponent = new Map<string, DropItem>();
+  private readonly incarnonGenesis: DropItem[] = [];
 
-  constructor(private readonly wfcdItems: Items) {}
+  constructor(private readonly wfcdItems: Items) {
+    // Items는 Array 서브클래스라 filter/map이 Items 생성자를 다시 부른다 — for...of로만 훑는다
+    for (const item of wfcdItems as unknown as DropItem[]) {
+      if (item.name?.endsWith(' Incarnon Genesis'))
+        this.incarnonGenesis.push(item);
+      // 이미지 없는 동명 항목('Forma Blueprint')이 상위 'Forma'를 가리지 않게 이미지 있는 쪽만 담는다
+      if (!item.imageName) continue;
+      if (!this.byName.has(item.name) && !REMOVED_VARIANT.test(item.uniqueName))
+        this.byName.set(item.name, item);
+      for (const component of item.components ?? [])
+        if (!this.byComponent.has(component.name))
+          this.byComponent.set(component.name, item);
+    }
+  }
 
-  /** uniqueName으로 원본(기본 언어) 아이템 데이터 조회 */
   findItem(uniqueName: string) {
     return this.wfcdItems.find((item) => item.uniqueName === uniqueName);
   }
 
-  /**
-   * uniqueName + locale로 번역 데이터 조회.
-   * i18n.json 실물 구조가 { [uniqueName]: { [locale]: ItemI18n } } 순서라 uniqueName으로 먼저 인덱싱해야 함
-   * (라이브러리 d.ts 제네릭 표기가 실제 구조와 반대라 헷갈리기 쉬움 - 직접 데이터 까서 확인함).
-   */
-  findLocaleLang(uniqueName: string, locale: Locale): ItemI18n | undefined {
-    const i18nBundle = this.wfcdItems.i18n as unknown as Record<
-      string,
-      Partial<Record<Locale, ItemI18n>>
-    >;
-    return i18nBundle?.[uniqueName]?.[locale];
-  }
-
-  /** imageName -> CDN URL. 아이템으로 잡히지 않는 고정 이미지(보스/샤드/NPC)도 같은 CDN을 탄다 */
   imgUrl(imageName: string): string {
-    return `${this.CDN_BASE_URL}/${imageName}`;
+    return `${CDN_BASE_URL}/${imageName}`;
   }
 
-  /** uniqueName의 아이템 이미지 CDN URL 조회 (없으면 undefined) */
   findItemImg(uniqueName: string): string | undefined {
     const item = this.findItem(uniqueName);
     if (!item?.imageName) return undefined;
     return this.imgUrl(item.imageName);
   }
 
-  /**
-   * 드랍테이블 아이템 이름 -> 아이템. 드랍 이름은 wfcd 아이템명과 정확히 맞지 않는 게 많아
-   * 뒷 단어를 하나씩 떼며 상위 아이템으로 폴백한다 ('Ash Prime Systems Blueprint' -> 'Ash Prime').
-   * 부품 이미지는 죄다 GenericWarframePrimeSystem 같은 공용이라 상위 아이템 쪽이 더 쓸모 있다.
-   * 성유물 보상 596개 중 592개가 이 방식으로 잡힌다.
-   */
+  /** 드랍 이름이 wfcd 이름과 안 맞는 게 많아 뒷 단어를 떼며 상위 아이템으로 폴백한다('Ash Prime Systems Blueprint' → 'Ash Prime') */
   findItemByName(itemName: string): DropItem | undefined {
     // '2X Forma Blueprint', '1200X Kuva' 같은 수량 접두어는 이름에 없다
     const words = itemName.replace(/^\d+X /, '').split(' ');
     while (words.length) {
-      const name = words.join(' ');
-      // 이미지 있는 쪽만 본다 — 'Forma Blueprint'처럼 이미지 없는 동명 항목이 상위 'Forma'를 가린다
-      const item = this.wfcdItems.find(
-        (candidate) =>
-          candidate.name === name &&
-          candidate.imageName &&
-          !REMOVED_VARIANT.test(candidate.uniqueName),
-      );
+      const item = this.byName.get(words.join(' '));
       if (item) return item;
       words.pop();
     }
 
-    // 상위 아이템 이름이 부품 이름의 접두사가 아니면 뒷 단어를 떼도 못 닿는다 —
-    // 'Kavasa Prime Band'의 상위는 'Kavasa Prime Kubrow Collar'다. components에서 거꾸로 찾는다.
-    // 여기서도 상위 아이템을 돌려준다: 부품 자체 이미지는 GenericComponentPrimeLatch 같은 공용이라 쓸모가 없다
-    return this.wfcdItems.find(
-      (candidate) =>
-        candidate.imageName &&
-        (candidate as DropItem).components?.some(
-          (component) => component.name === itemName,
-        ),
-    );
+    // 'Kavasa Prime Band'처럼 상위 이름이 접두사가 아니면 components에서 거꾸로 찾는다
+    return this.byComponent.get(itemName);
   }
 
-  /**
-   * 성유물 이름 -> wfcd 아이템. 드랍 인덱스는 'Axi A1 Relic'인데 wfcd는 상태별로 쪼개
-   * 'Axi A1 Intact'로 들고 있어 접미사를 바꿔 찾는다(이미지는 네 상태가 같은 티어 아이콘).
-   *
-   * 볼팅 여부가 여기에만 있다 — 드랍 테이블에는 "지금 뜨는가"가 미션·바운티 보상 쪽에
-   * 흩어져 있을 뿐이다. 772개 중 34개만 vaulted:false이고, 그 34종은 all.json에서
-   * 실제로 드랍되는 성유물 34종과 정확히 일치한다(교차검증함).
-   */
+  /** 드랍 인덱스는 'Axi A1 Relic', wfcd는 'Axi A1 Intact'. 볼팅 여부는 여기에만 있다 */
   findRelic(relicName: string): DropItem | undefined {
     const base = relicName.replace(/ Relic$/, '');
     return this.wfcdItems.find(
@@ -92,38 +62,20 @@ export class WfcdItemsService {
     );
   }
 
-  /**
-   * 바로 키티어 전용 프라임드 모드 전체. 드랍 테이블(all.json)에는 한 줄도 없어서
-   * 드랍 인덱스를 만들 때 여기서 채워 넣는다. 두캇 값은 이 데이터에 없다 — 바로 재고에만 있다
-   */
+  /** 프라임드 모드는 드랍 테이블에 없어 인덱스 구축 때 여기서 채운다 */
   findPrimedMods(): DropItem[] {
     return [...(this.wfcdItems as unknown as DropItem[])].filter((item) =>
       item.name?.startsWith('Primed '),
     );
   }
 
-  /**
-   * 인카논 제네시스 45종. `/incarnon weapon` 자동완성 소스이자 위키 페이지 목록이다 —
-   * 이름이 위키 페이지명과 45/45 그대로 일치해서 페이지 검색을 따로 안 해도 된다.
-   */
+  /** 이름이 위키 페이지명과 그대로 일치해 위키 검색 없이 쓴다 */
   findIncarnonGenesis(): DropItem[] {
-    return [...(this.wfcdItems as unknown as DropItem[])].filter((item) =>
-      item.name?.endsWith(' Incarnon Genesis'),
-    );
+    return this.incarnonGenesis;
   }
 
-  /** @see findItemByName */
   findItemImgByName(itemName: string): string | undefined {
     const item = this.findItemByName(itemName);
     return item?.imageName ? this.imgUrl(item.imageName) : undefined;
-  }
-
-  /** locale이 주어지면 이름/설명 등을 번역본으로 덮어쓴 아이템 조회, 없으면 기본 언어 그대로 */
-  findItemLocalized(uniqueName: string, locale?: Locale) {
-    const item = this.findItem(uniqueName);
-    if (!item) return;
-
-    const translation = locale && this.findLocaleLang(uniqueName, locale);
-    return translation ? { ...item, ...translation } : item;
   }
 }

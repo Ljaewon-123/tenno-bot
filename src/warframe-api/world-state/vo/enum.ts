@@ -31,37 +31,7 @@ export const ArchonReward = {
   [ArchonBoss.Nira]: 'Amber',
 };
 
-/**
- * 임베드용 아이템 uniqueName. **png 파일명을 손으로 적지 않는다** — 그림 주소는 아이템 DB가 아는 것이고,
- * 손으로 적은 이름이 어긋나면 디스코드가 조용히 안 그리고 끝나 눈으로는 회귀를 못 잡는다.
- * uniqueName은 게임 내부 경로라 imageName보다 안 흔들린다.
- *
- * 집정관 본체 이미지는 DB에 없어 보스는 모드 세트 헤더(집정관 마스크 엠블럼)로 대신한다.
- * **샤드는 산출물에 없지만 일부러 남긴다** — 이번 주에 무슨 색 샤드가 나오나가
- * 이 카드에서 사람이 실제로 보는 정보고, 색은 글자보다 그림이 빠르다.
- */
-export const ArchonImage = {
-  [ArchonBoss.Boreal]: {
-    boss: '/Lotus/Upgrades/Mods/Sets/Boreal/BorealSetMod',
-    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalBoreal',
-  },
-  [ArchonBoss.Amar]: {
-    boss: '/Lotus/Upgrades/Mods/Sets/Amar/AmarSetMod',
-    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalAmar',
-  },
-  [ArchonBoss.Nira]: {
-    boss: '/Lotus/Upgrades/Mods/Sets/Nira/NiraSetMod',
-    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalNira',
-  },
-};
-
-/** 보이드 상인 본인 이미지 — 아이템이 아니라 글리프 이미지를 쓴다 */
-export const VOID_TRADER_IMAGE = 'BaroKiteerAvatar.png';
-
-/**
- * 바로 재고 분류. 재고 응답에는 카테고리가 없어 아이템 DB의 `category`에서 파생한다.
- * 사람은 재고 40종을 다 읽는 게 아니라 "내가 노리는 게 왔나"만 본다 — 그 판단이 셋이면 끝난다.
- */
+/** 재고 응답엔 카테고리가 없어 아이템 DB의 category에서 파생한다 */
 export enum VoidTraderCategory {
   Mods = 'mods',
   Weapons = 'weapons',
@@ -73,18 +43,6 @@ export const VoidTraderCategoryLabel: Record<VoidTraderCategory, string> = {
   [VoidTraderCategory.Weapons]: 'Weapons',
   [VoidTraderCategory.Other]: 'Cosmetics & Other',
 };
-
-/**
- * Weapons로 묶을 wfcd `category`. 센티널·아크윙 본체는 여기 없다 — 무기가 아니라 Other다.
- * Mods 외의 나머지는 전부 Other로 흡수한다(코스메틱은 아이템 DB에서 아예 안 잡히는 게 많다).
- */
-export const VOID_TRADER_WEAPON_CATEGORIES: string[] = [
-  'Primary',
-  'Secondary',
-  'Melee',
-  'Arch-Gun',
-  'Arch-Melee',
-];
 
 export const isVoidTraderCategory = (
   value: string,
@@ -100,37 +58,26 @@ export enum NightwaveFilter {
 export const isNightwaveFilter = (value: string): value is NightwaveFilter =>
   (Object.values(NightwaveFilter) as string[]).includes(value);
 
-/** customId로 돌아온 값은 유저가 아니라 우리가 심은 것이지만, 구버전 메시지의 버튼도 눌린다 */
 export const isCycleName = (value: string): value is CycleName =>
   (Object.values(CycleName) as string[]).includes(value);
 
 export const isVoidTier = (value: string): value is VoidTier =>
   (Object.values(VoidTier) as string[]).includes(value);
 
-/**
- * 시간대가 게임플레이를 바꾸는 오픈월드만. 지구(pc/earthCycle)는 조명만 바뀌어 뺐다.
- * 값이 그대로 `pc/{name}Cycle` 경로가 된다.
- */
+/** 시간대가 게임플레이를 바꾸는 오픈월드만(지구 제외). 값이 그대로 pc/{name}Cycle 경로가 된다 */
 export enum CycleName {
   Cetus = 'cetus',
   Vallis = 'vallis',
   Cambion = 'cambion',
 }
 
-/**
- * 오픈월드 이름 + 행성. 허브 이름(Cetus/Fortuna/Necralisk)은 뺐다 — 셋을 다 적으면 길다.
- * 행성을 붙이는 이유: 오픈월드 이름보다 "지구/금성/데이모스"로 기억하는 사람이 많다.
- */
 export const CycleLabel = {
   [CycleName.Cetus]: 'Plains of Eidolon (Earth)',
   [CycleName.Vallis]: 'Orb Vallis (Venus)',
   [CycleName.Cambion]: 'Cambion Drift (Deimos)',
 };
 
-/**
- * pc/archimedeas의 typeKey에서 공백을 지운 값. API 키는 위치명(LAB/HEX)이라
- * 유저에게는 choices·임베드 모두 ArchimedeaLabel의 인게임 명칭으로만 노출한다.
- */
+/** pc/archimedeas typeKey에서 공백을 지운 값 */
 export enum ArchimedeaType {
   Deep = 'CT_LAB',
   Temporal = 'CT_HEX',
@@ -147,17 +94,13 @@ export enum CircuitCategory {
   Hard = 'EXC_HARD',
 }
 
-/** 지역 아이콘. V2에는 3열 격자가 없어 세로 스택뿐이라, 줄머리 이모지가 유일한 구분 장치다 */
 export const CycleIcon = {
   [CycleName.Cetus]: '☀️',
   [CycleName.Vallis]: '🔥',
   [CycleName.Cambion]: '🟣',
 };
 
-/**
- * API는 현재 state만 준다. 세 사이클 모두 2상태라 다음 상태는 반대쪽으로 정해진다 —
- * "무엇이 언제 바뀌나"를 한 줄로 합치려면 이게 필요하다. 모르는 state면 화살표를 생략한다.
- */
+/** API는 현재 state만 준다 — 2상태라 다음은 반대쪽. 모르는 state면 화살표를 생략한다 */
 export const CycleNextState: Record<string, string> = {
   day: 'night',
   night: 'day',

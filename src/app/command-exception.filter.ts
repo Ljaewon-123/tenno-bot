@@ -23,7 +23,7 @@ export class CommandExceptionFilter implements ExceptionFilter {
   }
 
   async catch(exception: Error, host: ArgumentsHost) {
-    // 4xx는 유저에게 보여줄 안내지 장애가 아니다 — 서비스가 throw new BadRequestException('...') 한 줄로 끝난다
+    // 4xx는 서비스가 던진 유저 안내라 장애 로그를 남기지 않는다
     const status =
       exception instanceof HttpException ? exception.getStatus() : 500;
     const userError = status >= 400 && status < 500;

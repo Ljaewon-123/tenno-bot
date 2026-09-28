@@ -3,22 +3,13 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
+import { INDEX_VERSION } from './constants';
 import { DropSourceService } from './drop-source.service';
 import { DropSourceRepository } from './repositories/drop-source.repository';
 import { DropTableData, DropTableInfo } from './types';
 import { DropCategory } from './vo/enum';
 
-// relics/missionRewards/modLocations 등 정적 드랍테이블은 Prime Access 단위(분기~수개월)로만 바뀜.
-// 변경 주기가 예측 불가하므로 주 1회 all.json 통째로 재수집해 Postgres에 덮어쓰는 방식.
-// 효율화하려면 info.json(hash/modified)을 먼저 확인해 변경 시에만 all.json 재수집.
-// 주된 기능은 특정 아이템은 어떤 미션 혹은 어떤 드랍에서 얻을 수있는지가 우선순위
-// 1. 목표 아이템은 특정 성유물 (또는 성유물을 까서 나오는 프라임 부품)
-// 2. 특정 미션, 혹은 특정 몹을 잡아야 드랍되는 모드
-// 3. 특정 미션에서만 얻을수있는 모드 또한 표시 (상승 미션 등등)
-// 인덱스 구축 규칙(제외 목록·평탄화)을 바꾸면 올린다 — 원본 hash가 그대로여도
-// 재구축이 필요한데, 이걸 hash에 붙여두면 다음 부팅에 알아서 다시 만든다
-export const INDEX_VERSION = 'v4';
-
+/** 드랍테이블은 Prime Access 단위로만 바뀐다 — 주 1회 info.json 해시가 바뀌었을 때만 all.json을 재수집한다 */
 @Injectable()
 export class DropTableService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DropTableService.name);
@@ -30,9 +21,7 @@ export class DropTableService implements OnApplicationBootstrap {
     private readonly dropSourceService: DropSourceService,
   ) {}
 
-  // 부팅 시 1회 시딩 — 크론만 있으면 새 DB가 다음 일요일까지 빈 채로 있다.
-  // hash가 같으면 info.json 한 번 찍고 리턴이라 재배포마다 돌아도 싸다.
-  // await 하지 않는다 — all.json 파싱/insert가 끝날 때까지 디스코드 로그인이 막히면 안 된다
+  // 부팅 시 1회 시딩 — 크론만 있으면 새 DB가 다음 주까지 비어 있다. await하면 디스코드 로그인이 막힌다
   onApplicationBootstrap() {
     void this.getAllDropTables().catch((error) =>
       this.logger.error('drop table 초기 수집 실패', error),
@@ -64,30 +53,24 @@ export class DropTableService implements OnApplicationBootstrap {
     await this.cacheRepository.save(entity);
   }
 
-  /**
-   * 역인덱스 검색. 부분 일치, 확률 높은 순.
-   * 이름이 정확히 맞는 아이템을 앞으로 뺀다 — 확률만으로 자르면 'Pressure Point'가
-   * 확률 높은 'Necramech Pressure Point' 행에 50칸을 다 뺏겨 통째로 사라진다
-   */
+  /** 정확히 맞는 이름을 앞으로 — 확률 순으로만 자르면 'Pressure Point'가 'Necramech Pressure Point'에 밀려 사라진다 */
   async findDropSources(itemName: string, category?: DropCategory) {
     const query = this.dropSourceRepository
       .createQueryBuilder('drop')
-      .where('drop.itemName ILIKE :like', { like: `%${itemName}%` })
+      .where('drop.itemName ILIKE :like', {
+        like: `%${this.escapeLike(itemName)}%`,
+      })
       .orderBy('drop.itemName ILIKE :exact', 'DESC')
       .addOrderBy('drop.chance', 'DESC')
-      // 확률 동률이 흔하다 — Braton Prime Blueprint는 25.33% 성유물이 45개다.
-      // 2차 기준이 없으면 DB 반환 순서라 페이지를 넘길 때마다 순서가 흔들린다
+      // 확률 동률이 흔해서 2차 정렬이 없으면 페이지마다 순서가 흔들린다
       .addOrderBy('drop.sourceName', 'ASC')
-      .setParameter('exact', itemName)
+      .setParameter('exact', this.escapeLike(itemName))
       .take(50);
     if (category) query.andWhere('drop.category = :category', { category });
     return query.getMany();
   }
 
-  /**
-   * 역방향. 같은 테이블을 itemName이 아니라 sourceName으로 읽는다 —
-   * 이 성유물에 뭐가 들었나. 보상은 최대 8개라 상한을 걸지 않는다.
-   */
+  /** 역방향 — sourceName으로 읽는다. 보상은 최대 8개라 상한이 없다 */
   async findRelicRewards(relicName: string) {
     return this.dropSourceRepository.find({
       where: { category: DropCategory.Relic, sourceName: relicName },
@@ -95,28 +78,36 @@ export class DropTableService implements OnApplicationBootstrap {
     });
   }
 
-  /** `/relic` 오토컴플리트용 성유물 이름 검색. 성유물은 773개고 선택지 상한은 25개다 */
+  /** 성유물은 773개, 자동완성 상한은 25개 */
   async searchRelicNames(keyword: string) {
     const rows = await this.dropSourceRepository
       .createQueryBuilder('drop')
       .select('DISTINCT drop.sourceName', 'sourceName')
       .where('drop.category = :category', { category: DropCategory.Relic })
-      .andWhere('drop.sourceName ILIKE :keyword', { keyword: `%${keyword}%` })
+      .andWhere('drop.sourceName ILIKE :keyword', {
+        keyword: `%${this.escapeLike(keyword)}%`,
+      })
       .orderBy('drop.sourceName')
       .limit(25)
       .getRawMany<{ sourceName: string }>();
     return rows.map((row) => row.sourceName);
   }
 
-  /** 오토컴플리트용 이름 검색. 디스코드 선택지 상한이 25개라 거기서 자른다 */
   async searchItemNames(keyword: string) {
     const rows = await this.dropSourceRepository
       .createQueryBuilder('drop')
       .select('DISTINCT drop.itemName', 'itemName')
-      .where('drop.itemName ILIKE :keyword', { keyword: `%${keyword}%` })
+      .where('drop.itemName ILIKE :keyword', {
+        keyword: `%${this.escapeLike(keyword)}%`,
+      })
       .orderBy('drop.itemName')
       .limit(25)
       .getRawMany<{ itemName: string }>();
     return rows.map((row) => row.itemName);
+  }
+
+  /** 유저 입력의 %·_가 와일드카드로 동작하지 않게 한다 (Postgres LIKE 기본 이스케이프 문자는 \) */
+  private escapeLike(value: string) {
+    return value.replace(/[\\%_]/g, '\\$&');
   }
 }

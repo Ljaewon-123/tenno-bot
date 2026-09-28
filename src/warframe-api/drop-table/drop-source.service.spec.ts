@@ -20,9 +20,11 @@ describe('DropSourceService.rebuildDropSources', () => {
 
   const build = () => {
     const inserted: Row[][] = [];
+    const wipe = vi.fn();
     const dropSourceRepository = {
       create: vi.fn((value: object) => ({ ...value })),
-      clear: vi.fn(),
+      wipe,
+      createQueryBuilder: () => ({ delete: () => ({ execute: wipe }) }),
       insert: vi.fn((rows: Row[]) => {
         inserted.push(rows);
       }),
@@ -270,7 +272,7 @@ describe('DropSourceService.rebuildDropSources', () => {
     await harness.service.rebuildDropSources(data({ sortieRewards: rewards }));
 
     expect(
-      harness.dropSourceRepository.clear.mock.invocationCallOrder[0],
+      harness.dropSourceRepository.wipe.mock.invocationCallOrder[0],
     ).toBeLessThan(
       harness.dropSourceRepository.insert.mock.invocationCallOrder[0],
     );

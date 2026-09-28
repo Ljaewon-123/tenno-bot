@@ -22,6 +22,5 @@ export enum DropCategory {
   Trader = 'trader',
 }
 
-/** customId로 돌아온 값. 우리가 심은 것이지만 구버전 메시지의 버튼도 눌린다 */
 export const isDropCategory = (value: string): value is DropCategory =>
   (Object.values(DropCategory) as string[]).includes(value);

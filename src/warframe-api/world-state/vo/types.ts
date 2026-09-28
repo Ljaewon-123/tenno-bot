@@ -89,12 +89,7 @@ export interface VoidTrader {
   schedule: VoidTraderSchedule[];
 }
 
-/**
- * pc/events 배열의 원소.
- * 이벤트 종류별로 실제 페이로드 구조 편차가 커서 대부분 optional로 처리했습니다.
- * index signature로 예상 못한 필드도 타입 에러 없이 받아지도록 열어둠 —
- * 실제 소비할 필드는 런타임에서 존재 여부를 확인하고 쓰는 걸 권장합니다.
- */
+/** 이벤트 종류별로 페이로드 편차가 커서 대부분 optional + index signature */
 export interface WorldEvent {
   id: string;
   activation: string;
@@ -113,11 +108,7 @@ export interface WorldEvent {
   [key: string]: unknown;
 }
 
-/**
- * pc/{name}Cycle 공통 스키마.
- * isDay/isWarm/isCorpus처럼 사이클마다 이름이 다른 boolean이 같이 오지만 쓰지 않는다 —
- * 그걸 쓰는 순간 사이클 수만큼 타입이 갈라진다. state 문자열이면 전부 하나로 처리된다.
- */
+/** isDay/isWarm처럼 사이클마다 다른 boolean은 안 쓴다 — state 문자열 하나로 처리 */
 export interface Cycle {
   id: string;
   activation: string;
@@ -186,10 +177,7 @@ export interface CircuitChoice {
   choices: string[];
 }
 
-/**
- * pc/duviriCycle 응답 스키마.
- * expiry는 2시간짜리 무드 사이클이라 주간 로테이션 만료가 아니다 — 리셋은 따로 계산한다.
- */
+/** expiry는 2시간 무드 사이클이라 주간 로테이션 만료가 아니다 */
 export interface DuviriCycle {
   id: string;
   activation: string;

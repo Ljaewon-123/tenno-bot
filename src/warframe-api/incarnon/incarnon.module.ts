@@ -11,7 +11,6 @@ import { IncarnonService } from './incarnon.service';
       baseURL: 'https://wiki.warframe.com',
       timeout: 30_000,
     }),
-    // 위키 페이지 목록과 어댑터 아이콘·재료 이름이 전부 여기서 나온다
     WfcdItemsModule,
   ],
   providers: [IncarnonService, HttpJsonService],

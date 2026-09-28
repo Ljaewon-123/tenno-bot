@@ -14,7 +14,7 @@ export class AppController {
     return { message: 'success' };
   }
 
-  // 랜딩 스탯 알약용. 503을 던지면 랜딩이 알약을 통째로 숨기므로 게이트웨이가 끊겨도 ready:false로 내려준다
+  // 503을 던지면 랜딩이 스탯을 통째로 숨겨서 ready 플래그로 내린다
   @Get('stats')
   async getStats() {
     const guilds = this.client.guilds.cache;

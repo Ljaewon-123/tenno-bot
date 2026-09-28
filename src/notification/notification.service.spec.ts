@@ -33,7 +33,7 @@ const build = (
       .mockResolvedValue(overrides.notifications ?? [{ channelId: 'c1' }]),
     findOneBy: vi.fn().mockResolvedValue(null),
     create: vi.fn((value: object) => ({ ...value })),
-    save: vi.fn((entity: object) => entity),
+    save: vi.fn((entity: object) => Promise.resolve(entity)),
   };
   const fetch = vi.fn((channelId: string) =>
     overrides.deadChannels?.includes(channelId)
@@ -294,5 +294,21 @@ describe('NotificationService.subscribe', () => {
     expect(notificationRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ channelId: 'c1' }),
     );
+  });
+
+  it('동시 요청에 unique가 걸리면 다시 돌아 기존 행을 갱신한다', async () => {
+    const { service, notificationRepository } = build({});
+    const existing = { guildId: 'g1', eventType: 'sortie', channelId: 'old' };
+    notificationRepository.findOneBy
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existing);
+    notificationRepository.save.mockRejectedValueOnce({ code: '23505' });
+
+    await service.subscribe('g1', 'new', 'sortie' as never);
+
+    expect(notificationRepository.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({ channelId: 'new', guildId: 'g1' }),
+    );
+    expect(existing.channelId).toBe('new');
   });
 });

@@ -3,10 +3,6 @@ import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
 import { AutocompleteInterceptor } from 'necord';
 
-/**
- * /relic 의 name 옵션 자동완성. 드랍 인덱스의 성유물 이름만 보여준다 —
- * `/drop` 쪽(itemName)과 달리 이건 sourceName 축이다.
- */
 @Injectable()
 export class RelicAutocompleteInterceptor extends AutocompleteInterceptor {
   constructor(private readonly warframeApi: WarframeApiService) {

@@ -14,7 +14,6 @@ export class CommandResponder implements ExceptionResponder {
       return;
     }
 
-    // 평문 한 줄은 성공 응답과 같은 모양으로 읽힌다 — 실패는 어느 커맨드에서 나오든 같은 빨강 카드로 통일한다
     const view = payload(
       userError
         ? errorCard(

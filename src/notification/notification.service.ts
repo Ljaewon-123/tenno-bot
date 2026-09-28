@@ -9,13 +9,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
 import { FindOptionsWhere, LessThanOrEqual } from 'typeorm';
+import { HISTORY_RETENTION_DAYS } from './constants';
 import { Notification } from './entities/notification.entity';
 import { NotificationHistoryRepository } from './repositories/notification-history.repository';
 import { NotificationRepository } from './repositories/notification.repository';
 import { WatchTarget, WatchTargetLabel } from './types';
-
-/** 실패 이력 보관 기간 */
-const HISTORY_RETENTION_DAYS = 30;
 
 @Injectable()
 export class NotificationService {
@@ -31,7 +29,11 @@ export class NotificationService {
   ) {}
 
   /** 같은 길드+이벤트는 하나만 — 다시 켜면 수신 채널만 갈아끼운다 */
-  async subscribe(guildId: string, channelId: string, eventType: WatchTarget) {
+  async subscribe(
+    guildId: string,
+    channelId: string,
+    eventType: WatchTarget,
+  ): Promise<Notification> {
     const existing = await this.notificationRepository.findOneBy({
       guildId,
       eventType,
@@ -39,7 +41,13 @@ export class NotificationService {
     const entity =
       existing ?? this.notificationRepository.create({ guildId, eventType });
     entity.channelId = channelId;
-    return this.notificationRepository.save(entity);
+    return this.notificationRepository
+      .save(entity)
+      .catch((error: { code?: string }) => {
+        // 동시 요청이 나란히 insert하면 unique에 걸린다 — 다시 돌면 update로 간다
+        if (error?.code !== '23505') throw error;
+        return this.subscribe(guildId, channelId, eventType);
+      });
   }
 
   async unsubscribe(guildId: string, eventType: WatchTarget) {
@@ -54,20 +62,15 @@ export class NotificationService {
     return this.notificationRepository.findBy({ guildId });
   }
 
-  /**
-   * 발송 대상이 사라진 구독 정리 — 봇 추방/채널 삭제 시.
-   * 실패 이력은 안 건드린다(길드 컬럼이 없어 좁힐 수도 없다) — 30일 뒤 purgeHistory가 쓸어간다
-   */
+  /** 실패 이력은 길드 컬럼이 없어 여기서 안 지운다 — purgeHistory가 쓸어간다 */
   async cleanup(where: FindOptionsWhere<Notification>) {
     const { affected } = await this.notificationRepository.delete(where);
     return affected ?? 0;
   }
 
-  // 소티(일간)/아콘헌트(주간)는 UTC 00:00 리셋이지만 DE가 몇 분씩 늦추는 일이 있어
-  // 시각이 아닌 id 변화로 감지한다. 10분 간격 = 알림 최대 10분 지연, 하루 3×144회 호출.
+  // DE가 리셋을 몇 분씩 늦추는 일이 있어 시각이 아니라 id 변화로 감지한다
   @Cron(CronExpression.EVERY_10_MINUTES)
   async detect() {
-    // 한 엔드포인트가 죽어도 나머지는 돌아야 하므로 allSettled
     const results = await Promise.allSettled([
       this.watch(CacheKey.LastSortieId, TargetCommand.Sortie, async () => [
         (await this.worldStateService.sortie()).id,
@@ -82,8 +85,7 @@ export class NotificationService {
           .filter((event) => !event.expired)
           .map((event) => event.id),
       ),
-      // 바로 키티어는 id 변화로 보면 "2주 뒤 도착" 스케줄 갱신에도 알림이 나간다.
-      // 와 있는 동안만 커서를 채워 도착 순간 한 번만 알린다 — 그때 임베드에 인벤토리가 실린다.
+      // 바로는 와 있는 동안만 커서를 채운다 — id로 보면 도착 스케줄 갱신에도 알림이 나간다
       this.watch(
         CacheKey.LastVoidTraderId,
         TargetCommand.VoidTrader,
@@ -95,7 +97,7 @@ export class NotificationService {
             : [];
         },
       ),
-      // 나이트웨이브는 시즌 id가 아니라 챌린지 id 묶음으로 본다 — 시즌은 몇 달에 한 번뿐이다
+      // 시즌 id는 몇 달에 한 번이라 챌린지 id 묶음으로 본다
       this.watch(CacheKey.LastNightwaveId, TargetCommand.Nightwave, async () =>
         (await this.worldStateService.nightwave()).activeChallenges
           .filter((challenge) => !challenge.isDaily)
@@ -125,19 +127,14 @@ export class NotificationService {
     const cached = await this.cacheRepository.findOneBy({ key });
     const prevIds = (cached?.cache as string[] | undefined) ?? [];
 
-    /**
-     * 이전 커서에 없던 id가 하나라도 있으면 변경으로 본다.
-     * 단일 객체(소티/아콘헌트)는 id 하나짜리 배열이라 교체 = 변경,
-     * events는 새 이벤트 등장만 잡히고 만료로 사라진 건 무시된다.
-     */
+    // 이전 커서에 없던 id가 생기면 변경 — 만료로 사라진 건 무시된다
     const hasNewId = (prevIds: string[], nextIds: string[]) =>
       nextIds.some((id) => !prevIds.includes(id));
 
     // 커서가 없던 첫 실행은 심어두기만 한다 — 신규 배포 때 알림이 쏟아지는 걸 막는다
     if (cached && hasNewId(prevIds, nextIds)) await this.broadcast(eventType);
 
-    // 커서는 발송 뒤에 옮긴다 — 먼저 옮기면 broadcast가 던졌을 때 그 변화는 영영 안 알려진다.
-    // 채널별 실패는 broadcast가 삼키고 이력으로 남기니 여기까지 오면 커서를 옮겨도 된다
+    // 커서는 발송 뒤에 옮긴다 — 먼저 옮기면 broadcast가 던졌을 때 그 변화는 영영 안 알려진다
     const entity = cached ?? this.cacheRepository.create({ key });
     entity.cache = nextIds;
     await this.cacheRepository.save(entity);
@@ -149,21 +146,17 @@ export class NotificationService {
     });
     if (!notifications.length) return;
 
-    // 변화가 감지된 순간에만 도는 경로라 임베드용 재호출 1회는 감수한다
     const view = await this.warframeApiService.getAlarmTarget({
       target: eventType,
     });
-    // 사용자가 부른 게 아니다 — 왜 이게 왔는지를 밝히지 않으면 조회 결과와 구분되지 않는다.
-    // asPush는 뷰를 제자리에서 고치므로 채널마다 부르면 헤더가 겹쳐 쌓인다 — 발송 루프 밖에서 한 번만
+    // asPush는 뷰를 제자리에서 고치므로 발송 루프 밖에서 한 번만 부른다
     asPush(
       view,
       `🔔 ${WatchTargetLabel[eventType]} changed`,
       '/notification off to stop',
-      // enum 값이 그대로 슬래시 커맨드 이름이다 — 잘렸을 때 전체를 볼 경로
       `/${eventType}`,
     );
 
-    // 채널이 지워졌거나 권한이 빠진 길드 하나 때문에 나머지 발송이 멈추면 안 된다
     const results = await Promise.allSettled(
       notifications.map(async ({ channelId }) => {
         if (!channelId) return;
@@ -191,7 +184,6 @@ export class NotificationService {
       );
     }
 
-    // 이력 저장이 실패해도 발송은 이미 끝났으니 로깅만 하고 넘어간다
     await this.notificationHistoryRepository
       .insert(
         failures.map(({ reason }) =>
@@ -208,7 +200,6 @@ export class NotificationService {
       .catch((error) => this.logger.error('발송 실패 이력 저장 실패', error));
   }
 
-  /** 실패 이력은 30일치만 — 그보다 오래된 건 들여다볼 일이 없다 */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async purgeHistory() {
     const { affected } = await this.notificationHistoryRepository.delete({

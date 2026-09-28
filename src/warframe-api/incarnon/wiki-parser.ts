@@ -1,11 +1,6 @@
 import { IncarnonPerk, IncarnonTier, IncarnonWeapon } from './types';
 
-/**
- * 위키 `{무기} Incarnon Genesis` 페이지의 Evolutions 표 파서.
- *
- * 표는 사람이 손으로 쓴 위키텍스트라 같은 뜻을 여러 표기로 쓴다 — 여기 있는 정규식은
- * 45개 페이지 전부(퍽 404개)를 돌려 맞춘 것이다. 고칠 일이 있으면 스펙 픽스처부터 늘릴 것.
- */
+/** 손으로 쓴 위키텍스트라 표기가 제각각이다 — 정규식은 45개 페이지 전부에 맞춘 것이니 고치면 스펙 픽스처부터 늘릴 것 */
 
 /** 표 헤더에서 변종 열 이름을 뽑을 때는 **첫 인자**(실제 무기명)를 쓴다 — 두 번째는 'Prime' 같은 축약 라벨이다 */
 const HEADER_WEAPON = /\{\{Weapon\|([^|}]+)/g;
@@ -20,10 +15,7 @@ const TIER_ROW = /^\s*!\s*(?:rowspan="?\d+"?\s*\|\s*)?EVO\s*(\d)/m;
 const CHALLENGE_ROW =
   /Evolution Challenge\s*\n?\s*!!?\s*(?:colspan="?\d+"?\s*\|)?\s*(.*)/;
 
-/**
- * 퍽 셀. 이름이 굵게(`'''…'''`) 오거나 EVO1처럼 맨 텍스트 `Incarnon Form`으로 온다.
- * 이름에 아포스트로피가 들어가므로(`Void's Guidance`) 비탐욕으로 끊어야 한다 — `[^']+`로 하면 잘린다.
- */
+/** 퍽 이름은 굵게 또는 맨 텍스트 'Incarnon Form'. 아포스트로피(Void's Guidance) 때문에 비탐욕으로 끊는다 */
 const PERK_CELL =
   /\n\|\s*(?:style="[^"]*"\s*\|\s*)?(?:'''(.+?)'''|(Incarnon Form))\s*\[\[File:([^|\]]+)/;
 
@@ -39,14 +31,9 @@ const ASSIGNMENT = /\b([XYZ])\s*=\s*([^<\n|]+)/g;
 /** 입문용 열화판. 열 순서상 뒤에 놓여도 최상위가 아니다 */
 const STARTER_VARIANT = /^Mk-?1/i;
 
-/** 효과 문장 안의 자리표시자 */
 const PLACEHOLDER = /\b([XYZ])\b/g;
 
-/**
- * 위키 마크업을 걷어내고 사람이 읽는 텍스트만 남긴다.
- * 템플릿은 마지막 인자가 표시 텍스트다(`{{Weapon|Braton Prime|Prime}}` → `Prime`).
- * 인자가 없는 템플릿(`{{clr}}`)은 레이아웃용이라 통째로 지운다 — 안 지우면 이름이 본문에 샌다.
- */
+/** 템플릿은 마지막 인자가 표시 텍스트, 인자 없는 템플릿({{clr}})은 레이아웃용이라 지운다 */
 const displayText = (raw: string) =>
   raw
     .replace(/\[\[[^[\]|]*\|([^[\]]*)\]\]/g, '$1')
@@ -67,10 +54,6 @@ const cellsAfterPerk = (row: string, perkMatch: RegExpMatchArray) => {
   return tail.split(CELL).slice(1);
 };
 
-/**
- * 값 셀에서 치환표를 만든다. 값이 `colspan`으로 한 칸에 뭉뚱그려진 퍽(`colspan="4" | -`)은
- * 애초에 효과 문장에 자리표시자가 없어서 빈 표가 그대로 맞다.
- */
 const substitutions = (valueCell: string) =>
   new Map(
     [...valueCell.matchAll(ASSIGNMENT)].map(([, key, value]) => [
@@ -79,11 +62,7 @@ const substitutions = (valueCell: string) =>
     ]),
   );
 
-/**
- * 수치 기준으로 삼을 열의 인덱스. 위키가 열을 기본 → 변종 → 프라임 순으로 놓으니 보통 마지막이지만,
- * Mk1은 뒤에 놓여도 열화판이라 건너뛴다 — Furis·Kunai는 변종이 Mk1뿐이라 기본형이 최상위다.
- * 열이 아예 없으면 0(=첫 값 셀).
- */
+/** 보통 마지막 열이지만 Mk1은 열화판이라 건너뛴다(Furis·Kunai는 기본형이 최상위) */
 const referenceIndex = (columns: string[]) => {
   for (let index = columns.length - 1; index >= 0; index -= 1)
     if (!STARTER_VARIANT.test(columns[index])) return index;
@@ -114,10 +93,7 @@ const parsePerk = (
   return { name: perkMatch[1] ?? perkMatch[2], icon: perkMatch[3], effect };
 };
 
-/**
- * 페이지 전체에서 Evolutions 절만 잘라낸다. 아래 절(Known Bugs·Patch History)까지 넘기면
- * 거기 있는 표·불릿이 퍽으로 잡힌다.
- */
+/** 아래 절(Known Bugs·Patch History)의 표·불릿이 퍽으로 잡히지 않게 Evolutions 절만 자른다 */
 export const evolutionsSection = (content: string) =>
   content.split(/===\s*Evolutions\s*===/)[1]?.split(/\n==[^=]/)[0] ?? '';
 

@@ -6,7 +6,7 @@ import { WorldStateService } from './world-state.service';
 describe('WorldStateService 캐시', () => {
   const build = (expiresAt: ReturnType<typeof dayjs> | null | undefined) => {
     const request = vi.fn().mockResolvedValue({ id: 'fresh' });
-    const save = vi.fn();
+    const save = vi.fn().mockResolvedValue(undefined);
     const cacheRepository = {
       findOneBy: vi
         .fn()
@@ -49,12 +49,19 @@ describe('WorldStateService 캐시', () => {
     expect(request).toHaveBeenCalledTimes(1);
     expect(save).toHaveBeenCalled();
   });
+
+  it('빈 캐시에 동시 호출이 겹쳐 unique가 걸려도 응답은 그대로 준다', async () => {
+    const { service, save } = build(undefined);
+    save.mockRejectedValueOnce({ code: '23505' });
+
+    await expect(service.sortie()).resolves.toEqual({ id: 'fresh' });
+  });
 });
 
 /** API가 죽으면 지금까지는 에러 카드였다 — 조금 옛날 값이 아무것도 못 보는 것보다 낫다 */
 describe('WorldStateService 스테일 폴백', () => {
   const build = (expiresAt: ReturnType<typeof dayjs> | null) => {
-    const save = vi.fn();
+    const save = vi.fn().mockResolvedValue(undefined);
     const service = new WorldStateService(
       { request: vi.fn().mockRejectedValue(new Error('502')) } as never,
       {

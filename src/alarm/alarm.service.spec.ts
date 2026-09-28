@@ -1,11 +1,12 @@
 import { card } from '@/utils/discord-embed';
 import dayjs from '@/utils/dayjs';
 import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
-import { CycleName } from '@/warframe-api/world-state/vo/enum';
+import { CycleName, VoidTier } from '@/warframe-api/world-state/vo/enum';
 import { BadRequestException, Logger } from '@nestjs/common';
 import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ALARM_LIMIT_PER_GUILD, AlarmService } from './alarm.service';
+import { AlarmService } from './alarm.service';
+import { ALARM_LIMIT_PER_GUILD } from './constants';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmStatus } from './vo/enum';
 
@@ -379,6 +380,30 @@ describe('AlarmService.register — 개수 제한', () => {
     ];
     expect(where.guildId).toBe('g1');
     expect(where.intervalValue.type).toBe('not');
+  });
+
+  it('균열이 아닌 대상에 tier를 주면 거절한다 — 저장돼도 아무 데도 안 쓰인다', async () => {
+    const { service, alarmConfigRepository } = build([]);
+
+    await expect(
+      service.register(
+        alarmOf({
+          targetCommand: {
+            target: TargetCommand.Sortie,
+            options: VoidTier.Axi,
+          },
+        }) as never,
+      ),
+    ).rejects.toThrow(/tier/);
+    expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+  });
+});
+
+describe('AlarmConfig.fail', () => {
+  it('null을 던져도 기록한다', () => {
+    const alarm = alarmOf();
+    alarm.fail(null);
+    expect(alarm.error).toBe('null');
   });
 });
 

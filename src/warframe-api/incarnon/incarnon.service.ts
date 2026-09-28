@@ -4,15 +4,10 @@ import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
 import { WfcdItemsService } from '../wfcd-items/wfcd-items.service';
+import { GENESIS_SUFFIX, WIKI_API } from './constants';
 import { INCARNON_MATERIALS } from './materials.const';
 import { IncarnonDetail, IncarnonEntry, WikiRevisionsResponse } from './types';
 import { evolutionsSection, parseEvolutions } from './wiki-parser';
-
-/** 위키 페이지명 = `{무기} Incarnon Genesis`. wfcd 어댑터 이름과 45/45 일치한다 */
-const GENESIS_SUFFIX = ' Incarnon Genesis';
-
-/** MediaWiki API. 45개 페이지 본문이 이 호출 한 번(약 386KB)에 다 온다 */
-const WIKI_API = 'api.php';
 
 @Injectable()
 export class IncarnonService implements OnApplicationBootstrap {
@@ -38,10 +33,7 @@ export class IncarnonService implements OnApplicationBootstrap {
     await this.sync();
   }
 
-  /**
-   * 퍽·해금 조건은 WFCD에도 DE Public Export에도 없어서 위키 표가 유일한 출처다.
-   * 한 달에 한 번이면 충분하다 — 새 인카논이 추가되거나 밸런스 패치가 나야 바뀐다.
-   */
+  /** 퍽·해금 조건은 위키 표가 유일한 출처다. 새 인카논이나 밸런스 패치 때나 바뀌어 월 1회 */
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async sync() {
     const genesis = this.wfcdItemsService.findIncarnonGenesis();
@@ -96,7 +88,7 @@ export class IncarnonService implements OnApplicationBootstrap {
     await this.cacheRepository.save(row);
   }
 
-  /** 무기 이름으로 상세 조회. 자동완성을 안 쓰고 직접 타이핑해도 걸리도록 대소문자를 무시한다 */
+  /** 직접 타이핑해도 걸리도록 대소문자를 무시한다 */
   async findWeapon(name: string): Promise<IncarnonDetail | undefined> {
     const wanted = name.trim().toLowerCase();
     const found = (await this.read())?.find(
@@ -112,10 +104,7 @@ export class IncarnonService implements OnApplicationBootstrap {
     };
   }
 
-  /**
-   * 위키 수집 전에도 쓸 수 있는 부분. 설치 재료·어댑터 아이콘은 DE 익스포트에서 오므로
-   * 퍽이 비어 있어도 있다 — "그런 무기 없음"과 "아직 안 모았음"을 가르는 근거이기도 하다.
-   */
+  /** 위키 수집 전에도 있는 부분(재료·아이콘) — "그런 무기 없음"과 "아직 안 모았음"을 가른다 */
   install(name: string) {
     const wanted = `${name.trim().toLowerCase()}${GENESIS_SUFFIX.toLowerCase()}`;
     const item = this.wfcdItemsService
@@ -130,10 +119,7 @@ export class IncarnonService implements OnApplicationBootstrap {
     };
   }
 
-  /**
-   * 오타 났을 때 되짚을 이름. 앞글자가 겹치는 순으로 둘만 준다 —
-   * 45종을 통째로 나열하는 건 답이 아니고, 재시도는 한 번에 끝나야 한다.
-   */
+  /** 오타 교정용 — 앞글자가 겹치는 순으로 둘만 */
   suggest(name: string) {
     const wanted = name.trim().toLowerCase();
     const names = this.wfcdItemsService
@@ -150,7 +136,6 @@ export class IncarnonService implements OnApplicationBootstrap {
 
     return {
       total: names.length,
-      // 1글자만 겹치는 건 우연이다 — 엉뚱한 이름을 들이밀면 오타를 고치는 데 더 방해된다
       closest: names
         .filter((candidate) => shared(candidate) >= 2)
         .sort((a, b) => shared(b) - shared(a) || a.localeCompare(b))
@@ -158,7 +143,6 @@ export class IncarnonService implements OnApplicationBootstrap {
     };
   }
 
-  /** 재료 이름은 uniqueName으로 wfcd에서 붙인다 — 상수에는 개수와 uniqueName만 있다 */
   private materials(adapter: string) {
     return (INCARNON_MATERIALS[adapter] ?? []).flatMap((material) => {
       const item = this.wfcdItemsService.findItem(material.uniqueName);

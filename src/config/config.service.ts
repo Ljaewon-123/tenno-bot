@@ -16,19 +16,13 @@ export class AppConfig {
 
   @Expose()
   @IsString()
-  DISCORD_APP_ID: string;
-
-  @Expose()
-  @IsString()
   DISCORD_TOKEN: string;
 
+  /** dev에서 커맨드를 이 길드에만 즉시 등록한다. 프로덕션은 전역 등록이라 안 읽는다 */
   @Expose()
+  @IsOptional()
   @IsString()
-  DISCORD_PUBLIC_KEY: string;
-
-  @Expose()
-  @IsString()
-  DISCORD_DEVELOPMENT_GUILD_ID: string;
+  DISCORD_DEVELOPMENT_GUILD_ID?: string;
 
   @Expose()
   @IsInt()

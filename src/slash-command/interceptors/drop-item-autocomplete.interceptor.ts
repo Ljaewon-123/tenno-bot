@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
 import { AutocompleteInterceptor } from 'necord';
 
-/** /drop 의 item 옵션 자동완성. 드랍테이블에 실제로 존재하는 이름만 보여준다 */
 @Injectable()
 export class DropItemAutocompleteInterceptor extends AutocompleteInterceptor {
   constructor(private readonly warframeApi: WarframeApiService) {

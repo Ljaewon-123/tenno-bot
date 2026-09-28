@@ -1,10 +1,14 @@
-import dayjs from '@/utils/dayjs';
-import type { ConfigType } from 'dayjs';
+import type {
+  ActionRowBuilder,
+  ButtonBuilder,
+  MediaGalleryBuilder,
+  SectionBuilder,
+  SeparatorBuilder,
+  StringSelectMenuBuilder,
+  TextDisplayBuilder,
+} from 'discord.js';
 
-/**
- * 상태를 나타내는 유일한 색 수단. 커맨드별로 색을 나누지 않는다 —
- * 같은 색이 항상 같은 뜻이어야 유저가 색만 보고 판단한다.
- */
+/** 같은 색은 항상 같은 뜻 — 커맨드별로 색을 나누지 않는다 */
 export enum Accent {
   /** 기본 · 조회 결과 */
   Default = 0x5865f2,
@@ -18,24 +22,53 @@ export enum Accent {
   Muted = 0x4e5058,
 }
 
-/** 컨테이너 V2 하드 리밋. 넘기면 초과분이 잘리는 게 아니라 메시지가 통째로 400으로 거절된다 */
-export const LIMIT = {
-  /** 컨테이너 자식 수 */
-  components: 40,
-  /** 메시지 전체의 글자 수 합. `assemble()`이 자식들을 더해 가며 자른다 */
-  content: 4000,
-  /** 버튼·셀렉트 customId. 여기에 유저 입력을 실으면 길이를 먼저 재야 한다 */
-  customId: 100,
-  /** 셀렉트 선택지 수. 넘치면 잘리는 게 아니라 메시지가 거절된다 — 호출단이 먼저 자른다 */
-  selectOptions: 25,
-} as const;
+/** falsy 값은 걸러져 사라진다 — API 응답은 필드가 제각각이다 */
+export type Line = string | false | null | undefined;
 
-/**
- * 만료 시각 하나로 accent를 정한다. 이 판정을 커맨드마다 따로 하면
- * "색이 상태를 뜻한다"는 규칙이 제일 먼저 깨진다.
- */
-export const accentFor = (expiry: ConfigType, soonMinutes = 30) => {
-  const left = dayjs(expiry).diff(dayjs(), 'minute');
-  if (left < 0) return Accent.Muted;
-  return left <= soonMinutes ? Accent.Soon : Accent.Default;
+export type Block =
+  | Line
+  | {
+      heading?: string;
+      lines: Line[];
+      more?: string;
+      /** Section으로 떨어져 오른쪽에 아이콘이 붙는다. Section 하나가 3칸이라 개수는 호출단이 센다 */
+      thumbnail?: string;
+      /** 줄에 딸린 버튼. accessory는 한 칸이라 thumbnail과 같이 주면 버튼이 이긴다 */
+      button?: ButtonBuilder;
+    };
+
+export type CardInput = {
+  accent?: Accent;
+  title: string;
+  subtitle?: Line;
+  /** 80px. 세로로 긴 그림(모드 카드)은 여기 넣으면 읽히지 않는다 */
+  thumbnail?: string;
+  /** 두 장이면 2칸 갤러리 — 256px 정사각 아트를 풀폭에 넣으면 뭉갠다 */
+  image?: string | string[];
+  /** 바깥 배열은 구분선, 안쪽은 빈 줄로 나뉜다 */
+  blocks: Block[][];
+  buttons?: ButtonBuilder[];
+  /** 한 행을 통째로 먹어 버튼과 같은 줄에 못 선다 — 카드당 하나 */
+  select?: StringSelectMenuBuilder;
+  /** footer는 마크다운이 안 먹어 -# 줄로 대신한다 */
+  footer?: Line;
+};
+
+export type Child =
+  | TextDisplayBuilder
+  | SectionBuilder
+  | SeparatorBuilder
+  | MediaGalleryBuilder
+  | ActionRowBuilder<ButtonBuilder>
+  | ActionRowBuilder<StringSelectMenuBuilder>;
+
+export type ManageRow = { text: string; button?: ButtonBuilder };
+
+export type PagerInput<T> = {
+  key: string;
+  items: T[];
+  /** 버튼에서 온 값. 문자열·NaN·범위 밖 전부 0페이지로 떨어진다 */
+  page?: number;
+  sort: string;
+  size?: number;
 };

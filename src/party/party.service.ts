@@ -4,15 +4,11 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
 import { ArrayContains, FindOptionsWhere } from 'typeorm';
 import { Party } from './entities/party.entity';
-import {
-  PARTY_EXPIRE_HOURS,
-  PartyMessageService,
-} from './party-message.service';
+import { PARTY_EXPIRE_HOURS, PARTY_HISTORY_SIZE } from './constants';
+import { PartyMessageService } from './party-message.service';
 import { PartyRepository } from './repositories/party.repository';
-import { CreateParty, PartyStatus } from './vo/enum';
-
-/** 기록으로 보여줄 최근 마감 건수 — 3e가 말한 "최근 마감 3건" */
-const PARTY_HISTORY_SIZE = 3;
+import { CreateParty } from './types';
+import { PartyStatus } from './vo/enum';
 
 @Injectable()
 export class PartyService {
@@ -24,7 +20,6 @@ export class PartyService {
     private readonly partyMessage: PartyMessageService,
   ) {}
 
-  /** members에 host 포함해서 생성 */
   async create(input: CreateParty): Promise<Party> {
     await this.assertNotInAnotherParty(input.guildId, input.hostUserId);
 
@@ -41,10 +36,7 @@ export class PartyService {
     });
   }
 
-  /**
-   * 최근 마감 파티. 마감은 상태만 바꾸고 행을 안 지워서 기록이 이미 남아 있다 —
-   * 별도 테이블을 만들 이유가 없다. 마감 시각은 `updatedAt`이 대신한다(마감 말고 바뀔 게 없다).
-   */
+  /** 마감은 상태만 바꾸고 행을 남기므로 마감 시각은 updatedAt이 대신한다 */
   async history(guildId: string, take = PARTY_HISTORY_SIZE): Promise<Party[]> {
     return this.partyRepository.find({
       where: { guildId, status: PartyStatus.CLOSE },
@@ -60,12 +52,11 @@ export class PartyService {
     });
   }
 
-  /** 크론이 임베드를 갱신하려면 메시지 좌표가 필요하다 */
   async attachMessage(id: string, messageId: string): Promise<void> {
     await this.partyRepository.update(id, { messageId });
   }
 
-  /** 마지막 자리 동시 클릭으로 5/4가 되지 않게*/
+  /** 마지막 자리 동시 클릭으로 정원을 넘지 않게 조건부 UPDATE로 넣는다 */
   async join(id: string, userId: string): Promise<Party> {
     const { affected } = await this.partyRepository
       .createQueryBuilder()
@@ -120,11 +111,7 @@ export class PartyService {
     return party;
   }
 
-  /**
-   * 호스트 이탈 승계 — 가장 먼저 들어온 남은 멤버가 이어받는다(members는 가입 순서대로 쌓인다).
-   * 받을 사람이 없으면 마감이다. 마지막 한 명이 나가는 순간은 0명이 아니라 CLOSE라서
-   * 산출물 4f의 "0명" 카드는 도달하지 않는다.
-   */
+  /** 가장 먼저 들어온 남은 멤버가 호스트를 잇는다. 없으면 마감 */
   private async handOver(party: Party): Promise<Party> {
     const [next] = party.members.filter(
       (userId) => userId !== party.hostUserId,
@@ -153,10 +140,7 @@ export class PartyService {
     );
   }
 
-  /**
-   * 부분 유니크 인덱스는 "호스트 중복"만 본다 — 멤버로 참가한 사람이 새 파티를 여는 건 안 걸린다.
-   * 그대로 두면 그 사람이 승계 대상이 됐을 때 인덱스가 터진다.
-   */
+  /** 유니크 인덱스는 호스트 중복만 본다 — 멤버가 새 파티를 열면 승계 때 인덱스가 터진다 */
   private async assertNotInAnotherParty(guildId: string, userId: string) {
     const joined = await this.partyRepository.existsBy({
       guildId,
@@ -169,7 +153,6 @@ export class PartyService {
       );
   }
 
-  /** host만 마감 가능 */
   async close(id: string, userId: string): Promise<Party> {
     const { affected } = await this.partyRepository
       .createQueryBuilder()
@@ -197,11 +180,7 @@ export class PartyService {
     return affected ?? 0;
   }
 
-  /**
-   * 3시간 지난 OPEN 파티 자동 마감 + 저장된 messageId 임베드 갱신.
-   * 1인 1파티 제약이 호스트를 영원히 묶는 걸 막는 게 목적.
-   * 한 건이 실패해도 나머지는 닫혀야 하므로 allSettled + 로깅 (NotificationService.detect() 패턴)
-   */
+  /** 1인 1파티 제약이 호스트를 영원히 묶지 않게 오래된 OPEN 파티를 마감한다 */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async expire(): Promise<void> {
     const parties = await this.partyRepository
@@ -219,11 +198,11 @@ export class PartyService {
     );
     this.logger.log(`만료 파티 ${parties.length}건 마감`);
 
-    // DB는 이미 닫혔다 — 디스코드 갱신은 실패해도 다음 크론이 재시도하지 않는 best effort
+    // DB는 이미 닫혔다 — 디스코드 갱신은 best effort
     const results = await Promise.allSettled(
       parties.map(async (party) => {
         party.status = PartyStatus.CLOSE;
-        // 메모리 속 updatedAt은 마감 전 값이다 — 안 옮기면 카드 푸터가 "Closed 2 hours ago"로 찍힌다
+        // 안 옮기면 카드 푸터가 마감 전 시각으로 찍힌다
         party.updatedAt = dayjs();
         await this.refresh(party);
       }),
@@ -239,7 +218,6 @@ export class PartyService {
     });
   }
 
-  /** 상태가 바뀐 파티의 원본 모집 메시지를 다시 그린다 */
   private async refresh(party: Party): Promise<void> {
     if (!party.channelId || !party.messageId) return;
     const channel = await this.client.channels.fetch(party.channelId);

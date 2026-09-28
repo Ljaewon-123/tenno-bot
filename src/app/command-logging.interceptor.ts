@@ -24,7 +24,7 @@ export class CommandLoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler) {
     const [interaction] =
       NecordExecutionContext.create(context).getContext<SlashCommandContext>();
-    // 자동완성은 키 입력마다 날아와 로그만 더럽힌다. necord 오토컴플리트 인터셉터로 흘려보낸다
+    // 자동완성은 키 입력마다 와서 로깅·defer하지 않는다
     if (interaction?.isAutocomplete?.()) return next.handle();
 
     const startedAt = performance.now();
@@ -37,11 +37,10 @@ export class CommandLoggingInterceptor implements NestInterceptor {
           `${this.commandName(interaction)} ${Math.round(performance.now() - startedAt)}ms`,
         ),
       ),
-      // defer 뒤라 디스코드는 15분을 기다려 준다. 외부 API 타임아웃(5초)보다 짧거나 같으면
-      // API가 멈췄을 때 이쪽이 먼저 끊어 만료 캐시 폴백(WorldStateService.get)이 돌 기회가 없다
+      // 외부 API 타임아웃(5초)보다 길어야 만료 캐시 폴백(WorldStateService.get)이 돌 기회가 있다
       timeout(10_000),
       catchError((err) => {
-        // 408은 4xx라 필터가 "옵션을 확인하라"는 유저 실수 카드로 낸다 — 우리 쪽 지연이므로 5xx로 던진다
+        // 408은 4xx라 유저 실수 카드로 나간다 — 우리 쪽 지연이므로 5xx로 던진다
         if (err instanceof TimeoutError) {
           return throwError(() => new GatewayTimeoutException());
         }
@@ -51,13 +50,8 @@ export class CommandLoggingInterceptor implements NestInterceptor {
   }
 
   /**
-   * 커맨드 핸들러가 돌기 전에 응답을 미뤄둔다 — 디스코드 초기 응답 제한은 3초라
-   * 외부 API나 드랍테이블 조회가 조금만 늦어도 인터랙션 토큰이 죽는다.
-   * 따라서 핸들러는 reply가 아니라 editReply로 응답해야 한다.
-   *
-   * 슬래시 커맨드에만 건다. necord가 이 인터셉터를 @Button/@Modal 핸들러에도 붙이는데,
-   * 버튼은 update()로 원본 메시지를 갈아끼우므로 미리 defer하면 전부 "already replied"로 터진다.
-   * ready/warn 같은 인터랙션 아닌 이벤트도 같은 이유로 걸러진다.
+   * 초기 응답 3초 제한 때문에 슬래시 커맨드는 미리 defer한다(핸들러는 editReply).
+   * 버튼은 update()를 쓰므로 defer하면 "already replied"로 터진다.
    */
   private async defer(interaction: SlashCommandContext[0]) {
     if (!interaction?.isChatInputCommand?.() || interaction.deferred) return;

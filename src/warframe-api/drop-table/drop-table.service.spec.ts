@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CacheKey } from '../shared/enum';
-import { DropTableService, INDEX_VERSION } from './drop-table.service';
+import { INDEX_VERSION } from './constants';
+import { DropTableService } from './drop-table.service';
 import { DropCategory } from './vo/enum';
 
 /** 체이닝만 되는 QueryBuilder 흉내. 어떤 절이 붙었는지만 본다 */
@@ -131,6 +132,19 @@ describe('DropTableService', () => {
       // orderBy가 addOrderBy보다 먼저 걸려야 정확 일치가 1순위가 된다
       expect(queryBuilder.orderBy.mock.invocationCallOrder[0]).toBeLessThan(
         queryBuilder.addOrderBy.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('유저 입력의 %·_는 와일드카드가 아니라 글자로 찾는다', async () => {
+      const { service, queryBuilder } = build();
+      await service.findDropSources('100%_x');
+
+      expect(queryBuilder.where).toHaveBeenCalledWith(expect.any(String), {
+        like: '%100\\%\\_x%',
+      });
+      expect(queryBuilder.setParameter).toHaveBeenCalledWith(
+        'exact',
+        '100\\%\\_x',
       );
     });
 

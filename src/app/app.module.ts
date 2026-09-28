@@ -39,7 +39,8 @@ import { CommandLoggingInterceptor } from './command-logging.interceptor';
         token: config.DISCORD_TOKEN,
         intents: [IntentsBitField.Flags.Guilds],
         development:
-          config.nodeEnv !== NodeEnv.Production
+          config.nodeEnv !== NodeEnv.Production &&
+          config.DISCORD_DEVELOPMENT_GUILD_ID
             ? [config.DISCORD_DEVELOPMENT_GUILD_ID]
             : undefined,
       }),

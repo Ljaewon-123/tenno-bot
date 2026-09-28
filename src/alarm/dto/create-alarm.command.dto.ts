@@ -23,7 +23,6 @@ export class CreateAlarmCommand {
   })
   target: TargetCommand;
 
-  /** Yet only minutes */
   @Expose()
   @IntegerOption({
     name: 'interval-minutes',

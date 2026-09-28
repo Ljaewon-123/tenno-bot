@@ -1,7 +1,8 @@
 import { ComponentType, MessageFlags } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 import { subtext } from '../markdown';
-import { Accent, LIMIT } from '../types';
+import { LIMIT } from '../constants';
+import { Accent } from '../types';
 import { card } from './card';
 import { manageCard } from './manage-card';
 import { asPush, button, payload } from './message';

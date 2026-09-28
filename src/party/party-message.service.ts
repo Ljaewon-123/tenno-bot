@@ -9,13 +9,10 @@ import {
 } from '@/utils/discord-embed';
 import { Injectable } from '@nestjs/common';
 import { ButtonStyle } from 'discord.js';
+import { PARTY_EXPIRE_HOURS } from './constants';
 import { Party } from './entities/party.entity';
 import { PartyStatus, PartyVisibilityLabel } from './vo/enum';
 
-/** 이 시간이 지난 OPEN 파티는 크론이 자동 마감한다 */
-export const PARTY_EXPIRE_HOURS = 3;
-
-/** 커맨드·버튼·만료 크론이 공유하는 렌더러 — 세 곳의 메시지 모양이 갈라지지 않게 한다 */
 @Injectable()
 export class PartyMessageService {
   expiresAt(party: Party) {
@@ -30,7 +27,6 @@ export class PartyMessageService {
     if (!open)
       return payload(
         card({
-          // 제목·본문까지 같이 죽여야 스크롤에서 "지나간 게시물"로 읽힌다
           accent: Accent.Muted,
           title: `${party.name} · Closed`,
           subtitle: party.mission,
@@ -41,14 +37,12 @@ export class PartyMessageService {
                 : 'Nobody joined.',
             ],
           ],
-          // 버튼 행은 disabled가 아니라 통째로 제거한다
           footer: `Closed ${relative(party.updatedAt)} · /party create to start a new one`,
         }),
       );
 
     return payload(
       card({
-        // 정원이 차도 파티를 닫지 않는다 — 초록은 "지금은 들어갈 자리가 없다"는 표시일 뿐이다
         accent: full ? Accent.Success : Accent.Default,
         title: full ? `${party.name} · Full` : party.name,
         subtitle: `${party.mission} · ${PartyVisibilityLabel[party.visibility]}`,
@@ -56,44 +50,37 @@ export class PartyMessageService {
           [
             {
               heading: `${party.members.length} / ${party.partySize}`,
-              lines: party.members.length
-                ? [
-                    ...party.members.map(
-                      (userId) =>
-                        `${mention(userId)}${userId === party.hostUserId ? ` ${subtext('host')}` : ''}`,
-                    ),
-                    !full &&
-                      subtext(
-                        `${party.partySize - party.members.length} slots open`,
-                      ),
-                  ]
-                : // 호스트가 자동 참가되지 않는 구조라 "빈 파티"가 실제로 존재한다
-                  [
-                    subtext(
-                      `Host ${mention(party.hostUserId)} hasn't joined yet`,
-                    ),
-                  ],
+              lines: [
+                ...party.members.map(
+                  (userId) =>
+                    `${mention(userId)}${userId === party.hostUserId ? ` ${subtext('host')}` : ''}`,
+                ),
+                !full &&
+                  subtext(
+                    `${party.partySize - party.members.length} slots open`,
+                  ),
+              ],
             },
           ],
         ],
         buttons: this.buttons(party, full),
-        // 3시간 뒤 크론이 조용히 닫으면 "갑자기 닫혔다"로 읽힌다
         footer: `Closes ${relative(this.expiresAt(party))}`,
       }),
     );
   }
 
-  /**
-   * disabled는 "지금 누르면 안 되는" 상태를 표현하는 유일한 수단이다.
-   * Done은 호스트만 성공하지만 메시지는 한 장이라 뷰어별로 죽일 수 없다 — 서비스가 거절 문구로 막는다.
-   */
+  /** Done은 호스트만 되지만 메시지는 한 장이라 뷰어별로 못 막는다 — 서비스가 거절한다 */
   private buttons(party: Party, full: boolean) {
-    const alone = party.members.length === 0;
     return [
       button(`party/join/${party.id}`, 'Enter', ButtonStyle.Success, full),
-      button(`party/leave/${party.id}`, 'Exit', ButtonStyle.Secondary, alone),
-      button(`party/close/${party.id}`, 'Done', ButtonStyle.Danger, alone),
+      button(`party/leave/${party.id}`, 'Exit', ButtonStyle.Secondary),
+      button(`party/close/${party.id}`, 'Done', ButtonStyle.Danger),
     ];
+  }
+
+  /** 목록·기록에서 파티 한 줄 요약 */
+  line(party: Party) {
+    return `${bold(party.name)} · ${party.mission} · ${PartyVisibilityLabel[party.visibility]} · ${party.members.length}/${party.partySize} · host <@${party.hostUserId}>`;
   }
 
   /** 정원이 찬 순간만 별개 메시지로 멘션한다 — 메시지 갱신만으론 알림이 안 뜬다 */
@@ -103,7 +90,3 @@ export class PartyMessageService {
     };
   }
 }
-
-/** 마감 목록·안내에서 파티 한 줄을 같은 모양으로 쓰기 위한 요약 */
-export const partyLine = (party: Party) =>
-  `${bold(party.name)} · ${party.mission} · ${PartyVisibilityLabel[party.visibility]} · ${party.members.length}/${party.partySize} · host <@${party.hostUserId}>`;

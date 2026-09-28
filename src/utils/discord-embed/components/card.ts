@@ -12,67 +12,22 @@ import {
   type StringSelectMenuBuilder,
 } from 'discord.js';
 import { bold, subtext, title as heading, truncate } from '../markdown';
-import { Accent, LIMIT } from '../types';
+import dayjs from '@/utils/dayjs';
+import type { ConfigType } from 'dayjs';
+import { LIMIT, NOTICE_RESERVE } from '../constants';
+import {
+  Accent,
+  type Block,
+  type CardInput,
+  type Child,
+  type Line,
+} from '../types';
 
-/**
- * 없는 값을 그대로 넘겨도 된다 — 걸러져 사라진다.
- * API 응답은 필드가 제각각이라 "있는 것만 순서대로 쌓는" 게 유일한 안전책이다.
- */
-export type Line = string | false | null | undefined;
-
-/** 헤딩 + 목록 + 접힌 개수. 문자열 하나만 넘겨도 된다 */
-export type Block =
-  | Line
-  | {
-      heading?: string;
-      lines: Line[];
-      more?: string;
-      /**
-       * 이 블록만 따로 Section으로 떨어져 오른쪽에 아이콘이 붙는다 — 그림과 글이
-       * 위치가 아니라 구조로 묶이는 유일한 자리다(갤러리는 순서로만 맞아 하나만 빠져도 전부 밀린다).
-       * 대신 Section 하나가 칸 3개를 먹으므로 몇 개까지 붙일지는 호출단이 먼저 세야 한다.
-       */
-      thumbnail?: string;
-      /**
-       * 줄 하나에 딸린 버튼. 디스코드는 글줄 자체를 누르게 해주지 않아서, "이 줄을 눌러 들어간다"를
-       * 표현하는 유일한 수단이다(`/alarm list`의 줄마다 삭제 버튼과 같은 자리).
-       * **accessory는 한 칸뿐이라 `thumbnail`과 자리를 다툰다** — 둘 다 주면 버튼이 이긴다.
-       */
-      button?: ButtonBuilder;
-    };
-
-export type CardInput = {
-  /** 기본 Accent.Default. 만료가 있으면 accentFor(expiry)를 그대로 넘긴다 */
-  accent?: Accent;
-  title: string;
-  /** 남은 시간 자리 — relative(expiry) */
-  subtitle?: Line;
-  /** 80px. 세로로 긴 그림(모드 카드)은 여기 넣으면 읽히지 않는다 */
-  thumbnail?: string;
-  /**
-   * 한 장이면 풀폭, 두 장이면 갤러리 2칸(칸당 약 254px).
-   * 256² 소스를 풀폭에 넣으면 4배로 늘어나 뭉갠다 — 정사각 아트는 2칸으로 짝지어 넣는다.
-   */
-  image?: string | string[];
-  /**
-   * 바깥 배열은 구분선으로, 안쪽은 빈 줄로 나뉜다.
-   * 디자인이 쓰는 구분은 이 둘뿐이다 — 소티 미션 3개는 빈 줄, 균열 티어 6개는 구분선.
-   */
-  blocks: Block[][];
-  buttons?: ButtonBuilder[];
-  /** 한 행을 통째로 먹어 버튼과 같은 줄에 못 선다 — 카드당 하나 */
-  select?: StringSelectMenuBuilder;
-  /** 데이터 신선도·단위 표기. footer는 마크다운이 안 먹어 V2에서는 -# 줄이 대신한다 */
-  footer?: Line;
+export const accentFor = (expiry: ConfigType, soonMinutes = 30) => {
+  const left = dayjs(expiry).diff(dayjs(), 'minute');
+  if (left < 0) return Accent.Muted;
+  return left <= soonMinutes ? Accent.Soon : Accent.Default;
 };
-
-export type Child =
-  | TextDisplayBuilder
-  | SectionBuilder
-  | SeparatorBuilder
-  | MediaGalleryBuilder
-  | ActionRowBuilder<ButtonBuilder>
-  | ActionRowBuilder<StringSelectMenuBuilder>;
 
 export const kept = (values: Line[]) =>
   values.filter((value): value is string => Boolean(value));
@@ -81,7 +36,6 @@ export const kept = (values: Line[]) =>
 export const text = (content: string) =>
   new TextDisplayBuilder().setContent(truncate(content, LIMIT.content));
 
-/** 계층·순서는 번호 이모지가 아니라 이걸로 표현한다 */
 export const divider = () =>
   new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small);
 
@@ -98,10 +52,6 @@ const renderBlock = (block: Block) => {
 const renderGroup = (group: Block[]) =>
   kept(group.map(renderBlock)).join('\n\n');
 
-/**
- * 그룹 하나를 자식들로 편다. 액세서리(아이콘·버튼)가 붙은 블록에서만 끊기고 나머지는
- * 지금까지처럼 TextDisplay 하나로 합쳐진다 — 액세서리를 안 쓰는 카드는 자식 수가 그대로다.
- */
 const groupChildren = (group: Block[]) => {
   const children: Child[] = [];
   let merged: Block[] = [];
@@ -112,7 +62,6 @@ const groupChildren = (group: Block[]) => {
   };
 
   for (const block of group) {
-    // accessory는 한 칸뿐이다 — 버튼과 아이콘이 같은 자리를 다투고, 버튼 쪽이 이긴다
     const accessory =
       typeof block === 'object'
         ? (block?.button ?? block?.thumbnail)
@@ -140,10 +89,7 @@ const groupChildren = (group: Block[]) => {
   return children;
 };
 
-/**
- * 40개 한도는 중첩까지 합산한다 — 버튼 5개짜리 행은 1개가 아니라 6개다.
- * 자식 수만 세면 세다가 통과하고 서버가 메시지를 거절한다.
- */
+/** 40개 한도는 중첩까지 합산한다 — 버튼 5개짜리 행은 6개다 */
 const cost = (child: Child) => {
   if (child instanceof ActionRowBuilder) return 1 + child.components.length;
   if (child instanceof MediaGalleryBuilder) return 1 + child.items.length;
@@ -152,10 +98,7 @@ const cost = (child: Child) => {
   return 1;
 };
 
-/**
- * 4000자는 TextDisplay 하나가 아니라 **메시지 합**이다. 개별로만 재면 자식마다 통과하고
- * 서버가 메시지를 통째로 400으로 거절한다 — 세는 자리는 여기 하나뿐이다.
- */
+/** 4000자는 TextDisplay 하나가 아니라 메시지 합이다 */
 const contentLength = (child: Child) => {
   const json = child.toJSON() as {
     content?: string;
@@ -171,10 +114,6 @@ const contentLength = (child: Child) => {
   );
 };
 
-/** 잘렸다는 안내 한 줄이 들어갈 자리 — 칸도 글자도 마지막은 비워둔다 */
-const NOTICE_RESERVE = 64;
-
-/** 컨테이너 1개 = 메시지 1개. 넘친 만큼은 버리되 버렸다는 사실은 남긴다 */
 export const assemble = (accent: Accent, children: Child[]) => {
   const fitted: Child[] = [];
   let used = 0;
@@ -182,7 +121,6 @@ export const assemble = (accent: Accent, children: Child[]) => {
   for (const child of children) {
     used += cost(child);
     chars += contentLength(child);
-    // 마지막 한 칸은 안내용으로 비워둔다
     if (used > LIMIT.components - 1) break;
     if (chars > LIMIT.content - NOTICE_RESERVE) break;
     fitted.push(child);
@@ -197,10 +135,6 @@ export const assemble = (accent: Accent, children: Child[]) => {
     .spliceComponents(0, 0, ...fitted);
 };
 
-/**
- * 원형 A(단일 이벤트) · B(그룹 목록) · C(상태 타일).
- * 셋은 슬롯이 같다 — 헤더 / 본문 블록 / 버튼 / -# 푸터. 커맨드마다 다시 그리지 않는다.
- */
 export const card = ({
   accent = Accent.Default,
   title,
@@ -236,7 +170,6 @@ export const card = ({
 
   for (const group of blocks) {
     const rendered = groupChildren(group);
-    // 항목 0개인 그룹은 구분선까지 통째로 만들지 않는다 — 빈 칸이 남으면 데이터가 빠진 것처럼 읽힌다
     if (rendered.length) children.push(divider(), ...rendered);
   }
 

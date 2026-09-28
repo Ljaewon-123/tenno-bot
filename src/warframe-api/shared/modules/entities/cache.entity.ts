@@ -10,7 +10,6 @@ import { CacheKey } from '../../enum';
 
 @Entity()
 export class Cache extends CommonEntity {
-  // pg로 올라가면 jsonb로 변경
   @Column({ type: 'jsonb' })
   cache: unknown;
 

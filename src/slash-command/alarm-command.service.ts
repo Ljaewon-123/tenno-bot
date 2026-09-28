@@ -1,7 +1,8 @@
-import { ALARM_LIMIT_PER_GUILD, AlarmService } from '@/alarm/alarm.service';
+import { AlarmService } from '@/alarm/alarm.service';
+import { ALARM_LIMIT_PER_GUILD } from '@/alarm/constants';
 import { CreateAlarmCommand } from '@/alarm/dto/create-alarm.command.dto';
 import { DeleteAlarmCommand } from '@/alarm/dto/delete-alarm.command.dto';
-import { commandPath } from '@/alarm/vo/target-command.vo';
+import { TargetCommandAlarm } from '@/alarm/vo/target-command.vo';
 import {
   bold,
   button,
@@ -56,7 +57,7 @@ export class AlarmCommandService {
       payload(
         okCard(
           `Alarm registered · \`${saved.id}\``,
-          `${commandPath(saved.targetCommand)} every ${saved.intervalValue} min · first run ${relative(saved.doneAt)}`,
+          `${TargetCommandAlarm.path(saved.targetCommand)} every ${saved.intervalValue} min · first run ${relative(saved.doneAt)}`,
           `/alarm delete id:${saved.id} to remove`,
         ),
       ),
@@ -100,7 +101,6 @@ export class AlarmCommandService {
     return interaction.editReply(await this.listView(interaction.guildId));
   }
 
-  /** 페이지를 넘겨도 새 메시지를 쌓지 않는다 — 관리 목록은 한 자리에 있어야 조작이 된다 */
   @Button('alarm/list/page/:page')
   async listPage(
     @Context() [interaction]: ButtonContext,
@@ -113,10 +113,6 @@ export class AlarmCommandService {
     );
   }
 
-  /**
-   * 지운 뒤 같은 페이지를 다시 그린다. 한 페이지가 통째로 사라졌으면
-   * `paged()`가 마지막 페이지로 떨어뜨린다 — 빈 화면이 남지 않는다.
-   */
   @Button('alarm/list/delete/:id/:page')
   async deleteFromList(
     @Context() [interaction]: ButtonContext,
@@ -136,7 +132,6 @@ export class AlarmCommandService {
 
     if (!alarms.length)
       return payload(
-        // 등록한 게 없는 건 실패가 아니다 — 빨강을 쓰면 뭔가 깨진 것처럼 읽힌다
         emptyCard(
           'No alarms registered',
           'Nothing is scheduled in this server.',
@@ -146,11 +141,10 @@ export class AlarmCommandService {
 
     const view = paged({
       key: 'alarm/list',
-      // 곧 울릴 것이 위에 온다 — 조작하려고 여는 화면이라 임박한 순이 유일하게 쓸모 있는 정렬이다
       items: [...alarms].sort((a, b) => a.doneAt.diff(b.doneAt)),
       page,
       sort: 'soonest first',
-      // 삭제 버튼은 Section에만 붙고 Section은 컨테이너당 3개가 상한이다
+      // manageCard는 앞 SECTION_LIMIT개에만 버튼을 달아서 페이지 크기를 맞춘다
       size: SECTION_LIMIT,
     });
 
@@ -161,10 +155,9 @@ export class AlarmCommandService {
           text: [
             bold(alarm.name),
             subtext(
-              `${commandPath(alarm.targetCommand)} · every ${alarm.intervalValue} min · next ${relative(alarm.doneAt)}`,
+              `${TargetCommandAlarm.path(alarm.targetCommand)} · every ${alarm.intervalValue} min · next ${relative(alarm.doneAt)}`,
             ),
           ].join('\n'),
-          // 페이지를 customId에 실어야 지운 뒤에도 보던 자리로 돌아온다
           button: button(
             `alarm/list/delete/${alarm.id}/${page}`,
             'Delete',

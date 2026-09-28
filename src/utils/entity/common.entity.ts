@@ -63,7 +63,6 @@ export abstract class CommonWithGuildChannel extends CommonEntity {
   @Index()
   guildId: string;
 
-  /** 알람을 등록한 채널 — 발동 시 이 채널로 전송 */
   @IsOptional()
   @IsString()
   @Expose()

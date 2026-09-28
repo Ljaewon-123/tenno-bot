@@ -16,45 +16,18 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Client, type ContainerBuilder } from 'discord.js';
 import { FindOptionsWhere, In, IsNull, LessThanOrEqual, Not } from 'typeorm';
+import {
+  ALARM_LIMIT_PER_GUILD,
+  CYCLE_REMIND_LEAD_MINUTES,
+  REMIND_LEAD_MINUTES,
+  STALE_AFTER_MINUTES,
+} from './constants';
 import { CreateAlarm } from './dto/create-alarm.dto';
 import { AlarmConfig } from './entities/alarm-config.entity';
 import { AlarmConfigRepository } from './repositories/alarm-config.repository';
+import { RemindInput } from './types';
 import { AlarmStatus } from './vo/enum';
-import { commandPath } from './vo/target-command.vo';
-
-/** 이 시간을 넘도록 RUNNING인 알람은 프로세스가 죽은 것으로 본다 */
-const STALE_AFTER_MINUTES = 10;
-
-/** 🔔 버튼이 거는 1회용 리마인더가 기준 시각 몇 분 전에 오는가 */
-export const REMIND_LEAD_MINUTES = 30;
-
-/**
- * 사이클만 리드가 짧다. 오브 협곡은 한 바퀴가 27분(따뜻함 ~7분 + 추움 20분)이라
- * 30분 전으로 잡으면 **모든 등록이 "이미 늦었다"로 거절된다**. 5분은 접속해서 이동할 만한 최소치.
- */
-export const CYCLE_REMIND_LEAD_MINUTES = 5;
-
-const leadFor = (target: RemindTarget) =>
-  target === TargetCommand.Cycles
-    ? CYCLE_REMIND_LEAD_MINUTES
-    : REMIND_LEAD_MINUTES;
-
-/**
- * 서버당 반복 알람 상한. 채널 단위로 걸면 채널을 더 파는 것으로 그냥 우회된다 —
- * 1분 크론이 매 분 전부 도는 비용을 지는 주체가 서버이므로 셈도 서버로 한다.
- * 1회용 리마인더는 개인 것이고 대상 enum이 유한해 세지 않는다.
- */
-export const ALARM_LIMIT_PER_GUILD = 20;
-
-export type RemindInput = {
-  guildId: string;
-  /** DM이 막혔을 때 떨굴 자리 */
-  channelId: string | null;
-  userId: string;
-  target: RemindTarget;
-  /** 사이클은 지역마다 따로 건다 — 대상 하나로는 무엇을 알릴지가 안 정해진다 */
-  option?: CycleName;
-};
+import { TargetCommandAlarm } from './vo/target-command.vo';
 
 @Injectable()
 export class AlarmService {
@@ -68,11 +41,9 @@ export class AlarmService {
 
   @Interval(60_000)
   async cron() {
-    // 실행
     const alarms = await this.getPendingAlarms();
-    // 스케줄러의 try/catch는 cron()까지만 감싼다 — 떼어 보낸 run()의 거절은 여기서 받지 않으면
-    // unhandled rejection으로 프로세스가 죽는다(catch 안의 afterFire가 DB 장애로 또 실패할 때).
-    // RUNNING으로 남은 행은 STALE_AFTER_MINUTES 뒤 getPendingAlarms가 회수한다
+    // run()의 거절을 여기서 안 받으면 unhandled rejection으로 프로세스가 죽는다.
+    // RUNNING으로 남은 행은 getPendingAlarms가 회수한다
     alarms.forEach((alarm) => {
       this.run(alarm).catch((error) =>
         this.logger.error(`알람 ${alarm.id} 처리 실패`, error),
@@ -80,8 +51,13 @@ export class AlarmService {
     });
   }
 
-  /** 업데이트는 어떻게 하지 일단은 지우고 등록 */
   async register(alarm: CreateAlarm) {
+    const { target, options } = alarm.targetCommand;
+    if (options && target !== TargetCommand.VoidFissures)
+      throw new BadRequestException(
+        '`tier` only applies to the void-fissures target.',
+      );
+
     const registered = await this.alarmConfigRepository.countBy({
       guildId: alarm.guildId,
       intervalValue: Not(IsNull()),
@@ -110,15 +86,16 @@ export class AlarmService {
     return affected ?? 0;
   }
 
-  /**
-   * 임베드 🔔 버튼 — 토글. 등록하면 발동 시각을, 이미 있으면 지우고 null을 준다.
-   * 버튼은 유저별 상태를 못 보여주므로(같은 메시지의 버튼은 모두에게 같은 라벨이다)
-   * 눌린 결과는 호출단이 ephemeral로 알려야 한다.
-   */
+  leadFor(target: RemindTarget) {
+    return target === TargetCommand.Cycles
+      ? CYCLE_REMIND_LEAD_MINUTES
+      : REMIND_LEAD_MINUTES;
+  }
+
+  /** 🔔 토글 — 등록하면 발동 시각을, 이미 있으면 지우고 null을 돌려준다 */
   async remind({ guildId, channelId, userId, target, option }: RemindInput) {
-    // 지역까지 넣어야 토글이 지역별로 갈린다 — 키가 같으면 시투스를 걸고 발리스를 누를 때 시투스가 지워진다
+    // 지역까지 키에 넣어야 시투스·발리스 토글이 서로를 안 지운다
     const key = option ? `${target}:${option}` : target;
-    // 사람마다 따로 잡힌다 — 같은 서버·같은 대상이어도 남의 것을 지우면 안 된다
     const existing = await this.alarmConfigRepository.findOneBy({
       guildId,
       userId,
@@ -135,9 +112,8 @@ export class AlarmService {
         `${TargetCommandLabel[target]} is between rotations right now.`,
       );
 
-    const lead = leadFor(target);
+    const lead = this.leadFor(target);
     const at = moment.subtract(lead, 'minute');
-    // 등록하자마자 발동하는 리마인더는 알림이 아니라 소음이다
     if (!at.isAfter(dayjs()))
       throw new BadRequestException(
         `${TargetCommandLabel[target]} happens in under ${lead} minutes — too late to remind you.`,
@@ -147,14 +123,13 @@ export class AlarmService {
       guildId,
       channelId,
       userId,
-      // 토글 키를 겸한다 — 화면에 찍히는 이름은 TargetCommandLabel이 만든다
+      // 토글 키를 겸한다
       name: key,
       intervalValue: null,
       targetCommand: { target, options: option },
       doneAt: at,
     });
-    // 🔔 동시 클릭 레이스 — findOneBy가 둘 다 "없음"을 본 뒤 나란히 insert하면
-    // 부분 유니크 인덱스(23505)가 뒤늦게 막는다. 파티 생성과 같은 처리 방식.\
+    // 🔔 동시 클릭 레이스는 부분 유니크 인덱스(23505)가 막는다
     await this.alarmConfigRepository
       .save(entity)
       .catch((error: { code?: string }) => {
@@ -167,10 +142,10 @@ export class AlarmService {
     return at;
   }
 
-  /** 서버 알람만 — 1회용은 개인 리마인더지 서버가 관리할 물건이 아니다 */
-  async popAlarm(guilidId: string) {
+  /** 반복 알람만 — 1회용은 개인 리마인더라 서버 목록에 안 보인다 */
+  async popAlarm(guildId: string) {
     const alarms = await this.alarmConfigRepository.findBy({
-      guildId: guilidId,
+      guildId,
       intervalValue: Not(IsNull()),
     });
 
@@ -188,8 +163,7 @@ export class AlarmService {
     const now = dayjs().startOf('minute');
     const alarms = await this.alarmConfigRepository.findBy([
       { status: AlarmStatus.PENDING, doneAt: LessThanOrEqual(now) },
-      // 발동 도중 프로세스가 죽으면 RUNNING으로 굳어 다시는 안 돈다.
-      // 한 번 발동이 STALE_AFTER_MINUTES를 넘길 일은 없으므로 그보다 오래 묵은 RUNNING은 좀비로 보고 회수한다.
+      // 발동 도중 프로세스가 죽어 RUNNING으로 굳은 좀비를 회수한다
       {
         status: AlarmStatus.RUNNING,
         updatedAt: LessThanOrEqual(now.subtract(STALE_AFTER_MINUTES, 'minute')),
@@ -206,19 +180,14 @@ export class AlarmService {
     return alarms;
   }
 
-  /**
-   * 트랜잭션을 걸지 않는다 — catch가 에러를 다 삼켜 롤백될 일이 없는데, 걸면 외부 API·Discord 전송이
-   * 끝날 때까지 커넥션을 붙잡아 같은 분에 알람이 몰리면 풀이 차고 슬래시 커맨드가 줄을 선다
-   */
+  /** 트랜잭션을 걸지 않는다 — 외부 API·Discord 전송 동안 커넥션을 붙잡아 풀이 마른다 */
   async run(alarm: AlarmConfig) {
     try {
-      // jsonb에서 올라온 값이라 "이 대상엔 이 좁힘 값"이라는 짝은 타입이 못 좁힌다 —
-      // 값 자체는 엔티티의 class-validator가 지킨다
+      // jsonb라 target↔options 짝은 타입이 못 좁힌다 — 값은 엔티티의 class-validator가 지킨다
       const view = await this.warframeApiService.getAlarmTarget(
         alarm.targetCommand as AlarmRequest,
       );
 
-      // 사용자가 부른 게 아니다 — 왜 이게 왔는지를 밝히지 않으면 조회 결과와 구분되지 않는다
       await this.deliver(alarm, asPush(view, ...this.pushLines(alarm)));
 
       return this.afterFire(alarm);
@@ -229,7 +198,6 @@ export class AlarmService {
     }
   }
 
-  /** 1회용 리마인더의 주어 — 대상마다 곧 일어나는 일이 다르다(만료 / 전환 / 도착) */
   private remindSubject(
     target: TargetCommand,
     options?: VoidTier | CycleName,
@@ -241,19 +209,14 @@ export class AlarmService {
     return `${label} ends`;
   }
 
-  /**
-   * 반복 알람은 "언제마다 오는지", 1회용은 "누구 것이고 뭐가 곧 끝나는지"를 밝혀야 한다.
-   * 세 번째는 잘렸을 때 전체를 볼 경로 — enum 값이 그대로 슬래시 커맨드 이름이다.
-   */
   private pushLines(alarm: AlarmConfig): [string, string, string] {
     const { target, options } = alarm.targetCommand;
-    const path = commandPath(alarm.targetCommand);
+    const path = TargetCommandAlarm.path(alarm.targetCommand);
     if (!alarm.intervalValue)
       return [
-        // DM이 막혀 채널로 떨어져도 누구 것인지 알려면 멘션이 본문에 있어야 한다 —
-        // ComponentsV2 메시지는 content를 못 써서 멘션 자리가 여기뿐이다
+        // ComponentsV2는 content를 못 써서 멘션을 본문에 넣는다
         `🔔 Reminder · <@${alarm.userId}> · ${this.remindSubject(target, options)} ${relative(
-          alarm.doneAt.add(leadFor(target as RemindTarget), 'minute'),
+          alarm.doneAt.add(this.leadFor(target as RemindTarget), 'minute'),
         )}`,
         'One-time reminder you set with 🔔 — press it again to set a new one',
         path,
@@ -267,10 +230,7 @@ export class AlarmService {
     ];
   }
 
-  /**
-   * 1회용은 누른 사람에게 DM — 개인 리마인더를 공용 채널에 쌓지 않는다.
-   * DM 차단(50007)이면 등록한 채널로 떨군다. 조용히 사라지는 게 최악이다.
-   */
+  /** 1회용은 DM으로, DM이 막히면(50007) 등록한 채널로 */
   private async deliver(alarm: AlarmConfig, view: ContainerBuilder) {
     if (!alarm.userId) return this.toChannel(alarm, view);
 
@@ -289,7 +249,7 @@ export class AlarmService {
   }
 
   async afterFire(alarm: AlarmConfig) {
-    // 1회용은 다시 쓸 일이 없다 — 남기면 크론이 1분마다 영원히 훑는다(실패했어도 마찬가지다)
+    // 1회용은 실패했어도 지운다 — 남기면 크론이 영원히 훑는다
     if (!alarm.intervalValue) {
       await this.alarmConfigRepository.delete({ id: alarm.id });
       return;

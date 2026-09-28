@@ -1,4 +1,4 @@
-/** drops.warframestat.us data/all.json 응답 스키마. 실제 응답을 직접 호출해 확인한 필드로 작성. */
+/** drops.warframestat.us data/all.json 응답 스키마 */
 
 /** 대부분의 드랍 목록에서 공통으로 쓰이는 아이템 항목 */
 export interface DropReward {
@@ -123,7 +123,7 @@ export interface ItemByAvatar {
   items: AvatarItem[];
 }
 
-/** GET data/info.json — all.json을 받기 전에 변경 여부만 확인하는 용도. 실제 응답 확인함. */
+/** GET data/info.json — all.json을 받기 전에 변경 여부만 확인한다 */
 export interface DropTableInfo {
   hash: string;
   timestamp: number;

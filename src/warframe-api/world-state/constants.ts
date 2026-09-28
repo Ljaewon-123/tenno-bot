@@ -1,25 +1,46 @@
 import { CacheKey } from '../shared/enum';
-import { CycleName } from './vo/enum';
+import { ArchonBoss, CycleName } from './vo/enum';
 
-/**
- * worldstate 응답을 Cache 테이블에 담아두는 시간.
- * 변화 감지 크론이 10분 주기라 1분 TTL은 커서 판정에 영향이 없고,
- * 겹치는 호출(감지 → 임베드 생성, 여러 유저의 동시 커맨드)을 API 대신 DB로 받아낸다.
- */
+/** 겹치는 호출(감지 → 임베드, 동시 커맨드)을 API 대신 DB로 받는다 */
 export const TTL_SECONDS = 60;
 
-/**
- * API가 죽었을 때 만료된 캐시를 대신 내주는 상한.
- * 이 창 안에서는 조금 옛날 값이 에러 카드보다 낫고, 넘으면 조용히 틀린 값보다 에러가 낫다.
- */
+/** API가 죽었을 때 만료된 캐시를 대신 내주는 상한 */
 export const STALE_MAX_MINUTES = 30;
 
-/**
- * 경로는 `pc/${name}Cycle`로 조립되지만 CacheKey는 enum이라 조립할 수 없다.
- * 사이클을 추가할 땐 여기와 ALLOWED_PATHS 양쪽에 등록해야 한다.
- */
+/** CacheKey는 조립할 수 없어 매핑한다 — 사이클 추가 시 ALLOWED_PATHS에도 등록 */
 export const CYCLE_CACHE_KEY: Record<CycleName, CacheKey> = {
   [CycleName.Cetus]: CacheKey.WorldStateCetusCycle,
   [CycleName.Vallis]: CacheKey.WorldStateVallisCycle,
   [CycleName.Cambion]: CacheKey.WorldStateCambionCycle,
 };
+
+/**
+ * 파일명이 아니라 uniqueName으로 찾는다 — 손으로 적은 파일명이 어긋나면 디스코드가 조용히 안 그린다.
+ * 집정관 본체 이미지는 DB에 없어 세트 모드 엠블럼으로 대신한다.
+ */
+export const ArchonImage = {
+  [ArchonBoss.Boreal]: {
+    boss: '/Lotus/Upgrades/Mods/Sets/Boreal/BorealSetMod',
+    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalBoreal',
+  },
+  [ArchonBoss.Amar]: {
+    boss: '/Lotus/Upgrades/Mods/Sets/Amar/AmarSetMod',
+    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalAmar',
+  },
+  [ArchonBoss.Nira]: {
+    boss: '/Lotus/Upgrades/Mods/Sets/Nira/NiraSetMod',
+    shard: '/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystalNira',
+  },
+};
+
+/** 보이드 상인 본인 이미지 — 아이템이 아니라 글리프 이미지를 쓴다 */
+export const VOID_TRADER_IMAGE = 'BaroKiteerAvatar.png';
+
+/** 센티널·아크윙 본체는 무기가 아니라 Other */
+export const VOID_TRADER_WEAPON_CATEGORIES: string[] = [
+  'Primary',
+  'Secondary',
+  'Melee',
+  'Arch-Gun',
+  'Arch-Melee',
+];

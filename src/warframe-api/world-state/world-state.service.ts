@@ -27,22 +27,18 @@ export class WorldStateService {
     private readonly cacheRepository: CacheRepository,
   ) {}
 
-  /** 집정관 */
   async archonHunt(): Promise<ArchonHunt> {
     return this.get(CacheKey.WorldStateArchonHunt, 'pc/archonHunt');
   }
 
-  /** 출격 (소티) */
   async sortie(): Promise<Sortie> {
     return this.get(CacheKey.WorldStateSortie, 'pc/sortie');
   }
 
-  /** 이벤트 */
   async events(): Promise<WorldEvent[]> {
     return this.get(CacheKey.WorldStateEvents, 'pc/events');
   }
 
-  /** 보이드 균열 */
   async voidFissures(options?: VoidTier): Promise<Fissure[]> {
     const fissures = await this.get<Fissure[]>(
       CacheKey.WorldStateFissures,
@@ -57,45 +53,35 @@ export class WorldStateService {
     return filtered;
   }
 
-  /** 보이드 상인 (바로 키티어) */
   async voidTrader(): Promise<VoidTrader> {
     return this.get(CacheKey.WorldStateVoidTrader, 'pc/voidTrader');
   }
 
-  /** 나이트웨이브 (인게임 명칭은 바뀌었지만 API 경로는 그대로) */
+  /** 인게임 명칭은 바뀌었지만 API 경로는 그대로다 */
   async nightwave(): Promise<Nightwave> {
     return this.get(CacheKey.WorldStateNightwave, 'pc/nightwave');
   }
 
-  /** 아르키메디아 — 심층/시간이 한 배열로 온다 */
   async archimedeas(): Promise<Archimedea[]> {
     return this.get(CacheKey.WorldStateArchimedeas, 'pc/archimedeas');
   }
 
-  /** 두비리 사이클 — 서킷 주간 로테이션(choices)을 여기서 얻는다 */
   async duviriCycle(): Promise<DuviriCycle> {
     return this.get(CacheKey.WorldStateDuviriCycle, 'pc/duviriCycle');
   }
 
-  /** 오픈월드 낮/밤 사이클 */
   async cycle(name: CycleName): Promise<Cycle> {
     return this.get(CYCLE_CACHE_KEY[name], `pc/${name}Cycle`);
   }
 
-  /**
-   * 헬스체크 전용 — `get()`은 실패해도 캐시가 있으면 성공한 척 삼켜서 장애를 못 알아챈다.
-   * 캐시를 안 타고 직접 때려서 지금 이 순간 WFCD가 살아있는지만 잰다.
-   */
+  /** get()은 실패해도 캐시로 성공한 척하므로 헬스체크는 캐시 없이 직접 친다 */
   async ping(): Promise<number> {
     const start = performance.now();
     await this.httpJsonService.request(HttpMethod.Get, 'pc/sortie');
     return performance.now() - start;
   }
 
-  /**
-   * 요청이 실패하면 아무것도 쓰지 않아 다음 호출이 그대로 재시도한다.
-   * 밀리초 단위로 겹친 동시 호출은 각자 API를 때린다 — 필요해지면 in-flight Promise 맵을 얹으면 됨.
-   */
+  /** 실패하면 아무것도 안 써서 다음 호출이 재시도한다 */
   private async get<T>(key: CacheKey, path: string): Promise<T> {
     const now = dayjs();
     const cached = await this.cacheRepository.findOneBy({ key });
@@ -107,8 +93,7 @@ export class WorldStateService {
     const response = await this.httpJsonService
       .request<T>(HttpMethod.Get, path)
       .catch((error: Error) => {
-        // 만료됐어도 캐시가 있으면 그게 에러 카드보다 낫다 — 월드스테이트는 분 단위로 안 변한다.
-        // 실제 나이는 stale.ts가 들고 카드 footer가 `cached <t:..:R>`로 적는다
+        // 만료됐어도 STALE_MAX_MINUTES 안이면 에러 카드보다 옛날 값이 낫다
         if (!cached || !staleUntil?.isAfter(now)) throw error;
         servedStale = true;
         this.logger.warn(
@@ -117,9 +102,9 @@ export class WorldStateService {
         return cached.cache as T;
       });
 
-    // 스테일은 캐시를 갱신하지 않는다 — 새로 받은 것처럼 TTL을 밀면 API가 살아나도 60초를 더 기다린다
+    // 스테일은 캐시를 갱신하지 않는다 — TTL을 밀면 API가 살아나도 60초를 더 기다린다
     if (servedStale) {
-      // 받아진 시각은 따로 없다. expiresAt에서 TTL을 빼면 그게 마지막 성공 시각이다
+      // expiresAt - TTL이 마지막 성공 시각이다
       if (cached?.expiresAt)
         markStale(response, cached.expiresAt.subtract(TTL_SECONDS, 'second'));
       return response;
@@ -128,7 +113,12 @@ export class WorldStateService {
     const entity = cached ?? this.cacheRepository.create({ key });
     entity.cache = response;
     entity.expiresAt = now.add(TTL_SECONDS, 'second');
-    await this.cacheRepository.save(entity);
+    await this.cacheRepository
+      .save(entity)
+      .catch((error: { code?: string }) => {
+        // 빈 캐시에 첫 호출이 겹치면 나란히 insert해 unique(key)에 걸린다 — 같은 응답이 이미 들어갔다
+        if (error?.code !== '23505') throw error;
+      });
 
     return response;
   }
