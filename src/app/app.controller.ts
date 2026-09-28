@@ -13,4 +13,15 @@ export class AppController {
     }
     return { message: 'success' };
   }
+
+  // 랜딩 스탯 알약용. 503을 던지면 랜딩이 알약을 통째로 숨기므로 게이트웨이가 끊겨도 ready:false로 내려준다
+  @Get('stats')
+  async getStats() {
+    const guilds = this.client.guilds.cache;
+    return {
+      guilds: guilds.size,
+      users: guilds.reduce((sum, guild) => sum + guild.memberCount, 0),
+      ready: this.client.isReady(),
+    };
+  }
 }
