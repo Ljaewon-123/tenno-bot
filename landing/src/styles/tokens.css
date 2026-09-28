@@ -1,0 +1,68 @@
+/* light is default; .dark on <html> flips it */
+:root {
+  --bg: #f1f3fa;
+  --surface: #ffffff;
+  --surface-2: #eceff8;
+  --code: #f3f5fb;
+  --border: #dfe3f0;
+  --text: #151a30;
+  --text-muted: #4a5170;
+  --text-faint: #626a88;
+  --accent: #0f9e8c;
+  --accent-text: #0b6f63;
+  --on-accent: #ffffff;
+  --accent-soft: #dcf6f1;
+  --support: #ffc98a;
+  --on-support: #2a1804;
+  --intel: #0b6f63;
+  --intel-bg: #dcf6f1;
+  --loot: #8a5a00;
+  --loot-bg: #fdf0cc;
+  --ops: #5b3fc4;
+  --ops-bg: #ece6ff;
+  --comms: #a3321a;
+  --comms-bg: #fde4de;
+  --squad: #1f7a4a;
+  --squad-bg: #dcf5e6;
+  --common: #8a4b1f;
+  --common-bg: #f7e6d8;
+  --uncommon: #4a5568;
+  --uncommon-bg: #e8ecf2;
+  --rare: #8a5a00;
+  --rare-bg: #fdf0cc;
+}
+
+.dark {
+  --bg: #0d1020;
+  --surface: #151a30;
+  --surface-2: #1f2542;
+  --code: #0f1328;
+  --border: #262d4d;
+  --text: #f4f6ff;
+  --text-muted: #a9b1cf;
+  --text-faint: #8189ab;
+  --accent: #5eead4;
+  --accent-text: #5eead4;
+  --on-accent: #062320;
+  --accent-soft: #16433c;
+  --support: #ffc98a;
+  --on-support: #2a1804;
+  --intel: #5eead4;
+  --intel-bg: #16433c;
+  --loot: #ffd166;
+  --loot-bg: #4a3d16;
+  --ops: #c4b2ff;
+  --ops-bg: #32295a;
+  --comms: #ff9f8a;
+  --comms-bg: #4a2a26;
+  --squad: #7ee2a8;
+  --squad-bg: #1c4030;
+  --common: #e6b48c;
+  --common-bg: #3b2a1e;
+  --uncommon: #d5dcea;
+  --uncommon-bg: #2a3040;
+  --rare: #ffd166;
+  --rare-bg: #4a3d16;
+}
+
+/* landing page: <html class="dark"> always */

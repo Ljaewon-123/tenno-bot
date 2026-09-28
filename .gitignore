@@ -2,6 +2,8 @@
 /dist
 /node_modules
 /build
+/landing/node_modules
+/landing/dist
 
 # Logs
 logs

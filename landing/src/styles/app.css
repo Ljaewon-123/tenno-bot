@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* inline: utilities read the live var,
+   so bg-surface flips with .dark by itself */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-code: var(--code);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-support: var(--support);
+  --color-on-support: var(--on-support);
+  --color-intel: var(--intel);
+  --color-intel-bg: var(--intel-bg);
+  --color-loot: var(--loot);
+  --color-loot-bg: var(--loot-bg);
+  --color-ops: var(--ops);
+  --color-ops-bg: var(--ops-bg);
+  --color-comms: var(--comms);
+  --color-comms-bg: var(--comms-bg);
+  --color-squad: var(--squad);
+  --color-squad-bg: var(--squad-bg);
+  --color-common: var(--common);
+  --color-common-bg: var(--common-bg);
+  --color-uncommon: var(--uncommon);
+  --color-uncommon-bg: var(--uncommon-bg);
+  --color-rare: var(--rare);
+  --color-rare-bg: var(--rare-bg);
+
+  --font-display: 'Sora', sans-serif;
+  --font-sans: 'Nunito Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* usage */
+/* <div class="bg-surface text-text
+     border border-border rounded-3xl"> */
+/* <span class="bg-loot-bg text-loot
+     rounded-full px-3">Loot</span> */
+
+body {
+  @apply bg-bg text-text font-sans;
+}
+
+/* 아이콘 버튼 등 outline 없는 요소도 키보드 포커스 시 접근성 링이 보여야 함 */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

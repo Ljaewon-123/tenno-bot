@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Docs — Teno</title>
+    <meta name="description" content="Command reference and setup guide for the Teno Discord bot." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles/app.css" />
+    <script>
+      // 테마 클래스를 <head>에서 바로 적용해야 body가 그려지기 전에 확정된다 —
+      // 안 그러면 라이트로 그렸다가 다크로 바뀌는 깜빡임(FOUC)이 생긴다.
+      // localStorage는 프라이빗 모드 등에서 접근 자체가 던질 수 있어 try/catch로 감싼다.
+      try {
+        const stored = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (stored !== 'light' && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch {
+        // 접근 실패 시 기본(라이트)로 둔다
+      }
+    </script>
+  </head>
+  <body>
+    <!--app-->
+    <script type="module" src="/src/scripts/theme.ts"></script>
+    <script type="module" src="/src/scripts/docs-search.ts"></script>
+  </body>
+</html>
