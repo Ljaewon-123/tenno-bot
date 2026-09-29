@@ -101,7 +101,7 @@ export class SlashCommandService {
               {
                 heading: 'Alarm',
                 lines: [
-                  '`/alarm register|delete|list` — Repeating reminders for the commands above',
+                  '`/alarm register|delete|list` — Repeating reminders for the commands above (Manage Channels)',
                 ],
               },
             ],
@@ -109,7 +109,7 @@ export class SlashCommandService {
               {
                 heading: 'Notification',
                 lines: [
-                  '`/notification on|off|list` — Subscribe this server to worldstate changes',
+                  '`/notification on|off|list` — Subscribe this server to worldstate changes (Manage Server)',
                 ],
               },
             ],

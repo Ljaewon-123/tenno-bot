@@ -219,7 +219,7 @@ export const COMMANDS: Command[] = [
     id: 'alarm',
     category: 'ops',
     description: 'Manage repeating Warframe info alarms',
-    tip: 'Alarms post in the channel where you run the command, and only work inside a server.',
+    tip: 'Requires the Manage Channels permission. Alarms post in the channel where you run the command, and only work inside a server.',
     subcommands: [
       {
         id: 'register',
