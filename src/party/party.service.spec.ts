@@ -67,16 +67,15 @@ const build = (overrides: Overrides = {}) => {
     delete: vi.fn().mockResolvedValue({ affected: 2 }),
   };
 
-  const edit = vi.fn();
-  const fetchMessage = vi.fn((messageId: string) =>
+  const edit = vi.fn((messageId: string) =>
     overrides.deadChannels?.includes(messageId)
       ? Promise.reject(new Error('Unknown Message'))
-      : Promise.resolve({ edit }),
+      : Promise.resolve(),
   );
   const fetchChannel = vi.fn(() =>
     Promise.resolve({
       isTextBased: () => true,
-      messages: { fetch: fetchMessage },
+      messages: { edit },
     }),
   );
 
@@ -193,7 +192,9 @@ describe('expire', () => {
       deadChannels: ['dead'],
     });
     await expect(service.expire()).resolves.toBeUndefined();
-    expect(edit).toHaveBeenCalledTimes(1);
+    // 죽은 메시지 수정이 거절돼도 다음 파티까지 시도한다
+    expect(edit).toHaveBeenCalledTimes(2);
+    expect(edit.mock.calls[1][0]).not.toBe('dead');
   });
 
   it('메시지 좌표가 없는 파티는 디스코드를 건드리지 않는다', async () => {

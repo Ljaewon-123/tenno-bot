@@ -8,15 +8,17 @@ import {
   payload,
   subtext,
 } from '@/utils/discord-embed';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UseGuards } from '@nestjs/common';
 import { Context, Options, Subcommand, type SlashCommandContext } from 'necord';
 import { NotificationCommands } from './decorators/notification.decorator';
+import { CanPostGuard } from './guards/can-post.guard';
 
 @NotificationCommands()
 @Injectable()
 export class NotificationCommandService {
   constructor(private readonly notificationService: NotificationService) {}
 
+  @UseGuards(CanPostGuard)
   @Subcommand({
     name: 'on',
     description: 'Send this event to the current channel when it changes',

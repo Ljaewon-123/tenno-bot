@@ -18,7 +18,7 @@ import {
   subtext,
 } from '@/utils/discord-embed';
 import { resolveTimezone } from '@/utils/timezone';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UseGuards } from '@nestjs/common';
 import { ButtonStyle, PermissionFlagsBits } from 'discord.js';
 import {
   Button,
@@ -30,12 +30,14 @@ import {
   type SlashCommandContext,
 } from 'necord';
 import { AlarmCommands } from './decorators/alarm-commands.decorator';
+import { CanPostGuard } from './guards/can-post.guard';
 
 @AlarmCommands()
 @Injectable()
 export class AlarmCommandService {
   constructor(private readonly alarmService: AlarmService) {}
 
+  @UseGuards(CanPostGuard)
   @Subcommand({ name: 'register', description: 'Register a new alarm' })
   async registerAlarm(
     @Context() [interaction]: SlashCommandContext,

@@ -222,8 +222,11 @@ export class PartyService {
     if (!party.channelId || !party.messageId) return;
     const channel = await this.client.channels.fetch(party.channelId);
     if (!channel?.isTextBased()) return;
-    const message = await channel.messages.fetch(party.messageId);
-    await message.edit(this.partyMessage.build(party));
+    // fetch 후 edit은 Read Message History가 필요한데 초대 권한엔 없다 — id로 바로 수정한다
+    await channel.messages.edit(
+      party.messageId,
+      this.partyMessage.build(party),
+    );
   }
 
   /** 조건부 UPDATE가 0행이면 사유를 알려주지 않으므로 매번 다시 읽어 분기한다 */
