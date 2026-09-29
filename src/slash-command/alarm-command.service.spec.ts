@@ -28,6 +28,7 @@ const service = () => {
 
 const interaction = () => ({
   guildId: 'g1',
+  memberPermissions: { has: vi.fn().mockReturnValue(true) },
   editReply: vi.fn<(view: ReturnType<typeof payload>) => void>(),
   update: vi.fn<(view: ReturnType<typeof payload>) => void>(),
 });
@@ -93,5 +94,16 @@ describe('/alarm list', () => {
       'alarm/list/delete/id-1/1',
       'alarm/list/delete/id-0/1',
     ]);
+  });
+
+  it('Manage Channels 없는 멤버는 공개 목록의 삭제 버튼으로 못 지운다', async () => {
+    const { alarmService, command } = service();
+    const context = interaction();
+    context.memberPermissions.has.mockReturnValue(false);
+
+    await expect(
+      command.deleteFromList([context] as never, 'id-4', '1'),
+    ).rejects.toThrow('Manage Channels');
+    expect(alarmService.unRegister).not.toHaveBeenCalled();
   });
 });

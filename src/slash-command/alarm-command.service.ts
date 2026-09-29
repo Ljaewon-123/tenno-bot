@@ -18,8 +18,8 @@ import {
   subtext,
 } from '@/utils/discord-embed';
 import { resolveTimezone } from '@/utils/timezone';
-import { Injectable } from '@nestjs/common';
-import { ButtonStyle } from 'discord.js';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { ButtonStyle, PermissionFlagsBits } from 'discord.js';
 import {
   Button,
   ComponentParam,
@@ -120,6 +120,11 @@ export class AlarmCommandService {
     @ComponentParam('page') page: string,
   ) {
     if (!interaction.guildId) return interaction.update(guildOnly());
+
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels))
+      throw new BadRequestException(
+        'Only members with Manage Channels can delete alarms.',
+      );
 
     await this.alarmService.unRegister(id, interaction.guildId);
     return interaction.update(
