@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  push deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
