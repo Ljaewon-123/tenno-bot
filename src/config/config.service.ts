@@ -41,6 +41,11 @@ export class AppConfig {
   @IsString()
   @IsOptional()
   DEV_DB?: string;
+
+  @Expose()
+  @IsOptional()
+  @IsString()
+  TOPGG_TOKEN?: string;
 }
 
 export function loadConfig(): AppConfig {

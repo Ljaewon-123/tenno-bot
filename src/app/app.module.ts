@@ -26,6 +26,7 @@ import { AppController } from './app.controller';
 import { BotLifecycleHook } from './bot-lifecycle.hook';
 import { CommandExceptionFilter } from './command-exception.filter';
 import { CommandLoggingInterceptor } from './command-logging.interceptor';
+import { TopggStatsService } from './topgg-stats.service';
 
 @Module({
   controllers: [AppController],
@@ -92,6 +93,7 @@ import { CommandLoggingInterceptor } from './command-logging.interceptor';
       useClass: CommandLoggingInterceptor,
     },
     BotLifecycleHook,
+    TopggStatsService,
   ],
 })
 export class AppModule {}
