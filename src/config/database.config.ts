@@ -14,8 +14,8 @@ export class DatabaseConfig {
     const isProduction = this.config.nodeEnv === NodeEnv.Production;
     return {
       type: 'postgres',
-      url: this.config.PG_DATABASE_URL,
-      ssl: this.config.PG_CA_CERT ? { ca: this.config.PG_CA_CERT } : true,
+      url: isProduction ? this.config.PG_DATABASE_URL : this.config.DEV_DB,
+      ssl: isProduction ? { ca: this.config.PG_CA_CERT } : true,
       synchronize: !isProduction,
       migrations,
       // dev는 synchronize가 이미 스키마를 맞춰 놓는다 — 프로덕션에서만 돌린다

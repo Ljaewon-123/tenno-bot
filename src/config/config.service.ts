@@ -36,6 +36,11 @@ export class AppConfig {
   @IsOptional()
   @IsString()
   PG_CA_CERT?: string;
+
+  @Expose()
+  @IsString()
+  @IsOptional()
+  DEV_DB?: string;
 }
 
 export function loadConfig(): AppConfig {

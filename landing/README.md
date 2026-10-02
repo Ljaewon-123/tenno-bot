@@ -36,7 +36,7 @@ npm test          # vitest
 - [ ] `src/data/links.ts` 자리표시자 5개 채우기 — `INVITE_URL`, `KOFI_URL`, `SPONSORS_URL`, `GITHUB_REPO_URL`, `SUPPORT_SERVER_URL`. **Cloudflare 빌드(`CF_PAGES` 설정됨)는 하나라도 남아 있으면 일부러 실패한다.**
 - [ ] 초대 URL 권한 계산 — `scope=bot applications.commands` + 실제 쓰는 권한으로 `permissions` 값
 - [ ] `npm run dev`로 네 페이지 육안 확인 (데스크톱 + 360px 폰 폭)
-- [ ] `feat/landing` → main 병합
+- [x] `feat/landing` → main 병합
 - [ ] Cloudflare Pages 연결 — Production `main` / Root `landing` / Build `npm run build` / Output `dist` / Watch paths `landing/*`. Node는 `.node-version`(22)을 따른다.
 
 ### 봇 쪽 (스탯 알약용)
