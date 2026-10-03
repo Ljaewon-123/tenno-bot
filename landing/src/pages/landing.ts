@@ -8,7 +8,7 @@ import { SiteFooter } from '../components/SiteFooter.ts';
 import { SiteNav } from '../components/SiteNav.ts';
 import { StepCard } from '../components/StepCard.ts';
 import { FEATURES, NAV_LINKS, STEPS } from '../data/landing.ts';
-import { DOCS_HREF, FOOTER_LINKS, INVITE_URL, KOFI_URL, SPONSORS_URL } from '../data/links.ts';
+import { DOCS_HREF, FOOTER_LINKS, INVITE_URL, KOFI_URL } from '../data/links.ts';
 
 // 목업 그대로 옮긴 고정 SVG(장식용 아이콘) — 사용자 입력이 섞이지 않아 raw()로 통째로 신뢰한다.
 const PLUS_ICON = raw(
@@ -22,9 +22,6 @@ const CHECK_ICON = raw(
 );
 const CUP_ICON = raw(
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"></path><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"></path></svg>',
-);
-const HEART_ICON = raw(
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"></path></svg>',
 );
 
 function HeroChat(): RawHtml {
@@ -159,7 +156,6 @@ export function render(): RawHtml {
       </div>
       <div class="flex w-full max-w-xs shrink-0 flex-col gap-3">
         ${LinkButton({ href: KOFI_URL, label: 'Support on Ko-fi', variant: 'support', icon: CUP_ICON, class: 'min-h-13.5' })}
-        ${LinkButton({ href: SPONSORS_URL, label: 'GitHub Sponsors', variant: 'outline', icon: HEART_ICON, class: 'min-h-13.5' })}
       </div>
     </section>
     </main>

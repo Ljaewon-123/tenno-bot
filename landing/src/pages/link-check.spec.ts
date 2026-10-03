@@ -67,11 +67,7 @@ describe('isAllowedHref', () => {
     expect(isAllowedHref('mailto:hello@example.com')).toBe(true);
   });
 
-  it('allows the placeholder URLs listed in links.ts', () => {
-    expect(isAllowedHref('[INVITE URL]')).toBe(true);
-  });
-
-  it('rejects a relative href that is not on the placeholder allowlist', () => {
+  it('rejects a relative href', () => {
     // Cloudflare Pages는 이런 상대경로를 index.html로 폴백해서 버튼이 조용히 랜딩만 새로고침한다.
     expect(isAllowedHref('assets/logo.png')).toBe(false);
     expect(isAllowedHref('docs.html')).toBe(false);

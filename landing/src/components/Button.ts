@@ -19,7 +19,7 @@ interface LinkButtonProps {
   class?: string;
 }
 
-/** 목업의 pill 버튼들(Add to Discord / Read the docs / Ko-fi / GitHub Sponsors) 공용 링크-버튼. */
+/** 목업의 pill 버튼들(Add to Discord / Read the docs / Ko-fi) 공용 링크-버튼. */
 export function LinkButton({ href, label, variant, icon, class: className = '' }: LinkButtonProps): RawHtml {
   return html`<a
     href="${href}"

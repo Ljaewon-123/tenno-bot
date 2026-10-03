@@ -33,8 +33,8 @@ npm test          # vitest
 ## TODO
 
 ### 배포 전 필수
-- [ ] `src/data/links.ts` 자리표시자 5개 채우기 — `INVITE_URL`, `KOFI_URL`, `SPONSORS_URL`, `GITHUB_REPO_URL`, `SUPPORT_SERVER_URL`. **Cloudflare 빌드(`CF_PAGES` 설정됨)는 하나라도 남아 있으면 일부러 실패한다.**
-- [ ] 초대 URL 권한 계산 — `scope=bot applications.commands` + 실제 쓰는 권한으로 `permissions` 값
+- [x] `src/data/links.ts` URL 채우기 (2026-10-04)
+- [x] 초대 URL 권한 계산 — View Channel + Send Messages + Send Messages in Threads + Embed Links = `274877926400`
 - [ ] `npm run dev`로 네 페이지 육안 확인 (데스크톱 + 360px 폰 폭)
 - [x] `feat/landing` → main 병합
 - [ ] Cloudflare Pages 연결 — Production `main` / Root `landing` / Build `npm run build` / Output `dist` / Watch paths `landing/*`. Node는 `.node-version`(22)을 따른다.
@@ -50,7 +50,7 @@ npm test          # vitest
 - [ ] 커맨드가 바뀌면 `src/data/commands.ts`도 손으로 갱신 (DTO 자동 생성은 안 함)
 
 ### 알고 남겨둔 것 (필요하면)
-- 아포스트로피 하나 직선 따옴표 ("And there's more"), Sponsors 하트 색이 시안(분홍)과 다름
+- 아포스트로피 하나 직선 따옴표 ("And there's more")
 - `CommandSection`이 카테고리 표(`CATEGORY_LABEL`/`CATEGORY_TONE`)를 data에서 직접 import — 이전 시 props로
 - `/help` `/status` `/shockwave`는 시안에 없어서 Intel에 넣음
 - TypeScript 7 / Vite 8 최신 메이저 사용 중
