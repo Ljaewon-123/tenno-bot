@@ -3,6 +3,7 @@ import {
   bold,
   button,
   card,
+  literal,
   payload,
   relative,
   subtext,
@@ -23,13 +24,15 @@ export class PartyMessageService {
     const open = party.status === PartyStatus.OPEN;
     const full = party.members.length >= party.partySize;
     const mention = (userId: string) => `<@${userId}>`;
+    const name = literal(party.name);
+    const mission = literal(party.mission);
 
     if (!open)
       return payload(
         card({
           accent: Accent.Muted,
-          title: `${party.name} · Closed`,
-          subtitle: party.mission,
+          title: `${name} · Closed`,
+          subtitle: mission,
           blocks: [
             [
               party.members.length
@@ -44,8 +47,8 @@ export class PartyMessageService {
     return payload(
       card({
         accent: full ? Accent.Success : Accent.Default,
-        title: full ? `${party.name} · Full` : party.name,
-        subtitle: `${party.mission} · ${PartyVisibilityLabel[party.visibility]}`,
+        title: full ? `${name} · Full` : name,
+        subtitle: `${mission} · ${PartyVisibilityLabel[party.visibility]}`,
         blocks: [
           [
             {
@@ -80,7 +83,7 @@ export class PartyMessageService {
 
   /** 목록·기록에서 파티 한 줄 요약 */
   line(party: Party) {
-    return `${bold(party.name)} · ${party.mission} · ${PartyVisibilityLabel[party.visibility]} · ${party.members.length}/${party.partySize} · host <@${party.hostUserId}>`;
+    return `${bold(literal(party.name))} · ${literal(party.mission)} · ${PartyVisibilityLabel[party.visibility]} · ${party.members.length}/${party.partySize} · host <@${party.hostUserId}>`;
   }
 
   /** 정원이 찬 순간만 별개 메시지로 멘션한다 — 메시지 갱신만으론 알림이 안 뜬다 */

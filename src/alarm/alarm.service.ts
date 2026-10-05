@@ -1,5 +1,5 @@
 import dayjs from '@/utils/dayjs';
-import { asPush, payload, relative } from '@/utils/discord-embed';
+import { asPush, literal, payload, relative } from '@/utils/discord-embed';
 import {
   AlarmRequest,
   RemindTarget,
@@ -223,7 +223,7 @@ export class AlarmService {
       ];
 
     return [
-      `🔔 Alarm · ${alarm.name} · every ${alarm.intervalValue} min`,
+      `🔔 Alarm · ${literal(alarm.name)} · every ${alarm.intervalValue} min`,
       // reschedule은 발송 뒤에 돌아서 doneAt은 아직 이번 발동 시각이다
       `${alarm.id} · next run ${relative(dayjs().add(alarm.intervalValue, 'minute'))}`,
       path,

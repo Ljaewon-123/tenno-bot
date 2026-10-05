@@ -9,6 +9,7 @@ import {
   emptyCard,
   errorCard,
   linkButton,
+  literal,
   okCard,
   paged,
   relative,
@@ -830,7 +831,7 @@ export class WarframeApiService {
 
     const { closest, total } = this.incarnonService.suggest(name);
     return emptyCard(
-      `No Incarnon weapon named “${name}”`,
+      `No Incarnon weapon named “${literal(name)}”`,
       closest.length > 0 &&
         `Closest matches: ${closest.map((match) => bold(match)).join(' · ')}`,
       `${total} weapons have an Incarnon Genesis`,
@@ -864,7 +865,7 @@ export class WarframeApiService {
 
     if (!sources.length)
       return emptyCard(
-        `No drop sources · ${itemName}`,
+        `No drop sources · ${literal(itemName)}`,
         'Nothing in the drop tables matches that name.',
         category && `Drop \`category:${category}\` to widen the search`,
         widen && [widen],
@@ -917,7 +918,7 @@ export class WarframeApiService {
     ].slice(0, LIMIT.selectOptions);
 
     return card({
-      title: `Drop Sources · ${itemName}`,
+      title: `Drop Sources · ${literal(itemName)}`,
       subtitle: `${sources.length} sources · highest chance first`,
       thumbnail:
         !modCard && item?.imageName
@@ -960,7 +961,7 @@ export class WarframeApiService {
     const rewards = await this.dropTableService.findRelicRewards(relicName);
     if (!rewards.length)
       return emptyCard(
-        `No relic named “${relicName}”`,
+        `No relic named “${literal(relicName)}”`,
         'Nothing in the drop tables matches that name.',
         'Pick one from the list on a /drop card, or check the tier (Lith · Meso · Neo · Axi · Requiem)',
       );

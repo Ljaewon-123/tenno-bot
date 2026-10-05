@@ -66,6 +66,20 @@ describe('/alarm list', () => {
    * 경로에서 `tier:`가 빠지면 눌러서 간 화면이 알람이 보내던 목록과 다른 것이 된다 —
    * 접힌 줄이 필터를 같이 싣는 것과 같은 이유고, 목록·확인 카드·잘린 push 셋이 같은 자리를 쓴다.
    */
+  it('알람 이름의 마스킹 링크는 목록에서 링크로 살아나지 않는다', async () => {
+    const { alarmService, command } = service();
+    const context = interaction();
+    alarmService.popAlarm.mockResolvedValue([
+      { ...alarms[0], name: '[Free Nitro](https://evil.x)' },
+    ]);
+
+    await command.popAlarm([context] as never);
+
+    expect(said(context.editReply.mock.calls[0][0])).not.toMatch(
+      /(?<!\\)\[Free Nitro\]\(/,
+    );
+  });
+
   it('좁힘 옵션이 걸린 알람은 목록 줄이 커맨드 옵션까지 적는다', async () => {
     const { alarmService, command } = service();
     const context = interaction();

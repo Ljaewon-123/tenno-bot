@@ -1,9 +1,14 @@
 import dayjs from '@/utils/dayjs';
 import type { ConfigType } from 'dayjs';
+import { escapeMarkdown } from 'discord.js';
 
 /** 넘치면 자른다. 디스코드는 초과분을 잘라주지 않고 요청 전체를 거절한다 */
 export const truncate = (text: string, max: number) =>
   text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+
+/** 유저·외부 입력은 이걸 거친다 — 봇 명의 메시지에 마스킹 링크가 살아 있으면 피싱 통로가 된다. 기본 옵션은 링크·헤딩을 안 막는다 */
+export const literal = (text: string) =>
+  escapeMarkdown(text, { maskedLink: true, heading: true });
 
 export const title = (text: string) => `## ${text}`;
 

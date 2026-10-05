@@ -9,6 +9,7 @@ import {
   emptyCard,
   errorCard,
   guildOnly,
+  literal,
   manageCard,
   okCard,
   paged,
@@ -160,7 +161,7 @@ export class AlarmCommandService {
         title: `Alarms · ${alarms.length} / ${ALARM_LIMIT_PER_GUILD}`,
         rows: view.items.map((alarm) => ({
           text: [
-            bold(alarm.name),
+            bold(literal(alarm.name)),
             subtext(
               `${TargetCommandAlarm.path(alarm.targetCommand)} · every ${alarm.intervalValue} min · next ${relative(alarm.doneAt)}`,
             ),

@@ -54,6 +54,10 @@ const parts = (view: ContainerBuilder) => {
   };
 };
 
+/** 검색어는 자동완성을 안 거치고 손으로 칠 수 있다 — 되돌려 적는 자리에서 링크로 살아나면 안 된다 */
+const PHISHING = '[Free Nitro](https://evil.x)';
+const LIVE_LINK = /(?<!\\)\[Free Nitro\]\(/;
+
 /** 페이저 버튼의 customId — 필터가 실려 있는지, 애초에 붙었는지를 여기서 본다 */
 const pagerIds = (view: ContainerBuilder) =>
   (
@@ -507,6 +511,16 @@ describe('WarframeApiService 카드 이미지', () => {
     expect(pagerIds(empty)).toEqual(['drop/all/braton%20prime/page/0']);
   });
 
+  it('검색어의 마스킹 링크는 빈 카드에서도 결과 카드에서도 살아나지 않는다', async () => {
+    const empty = parts(await withSources([]).dropSources(PHISHING));
+    const found = parts(
+      await withSources(sourcesOf('Braton', 1)).dropSources(PHISHING),
+    );
+
+    expect(empty.text).not.toMatch(LIVE_LINK);
+    expect(found.text).not.toMatch(LIVE_LINK);
+  });
+
   const relicSources = [
     {
       itemName: 'Nikana Prime Blueprint',
@@ -647,6 +661,12 @@ describe('WarframeApiService 카드 이미지', () => {
     const { text } = parts(await withRewards([]).relic('Axi ZZ9 Relic'));
 
     expect(text).toContain('No relic named “Axi ZZ9 Relic”');
+  });
+
+  it('없는 성유물 카드는 검색어의 마스킹 링크를 살리지 않는다', async () => {
+    const { text } = parts(await withRewards([]).relic(PHISHING));
+
+    expect(text).not.toMatch(LIVE_LINK);
   });
 });
 
@@ -1226,6 +1246,12 @@ describe('WarframeApiService 인카논 상세', () => {
       '20 Pathos Clamp · 60 Rune Marrow · 60 Tasoma Extract',
     );
     expect(text).not.toContain('No Incarnon weapon');
+  });
+
+  it('없는 이름 카드는 검색어의 마스킹 링크를 살리지 않는다', async () => {
+    const { text } = parts(await build(undefined).incarnonWeapon(PHISHING));
+
+    expect(text).not.toMatch(LIVE_LINK);
   });
 
   it('이름이 틀렸으면 근접 매치와 돌아갈 버튼을 준다', async () => {

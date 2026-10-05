@@ -181,6 +181,21 @@ describe('AlarmService.run', () => {
     expect(alarm.status).toBe(AlarmStatus.PENDING);
   });
 
+  /** 이름은 등록자가 친 문자열이고 이 헤더는 주기마다 채널에 반복해서 나간다 */
+  it('알람 이름의 마스킹 링크는 헤더에서 링크로 살아나지 않는다', async () => {
+    const alarm = alarmOf({
+      doneAt: dayjs(NOW),
+      name: '[Free Nitro](https://evil.x)',
+    });
+    const { service, send } = build();
+
+    await service.run(alarm);
+
+    expect(headerOf(send.mock.calls[0])).toContain(
+      '\\[Free Nitro](https://evil.x)',
+    );
+  });
+
   it('임베드 생성이 실패해도 error를 남기고 재스케줄한다', async () => {
     const alarm = alarmOf({ doneAt: dayjs(NOW) });
     const { service, getAlarmTarget, alarmConfigRepository } = build();
