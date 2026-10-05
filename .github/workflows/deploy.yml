@@ -22,7 +22,7 @@ jobs:
       - name: push to deploy
         run: git push --force origin HEAD:deploy
 
-  # 봇 테스트가 깨져도 랜딩 배포는 막히지 않도록 job을 분리한다 — Cloudflare Pages는 landing 브랜치를 본다.
+  # 봇 테스트가 깨져도 랜딩 배포는 막히지 않도록 job을 분리한다 — Cloudflare Workers Builds가 landing 브랜치를 본다.
   push-landing:
     runs-on: ubuntu-latest
     permissions:
