@@ -67,3 +67,7 @@ scripts/.embed-preview.html
 
 # 디자인 핸드오프용 문서 — 코드가 아니라 붙여넣기 산출물이다
 /docs
+
+
+# mcp
+*.mcp.json
