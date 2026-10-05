@@ -37,7 +37,7 @@ npm test          # vitest
 - [x] 초대 URL 권한 계산 — View Channel + Send Messages + Send Messages in Threads + Embed Links = `274877926400`
 - [ ] `npm run dev`로 네 페이지 육안 확인 (데스크톱 + 360px 폰 폭)
 - [x] `feat/landing` → main 병합
-- [ ] Cloudflare Pages 연결 — Production `main` / Root `landing` / Build `npm run build` / Output `dist` / Watch paths `landing/*`. Node는 `.node-version`(22)을 따른다.
+- [ ] Cloudflare Pages 연결 — Production `landing` 브랜치(CI가 main에서 밀어줌) / Root `landing` / Build `npm run build` / Output `dist` / Watch paths `landing/*`. Node는 `.node-version`(22)을 따른다.
 
 ### 봇 쪽 (스탯 알약용)
 - [x] `src/app/app.controller.ts`에 `@Get('stats')` — 응답 `{ guilds: number, users: number, ready: boolean }` (`guilds.cache.size`, `memberCount` 합, `isReady()`)

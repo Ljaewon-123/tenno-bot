@@ -10,7 +10,7 @@ npm test        # vitest run
 npm run lint    # eslint --fix
 ```
 
-배포는 `main` push → GitHub Actions가 테스트 후 `deploy` 브랜치로 force push
+배포는 `main` push → GitHub Actions가 테스트 후 `deploy`(봇, Railway)·`landing`(랜딩, Cloudflare Pages) 브랜치로 각각 force push
 
 ## 구조
 
