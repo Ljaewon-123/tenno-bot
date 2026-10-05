@@ -3,7 +3,7 @@ import type { FooterLink } from './types.ts';
 export const INVITE_URL =
   'https://discord.com/oauth2/authorize?client_id=1525465332209287168&scope=bot+applications.commands&permissions=274877926400';
 export const KOFI_URL = 'https://ko-fi.com/ljaewon';
-export const GITHUB_REPO_URL = 'https://github.com/Ljaewon-123/teno-bot';
+export const GITHUB_REPO_URL = 'https://github.com/Ljaewon-123/tenno-bot';
 export const SUPPORT_SERVER_URL = 'https://discord.gg/qxv7pvhtVm';
 
 // 정적 멀티페이지 빌드라 실제 페이지 파일명으로 링크한다 (목업의 #anchor/dc.html은 목업 전용).
