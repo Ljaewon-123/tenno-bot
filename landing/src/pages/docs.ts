@@ -6,7 +6,7 @@ import { DocsTopBar } from '../components/DocsTopBar.ts';
 import { OnThisPage } from '../components/OnThisPage.ts';
 import { SiteFooter } from '../components/SiteFooter.ts';
 import { COMMANDS, GETTING_STARTED, SIDEBAR_SECTIONS } from '../data/commands.ts';
-import { FOOTER_LINKS, GITHUB_REPO_URL, HOME_HREF, INVITE_URL } from '../data/links.ts';
+import { FOOTER_LINKS, GITHUB_REPO_URL, HOME_HREF, INVITE_HREF } from '../data/links.ts';
 
 // "시작하기" 세 항목 — 실제 슬래시 커맨드가 아니라 짧은 안내문. 근거 없는 내용은 적지 않는다
 // (초대 링크·길드 전용 여부·타임존 기본값은 전부 src/utils/timezone.ts, guildOnly() 체크에서 확인됨).
@@ -23,8 +23,10 @@ function GettingStarted(): RawHtml {
     <section id="invite" class="flex flex-col gap-3 border-b border-border py-10">
       <h2 class="font-display text-3xl font-extrabold text-text">Invite &amp; permissions</h2>
       <p class="max-w-2xl text-lg leading-relaxed text-text-muted">
-        <a href="${INVITE_URL}" class="font-bold text-accent-text">Invite Teno to your server</a> — every command needs Teno to already
-        be a member there. ${CommandRef({ children: '/notification' })} additionally needs the Manage Server permission, since it
+        ${INVITE_HREF
+          ? html`<a href="${INVITE_HREF}" class="font-bold text-accent-text">Invite Teno to your server</a> — every`
+          : 'Teno is in beta and not open for invites yet. Once it is, every'}
+        command needs Teno to already be a member of the server. ${CommandRef({ children: '/notification' })} additionally needs the Manage Server permission, since it
         changes what the whole server gets pinged for.
       </p>
     </section>
@@ -40,7 +42,7 @@ function GettingStarted(): RawHtml {
 
 export function render(): RawHtml {
   return html`<div class="flex min-h-screen flex-col bg-bg">
-    ${DocsTopBar({ homeHref: HOME_HREF, githubHref: GITHUB_REPO_URL, inviteHref: INVITE_URL })}
+    ${DocsTopBar({ homeHref: HOME_HREF, githubHref: GITHUB_REPO_URL, inviteHref: INVITE_HREF })}
     <h1 class="sr-only">Teno docs</h1>
     <div class="mx-auto flex w-full max-w-[1440px] flex-1 flex-col lg:flex-row">
       ${DocsSidebar({ gettingStarted: GETTING_STARTED, sections: SIDEBAR_SECTIONS })}

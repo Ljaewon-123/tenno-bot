@@ -1,6 +1,7 @@
 import { html, raw, type RawHtml } from '../lib/html.ts';
 import { Avatar } from './Avatar.ts';
 import { LinkButton } from './Button.ts';
+import { BETA } from '../data/links.ts';
 
 // 목업 그대로 옮긴 고정 SVG — 사용자 입력이 섞이지 않아 raw()로 통째로 신뢰.
 const SEARCH_ICON = raw(
@@ -16,7 +17,8 @@ const SUN_ICON = raw(
 interface DocsTopBarProps {
   homeHref: string;
   githubHref: string;
-  inviteHref: string;
+  /** 베타 동안엔 비워서 초대 버튼을 숨긴다. */
+  inviteHref?: string;
   /** privacy/terms엔 검색할 커맨드 목록 자체가 없다 — docs-search.ts도 그 페이지들엔 안 실리므로 입력창을 아예 뺀다. */
   showSearch?: boolean;
 }
@@ -28,6 +30,7 @@ export function DocsTopBar({ homeHref, githubHref, inviteHref, showSearch = true
     <a href="${homeHref}" class="flex items-center gap-2.5 text-text">
       ${Avatar({ size: 36 })}
       <span class="font-display text-lg font-extrabold">Teno</span>
+      ${BETA ? html`<span class="rounded-full bg-accent-soft px-2.5 py-0.5 text-[13px] font-bold text-accent-text">Beta</span>` : ''}
       <span class="rounded-full bg-surface-2 px-2.5 py-0.5 text-[13px] font-bold text-text-faint">Docs</span>
     </a>
     ${showSearch
@@ -53,7 +56,7 @@ export function DocsTopBar({ homeHref, githubHref, inviteHref, showSearch = true
         <span class="dark:hidden">${MOON_ICON}</span>
         <span class="hidden dark:block">${SUN_ICON}</span>
       </button>
-      ${LinkButton({ href: inviteHref, label: 'Add to Discord', variant: 'primary', class: 'min-h-11 px-5 text-[15px]' })}
+      ${inviteHref ? LinkButton({ href: inviteHref, label: 'Add to Discord', variant: 'primary', class: 'min-h-11 px-5 text-[15px]' }) : ''}
     </div>
   </header>`;
 }

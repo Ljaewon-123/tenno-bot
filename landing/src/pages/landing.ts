@@ -8,7 +8,7 @@ import { SiteFooter } from '../components/SiteFooter.ts';
 import { SiteNav } from '../components/SiteNav.ts';
 import { StepCard } from '../components/StepCard.ts';
 import { FEATURES, NAV_LINKS, STEPS } from '../data/landing.ts';
-import { DOCS_HREF, FOOTER_LINKS, INVITE_URL, KOFI_URL } from '../data/links.ts';
+import { DOCS_HREF, FOOTER_LINKS, HIDE, INVITE_HREF, KOFI_URL } from '../data/links.ts';
 
 // 목업 그대로 옮긴 고정 SVG(장식용 아이콘) — 사용자 입력이 섞이지 않아 raw()로 통째로 신뢰한다.
 const PLUS_ICON = raw(
@@ -80,7 +80,7 @@ export function render(): RawHtml {
     class="flex min-h-screen flex-col bg-bg"
     style="background-image: radial-gradient(var(--border) 1.2px, transparent 1.2px); background-size: 28px 28px;"
   >
-    ${SiteNav({ links: NAV_LINKS, inviteHref: INVITE_URL })}
+    ${SiteNav({ links: NAV_LINKS, inviteHref: INVITE_HREF })}
 
     <main>
     <section class="flex flex-col items-center gap-12 px-6 py-16 sm:px-10 lg:flex-row lg:items-center lg:gap-16 lg:px-24 lg:py-20">
@@ -99,7 +99,9 @@ export function render(): RawHtml {
           helps you fill a squad.
         </p>
         <div class="mt-1.5 flex flex-wrap gap-3">
-          ${LinkButton({ href: INVITE_URL, label: 'Add to Discord', variant: 'primary', icon: PLUS_ICON, class: 'min-h-14 px-7 text-base' })}
+          ${INVITE_HREF
+            ? LinkButton({ href: INVITE_HREF, label: 'Add to Discord', variant: 'primary', icon: PLUS_ICON, class: 'min-h-14 px-7 text-base' })
+            : html`<span class="flex min-h-14 items-center rounded-full bg-accent-soft px-7 text-base font-bold text-accent-text">In beta &middot; invites open soon</span>`}
           ${LinkButton({ href: DOCS_HREF, label: 'Read the docs', variant: 'secondary', class: 'min-h-14 px-7 text-base' })}
         </div>
       </div>
@@ -126,7 +128,7 @@ export function render(): RawHtml {
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">${STEPS.map(StepCard)}</div>
     </section>
 
-    <section id="features" class="flex flex-col gap-10 px-6 pt-24 sm:px-10 lg:px-24">
+    <section id="features" class="flex flex-col gap-10 px-6 pt-24 sm:px-10 lg:px-24 ${HIDE.kofi ? 'pb-24' : ''}">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <h2 class="font-display text-3xl font-extrabold text-text sm:text-4xl">What Teno can do</h2>
         <a href="${DOCS_HREF}" class="font-bold text-accent-text">See every command &rarr;</a>
@@ -143,7 +145,9 @@ export function render(): RawHtml {
       </div>
     </section>
 
-    <section
+    ${HIDE.kofi
+      ? ''
+      : html`<section
       id="support"
       class="mx-6 my-24 flex flex-col items-center gap-10 rounded-[32px] border border-border bg-surface-2 p-10 text-center sm:mx-10 lg:mx-24 lg:flex-row lg:text-left"
     >
@@ -157,7 +161,7 @@ export function render(): RawHtml {
       <div class="flex w-full max-w-xs shrink-0 flex-col gap-3">
         ${LinkButton({ href: KOFI_URL, label: 'Support on Ko-fi', variant: 'support', icon: CUP_ICON, class: 'min-h-13.5' })}
       </div>
-    </section>
+    </section>`}
     </main>
 
     ${SiteFooter({ links: FOOTER_LINKS })}

@@ -1,10 +1,10 @@
 import type { ChipTone, NavLink } from './types.ts';
-import { DOCS_HREF } from './links.ts';
+import { DOCS_HREF, HIDE } from './links.ts';
 
 export const NAV_LINKS: NavLink[] = [
   { href: '#features', label: 'Features' },
   { href: DOCS_HREF, label: 'Docs' },
-  { href: '#support', label: 'Support' },
+  ...(HIDE.kofi ? [] : [{ href: '#support', label: 'Support' }]),
 ];
 
 export type FeatureIconKey = 'intel' | 'loot' | 'ops' | 'comms' | 'squad';

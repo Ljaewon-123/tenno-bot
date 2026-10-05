@@ -1,6 +1,6 @@
 import { html, type RawHtml } from '../lib/html.ts';
 import { LegalPage, type LegalSection } from '../components/LegalPage.ts';
-import { FOOTER_LINKS, GITHUB_REPO_URL, HOME_HREF, INVITE_URL, SUPPORT_SERVER_URL } from '../data/links.ts';
+import { CONTACT, FOOTER_LINKS, GITHUB_REPO_URL, HOME_HREF, INVITE_HREF } from '../data/links.ts';
 
 const LAST_UPDATED = 'September 22, 2026';
 
@@ -25,7 +25,7 @@ const SECTIONS: LegalSection[] = [
   },
   {
     title: 'Contact',
-    body: html`<p>Questions about these terms? Reach out on the <a href="${SUPPORT_SERVER_URL}" class="font-bold text-accent-text">support server</a>.</p>`,
+    body: html`<p>Questions about these terms? Reach out via <a href="${CONTACT.href}" class="font-bold text-accent-text">${CONTACT.label}</a>.</p>`,
   },
 ];
 
@@ -37,6 +37,6 @@ export function render(): RawHtml {
     footerLinks: FOOTER_LINKS,
     homeHref: HOME_HREF,
     githubHref: GITHUB_REPO_URL,
-    inviteHref: INVITE_URL,
+    inviteHref: INVITE_HREF,
   });
 }

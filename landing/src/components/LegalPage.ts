@@ -15,7 +15,7 @@ interface LegalPageProps {
   footerLinks: FooterLink[];
   homeHref: string;
   githubHref: string;
-  inviteHref: string;
+  inviteHref?: string;
 }
 
 function Section({ title, body }: LegalSection): RawHtml {
