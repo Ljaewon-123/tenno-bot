@@ -1,44 +1,46 @@
 import 'reflect-metadata';
-import { describe, expect, it } from 'vitest';
-import { parseConfig } from './config.service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { loadConfig } from './config.service';
 
-const base = { DISCORD_TOKEN: 't' };
+/** 로컬 .env가 섞여 들어오면 결과가 개발자 PC마다 달라진다 */
+vi.mock('dotenv', () => ({ default: { config: vi.fn() } }));
 
-describe('parseConfig', () => {
-  /** 기본값이 development면 NODE_ENV를 빠뜨린 배포가 synchronize 켜진 채로 뜬다 */
-  it('NODE_ENV가 없으면 부팅을 막는다', () => {
-    expect(() =>
-      parseConfig({ ...base, DEV_DB: 'dev', PG_DATABASE_URL: 'prod' }),
-    ).toThrow(/nodeEnv/);
+describe('loadConfig', () => {
+  beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('DISCORD_TOKEN', 't');
+    vi.stubEnv('PG_DATABASE_URL', 'prod');
+    vi.stubEnv('PORT', undefined);
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('필수 env가 다 있으면 뜬다', () => {
+    expect(loadConfig()).toMatchObject({
+      nodeEnv: 'production',
+      PG_DATABASE_URL: 'prod',
+      PORT: 3000,
+    });
   });
 
-  it('production은 PG_DATABASE_URL이 없으면 막는다', () => {
-    expect(() =>
-      parseConfig({ ...base, NODE_ENV: 'production', DEV_DB: 'dev' }),
-    ).toThrow(/PG_DATABASE_URL/);
+  it('PG_DATABASE_URL이 없으면 부팅을 막는다', () => {
+    vi.stubEnv('PG_DATABASE_URL', undefined);
+    expect(() => loadConfig()).toThrow(/PG_DATABASE_URL/);
   });
 
-  it('production은 DEV_DB 없이 뜬다', () => {
-    expect(
-      parseConfig({ ...base, NODE_ENV: 'production', PG_DATABASE_URL: 'prod' })
-        .PG_DATABASE_URL,
-    ).toBe('prod');
+  it('DISCORD_TOKEN이 없으면 부팅을 막는다', () => {
+    vi.stubEnv('DISCORD_TOKEN', undefined);
+    expect(() => loadConfig()).toThrow(/DISCORD_TOKEN/);
   });
 
-  /** dev에 운영 DB 접속정보를 둘 이유가 없다 — 유출 경로만 늘어난다 */
-  it('development는 PG_DATABASE_URL 없이 DEV_DB만으로 뜬다', () => {
-    expect(
-      parseConfig({ ...base, NODE_ENV: 'development', DEV_DB: 'dev' }).DEV_DB,
-    ).toBe('dev');
+  /** 오타(prod 등)가 development로 조용히 떨어지면 synchronize가 켜진다 */
+  it('NODE_ENV가 enum 밖이면 막는다', () => {
+    vi.stubEnv('NODE_ENV', 'prod');
+    expect(() => loadConfig()).toThrow(/nodeEnv/);
   });
 
-  it('development는 DEV_DB가 없으면 막는다', () => {
-    expect(() =>
-      parseConfig({
-        ...base,
-        NODE_ENV: 'development',
-        PG_DATABASE_URL: 'prod',
-      }),
-    ).toThrow(/DEV_DB/);
+  /** env는 전부 문자열이라 implicit conversion이 없으면 IsInt에서 터진다 */
+  it('PORT 문자열을 숫자로 바꾼다', () => {
+    vi.stubEnv('PORT', '8080');
+    expect(loadConfig().PORT).toBe(8080);
   });
 });
