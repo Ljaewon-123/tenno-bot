@@ -46,6 +46,12 @@ export class AppConfig {
   @IsOptional()
   @IsString()
   TOPGG_TOKEN?: string;
+
+  /** 서포트 서버 피드백 채널 웹훅. 비워 두면 /feedback이 서포트 서버로 안내한다 */
+  @Expose()
+  @IsOptional()
+  @IsString()
+  FEEDBACK_WEBHOOK_URL?: string;
 }
 
 export function loadConfig(): AppConfig {

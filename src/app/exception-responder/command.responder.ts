@@ -1,4 +1,4 @@
-import { errorCard, payload } from '@/utils/discord-embed';
+import { errorCard, payload, SUPPORT_SERVER_URL } from '@/utils/discord-embed';
 import { ArgumentsHost } from '@nestjs/common';
 import { MessageFlags } from 'discord.js';
 import { NecordArgumentsHost, type SlashCommandContext } from 'necord';
@@ -24,7 +24,8 @@ export class CommandResponder implements ExceptionResponder {
         : errorCard(
             'Something went wrong',
             'The command failed before it could finish.',
-            'Try again in a moment',
+            // 유저 실수(4xx)엔 안 붙인다 — 고칠 사람이 유저 본인이라 제보 링크는 잡음이다
+            `Try again in a moment · [Report it](${SUPPORT_SERVER_URL})`,
           ),
     );
     await (interaction.deferred

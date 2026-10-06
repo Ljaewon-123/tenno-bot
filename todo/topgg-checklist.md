@@ -15,7 +15,7 @@ top.gg 심사 통과를 위한 요구사항 정리. 리뷰어는 위반 사항�
 
 ### 권한
 - [x] **Administrator 권한 요구 금지** (2026-09-28 코드 확인: `/notification`만 ManageGuild, intent는 Guilds뿐)
-- [ ] 초대 링크 권한은 명령어가 실제로 쓰는 것만 — 코드 기준 View Channel + Send Messages + Embed Links 세 개면 충분(알림·알람·파티가 채널에 직접 send). 버튼 update는 인터랙션 응답이라 권한 불필요
+- [x] 초대 링크 권한은 명령어가 실제로 쓰는 것만 — View Channel + Send Messages + Send Messages in Threads + Embed Links 네 개(`permissions=274877926400`, 랜딩 `links.ts`에 반영됨). 스레드가 빠지면 `CanPostGuard`가 스레드 등록을 거부한다. 버튼 update는 인터랙션 응답이라 권한 불필요
 
 ### 독창성·약관
 - [ ] 다른 봇의 무수정 포크/인스턴스가 아닐 것
@@ -29,10 +29,10 @@ top.gg 심사 통과를 위한 요구사항 정리. 리뷰어는 위반 사항�
 
 ## 권장 — 반려 사유는 아니지만 통과·첫인상에 영향
 
-- [ ] help 응답만 보고 주요 기능을 파악할 수 있을 것 (명령어 목록 + 한 줄 설명)
+- [x] help 응답만 보고 주요 기능을 파악할 수 있을 것 (명령어 목록 + 한 줄 설명) (2026-10-06 확인: 그룹별 목록 + 한 줄 설명 + 필요 권한 표기)
 - [x] 에러 시 유저에게 이유가 보일 것 — 전역 `CommandExceptionFilter` + WFCD 장애 시 "WFCD API · offline" 카드 (2026-09-28 확인)
 - [ ] 봇 페이지·명령어 응답 언어 통일 (영어)
-- [ ] 서포트 서버 링크 — 리뷰어·유저 문의 창구
+- [x] 서포트 서버 링크 — 리뷰어·유저 문의 창구 (2026-10-06: `/help` footer, 5xx 에러 카드, `/feedback` 응답에 링크. top.gg 페이지에도 따로 입력할 것)
 - [ ] 짧은 설명(한 줄 소개)을 기능 중심으로: "Warframe world state, alarms, and party finder for Discord"
 - [ ] 태그 적절히 선택 (Game, Utility 등)
 - [ ] 심사 기간 동안 배포 중단 없게 — 큰 배포는 심사 뒤로 미루기

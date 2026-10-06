@@ -75,6 +75,15 @@ export const COMMANDS: Command[] = [
     description: "Check the Warframe data API's status",
   },
   {
+    id: 'feedback',
+    category: 'intel',
+    description: 'Send a bug report or idea to the developer',
+    options: [
+      { name: 'message', type: 'string', required: true, description: 'Bug report, idea, or anything else' },
+    ],
+    example: '/feedback message:"Add arbitration alarms please"',
+  },
+  {
     id: 'sortie',
     category: 'intel',
     description: 'Get the current Sortie information',

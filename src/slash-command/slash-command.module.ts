@@ -1,4 +1,5 @@
 import { AlarmModule } from '@/alarm/alarm.module';
+import { FeedbackModule } from '@/feedback/feedback.module';
 import { NotificationModule } from '@/notification/notification.module';
 import { PartyModule } from '@/party/party.module';
 import { WarframeApiModule } from '@/warframe-api/warframe-api.module';
@@ -12,7 +13,13 @@ import { RelicAutocompleteInterceptor } from './interceptors/relic-autocomplete.
 import { SlashCommandService } from './slash-command.service';
 
 @Module({
-  imports: [WarframeApiModule, AlarmModule, NotificationModule, PartyModule],
+  imports: [
+    WarframeApiModule,
+    AlarmModule,
+    NotificationModule,
+    PartyModule,
+    FeedbackModule,
+  ],
   providers: [
     SlashCommandService,
     AlarmCommandService,

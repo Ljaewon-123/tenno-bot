@@ -1,4 +1,5 @@
 import { AlarmService } from '@/alarm/alarm.service';
+import { FeedbackService } from '@/feedback/feedback.service';
 import {
   button,
   card,
@@ -6,6 +7,7 @@ import {
   okCard,
   payload,
   relative,
+  SUPPORT_SERVER_URL,
 } from '@/utils/discord-embed';
 import {
   isRemindTarget,
@@ -54,6 +56,7 @@ import {
 } from 'necord';
 import { ArchimedeaCommand } from './dto/archimedea.command.dto';
 import { DropCommand } from './dto/drop.command.dto';
+import { FeedbackCommand } from './dto/feedback.command.dto';
 import { IncarnonCommand } from './dto/incarnon.command.dto';
 import { RelicCommand } from './dto/relic.command.dto';
 import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
@@ -66,6 +69,7 @@ export class SlashCommandService {
   constructor(
     private readonly warframeApi: WarframeApiService,
     private readonly alarmService: AlarmService,
+    private readonly feedbackService: FeedbackService,
   ) {}
 
   @SlashCommand({
@@ -119,9 +123,42 @@ export class SlashCommandService {
                 lines: ['`/party create|list|history` — Recruit a squad'],
               },
             ],
+            [
+              {
+                heading: 'Support',
+                lines: [
+                  '`/feedback` — Send a bug report or idea to the developer',
+                ],
+              },
+            ],
           ],
-          footer: 'Press 🔔 on a card for a one-time reminder',
+          footer: `Press 🔔 on a card for a one-time reminder · [Support server](${SUPPORT_SERVER_URL})`,
         }),
+      ),
+    );
+  }
+
+  @SlashCommand({
+    name: 'feedback',
+    description: 'Send a bug report or idea to the developer',
+  })
+  async feedback(
+    @Context() [interaction]: SlashCommandContext,
+    @Options() { message }: FeedbackCommand,
+  ) {
+    await this.feedbackService.send({
+      userId: interaction.user.id,
+      userTag: interaction.user.tag,
+      guild: interaction.guild?.name,
+      message,
+    });
+    return interaction.editReply(
+      payload(
+        okCard(
+          'Feedback sent',
+          'Thanks! The developer will read it.',
+          `Want a reply? Join the [support server](${SUPPORT_SERVER_URL})`,
+        ),
       ),
     );
   }

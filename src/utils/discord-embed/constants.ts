@@ -18,3 +18,6 @@ export const PAGE_SIZE = 8;
 
 /** 주기 알람은 짧아야 한다 — 긴 카드를 계속 던지면 채널이 덮여 알람을 끄게 된다 */
 export const PUSH_MAX_LINES = 12;
+
+/** 봇 응답에서 문의·제보 창구로 거는 링크. 공개값이고 환경별로 안 바뀌어 env가 아니다 */
+export const SUPPORT_SERVER_URL = 'https://discord.gg/qxv7pvhtVm';
