@@ -57,9 +57,10 @@ export class WfcdItemsService {
   /** 드랍 인덱스는 'Axi A1 Relic', wfcd는 'Axi A1 Intact'. 볼팅 여부는 여기에만 있다 */
   findRelic(relicName: string): DropItem | undefined {
     const base = relicName.replace(/ Relic$/, '');
+    // d.ts의 components는 미해석 ComponentRef까지 포함하지만 로드된 데이터는 전부 name이 채워져 있다
     return this.wfcdItems.find(
       (candidate) => candidate.name === `${base} Intact`,
-    );
+    ) as DropItem | undefined;
   }
 
   /** 프라임드 모드는 드랍 테이블에 없어 인덱스 구축 때 여기서 채운다 */

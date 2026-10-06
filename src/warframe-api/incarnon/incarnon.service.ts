@@ -4,9 +4,14 @@ import { CacheKey, HttpMethod } from '../shared/enum';
 import { HttpJsonService } from '../shared/http-json.service';
 import { CacheRepository } from '../shared/modules/repositories/cache.repository';
 import { WfcdItemsService } from '../wfcd-items/wfcd-items.service';
-import { GENESIS_SUFFIX, WIKI_API } from './constants';
+import { GENESIS_SUFFIX, PARSER_VERSION, WIKI_API } from './constants';
 import { INCARNON_MATERIALS } from './materials.const';
-import { IncarnonDetail, IncarnonEntry, WikiRevisionsResponse } from './types';
+import {
+  IncarnonCache,
+  IncarnonDetail,
+  IncarnonEntry,
+  WikiRevisionsResponse,
+} from './types';
 import { evolutionsSection, parseEvolutions } from './wiki-parser';
 
 @Injectable()
@@ -26,10 +31,10 @@ export class IncarnonService implements OnApplicationBootstrap {
     );
   }
 
-  /** 캐시가 차 있으면 네트워크를 아예 안 탄다 — 퍽은 밸런스 패치 때나 바뀐다 */
+  /** 같은 파서로 만든 캐시가 있으면 네트워크를 아예 안 탄다 — 퍽은 밸런스 패치 때나 바뀐다 */
   async seedIfEmpty() {
     const cached = await this.read();
-    if (cached?.length) return;
+    if (cached?.version === PARSER_VERSION) return;
     await this.sync();
   }
 
@@ -73,10 +78,10 @@ export class IncarnonService implements OnApplicationBootstrap {
     });
 
     // 위키 문법이 바뀌어 파서가 깨지면 개수부터 준다. 여기서 막지 않으면 유일한 출처가 빈 채로 덮인다
-    const cached = await this.read();
-    if (entries.length < (cached?.length ?? 1)) {
+    const previous = (await this.read())?.entries.length;
+    if (entries.length < (previous ?? 1)) {
       this.logger.error(
-        `인카논 수집 결과를 반영하지 않음 — 파싱 ${entries.length}개 / 기존 ${cached?.length ?? 0}개`,
+        `인카논 수집 결과를 반영하지 않음 — 파싱 ${entries.length}개 / 기존 ${previous ?? 0}개`,
       );
       return;
     }
@@ -84,14 +89,14 @@ export class IncarnonService implements OnApplicationBootstrap {
     const row =
       (await this.cacheRepository.findOneBy({ key: CacheKey.Incarnon })) ??
       this.cacheRepository.create({ key: CacheKey.Incarnon });
-    row.cache = entries;
+    row.cache = { version: PARSER_VERSION, entries } satisfies IncarnonCache;
     await this.cacheRepository.save(row);
   }
 
   /** 직접 타이핑해도 걸리도록 대소문자를 무시한다 */
   async findWeapon(name: string): Promise<IncarnonDetail | undefined> {
     const wanted = name.trim().toLowerCase();
-    const found = (await this.read())?.find(
+    const found = (await this.read())?.entries.find(
       (entry) => entry.name.toLowerCase() === wanted,
     );
     if (!found) return;
@@ -154,6 +159,8 @@ export class IncarnonService implements OnApplicationBootstrap {
     const row = await this.cacheRepository.findOneBy({
       key: CacheKey.Incarnon,
     });
-    return row?.cache as IncarnonEntry[] | undefined;
+    const cache = row?.cache as IncarnonCache | undefined;
+    // 버전 도입 전 행은 배열 그대로다 — 없는 셈 치면 부팅 시딩이 새 형태로 덮는다
+    return Array.isArray(cache) ? undefined : cache;
   }
 }

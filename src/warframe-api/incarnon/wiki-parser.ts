@@ -15,9 +15,12 @@ const TIER_ROW = /^\s*!\s*(?:rowspan="?\d+"?\s*\|\s*)?EVO\s*(\d)/m;
 const CHALLENGE_ROW =
   /Evolution Challenge\s*\n?\s*!!?\s*(?:colspan="?\d+"?\s*\|)?\s*(.*)/;
 
-/** 퍽 이름은 굵게 또는 맨 텍스트 'Incarnon Form'. 아포스트로피(Void's Guidance) 때문에 비탐욕으로 끊는다 */
+/**
+ * 퍽 이름은 보통 굵게지만 맨 텍스트도 섞인다(EVO1 'Incarnon Form', Burston 'Ready Retaliation').
+ * 아포스트로피(Void's Guidance) 때문에 비탐욕으로 끊는다
+ */
 const PERK_CELL =
-  /\n\|\s*(?:style="[^"]*"\s*\|\s*)?(?:'''(.+?)'''|(Incarnon Form))\s*\[\[File:([^|\]]+)/;
+  /\n\|\s*(?:style="[^"]*"\s*\|\s*)?(?:'''(.+?)'''|([^'|*\n[]+?))\s*\[\[File:([^|\]]+)/;
 
 /** 셀 구분자. `||` 는 같은 줄 셀 구분이라 제외한다 */
 const CELL = /\n\|(?!\|)/;

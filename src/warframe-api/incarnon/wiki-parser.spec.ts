@@ -127,6 +127,27 @@ describe('parseEvolutions — 변종이 Mk1뿐인 표 (Furis)', () => {
   });
 });
 
+describe('parseEvolutions — 굵게 안 쓴 퍽 이름 (Burston)', () => {
+  it('맨 텍스트 퍽도 빠뜨리지 않는다', () => {
+    // 원문 EVO3 세 퍽 중 Ready Retaliation만 ''' 가 없어 퍽 수가 9 → 8로 조용히 줄었다
+    const parsed = parseEvolutions(`
+|-
+! rowspan="3" | EVO3
+| style="white-space: nowrap; text-align:center;" | '''Extended Volley''' [[File:IncarnonClipSize.png|64px|center]]
+|
+*Increase Incarnon Form magazine.
+|-
+| style="text-align:center" | Ready Retaliation [[File:IncarnonReloadSpeed.png|64px|center]]
+|
+*Increase Incarnon Form reload speed.`);
+
+    expect(parsed.tiers[0].perks.map((perk) => perk.name)).toEqual([
+      'Extended Volley',
+      'Ready Retaliation',
+    ]);
+  });
+});
+
 /** 실제 위키 원문에서 잘라온 표. 손대지 말 것 — 손대면 파서가 진짜 입력을 못 보게 된다 */
 const BRATON = `
 

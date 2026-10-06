@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { PARSER_VERSION } from './constants';
 import { IncarnonService } from './incarnon.service';
 
 /** 실제 상수 키를 그대로 쓴다 — 여기가 어긋나면 재료가 통째로 빈다 */
@@ -39,8 +40,9 @@ const page = (title: string, perk = 'Incarnon Form') => ({
  */
 describe('IncarnonService', () => {
   const build = (
-    cached?: unknown,
+    entries?: unknown[],
     pages = [page('Braton Incarnon Genesis')],
+    cached: unknown = entries && { version: PARSER_VERSION, entries },
   ) => {
     const request = vi.fn().mockResolvedValue({ query: { pages } });
     const save = vi.fn();
@@ -84,12 +86,15 @@ describe('IncarnonService', () => {
       expect(request).toHaveBeenCalledTimes(1);
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({
-          cache: [
-            expect.objectContaining({
-              name: 'Braton',
-              adapter: BRATON_ADAPTER,
-            }),
-          ],
+          cache: {
+            version: PARSER_VERSION,
+            entries: [
+              expect.objectContaining({
+                name: 'Braton',
+                adapter: BRATON_ADAPTER,
+              }),
+            ],
+          },
         }),
       );
     });
@@ -103,6 +108,31 @@ describe('IncarnonService', () => {
       await service.seedIfEmpty();
 
       expect(request).not.toHaveBeenCalled();
+    });
+
+    it('파서 버전이 바뀌면 캐시가 있어도 다시 받는다', async () => {
+      // 파서를 고쳐도 캐시가 차 있으면 다음 월간 크론까지 옛 파싱 결과가 나간다 — 손으로 행을 지우지 않게
+      const entries = [{ name: 'Braton', adapter: 'a', tiers: [{}] }];
+      const { service, request } = build(entries, undefined, {
+        version: 'v0',
+        entries,
+      });
+
+      await service.seedIfEmpty();
+
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('버전 도입 전 배열 캐시도 다시 받아 새 형태로 덮는다', async () => {
+      const { service, save } = build(undefined, undefined, [
+        { name: 'Braton', adapter: 'a', tiers: [{}] },
+      ]);
+
+      await service.seedIfEmpty();
+
+      expect(save.mock.calls[0][0]).toMatchObject({
+        cache: { version: PARSER_VERSION },
+      });
     });
 
     it('요청은 45개 페이지를 한 번에 묶는다', async () => {

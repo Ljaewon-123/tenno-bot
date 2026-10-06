@@ -27,7 +27,7 @@ export interface IncarnonWeapon {
   tiers: IncarnonTier[];
 }
 
-/** 캐시 한 행(jsonb)에 통째로 들어가는 형태. 45개 전부 합쳐 73KB라 쪼갤 이유가 없다 */
+/** 무기 하나. 45개 전부 합쳐 73KB라 캐시 한 행(jsonb)에 통째로 넣는다 */
 export interface IncarnonEntry extends IncarnonWeapon {
   /** 'Braton' — 위키 페이지명에서 ' Incarnon Genesis'를 뗀 것 */
   name: string;
@@ -35,6 +35,12 @@ export interface IncarnonEntry extends IncarnonWeapon {
   adapter: string;
   /** 어댑터 아이콘. 읽을 때마다 wfcd를 뒤지지 않으려고 같이 저장한다 */
   imageName?: string;
+}
+
+/** 캐시 행 형태. 어떤 파서로 만든 결과인지 같이 남겨야 파서 수정이 재배포만으로 반영된다 */
+export interface IncarnonCache {
+  version: string;
+  entries: IncarnonEntry[];
 }
 
 export interface IncarnonDetail extends IncarnonEntry {
