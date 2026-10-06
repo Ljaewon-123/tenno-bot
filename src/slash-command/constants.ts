@@ -2,3 +2,6 @@
 export const PARTY_CREATE_ID = 'party/create';
 
 export const DEFAULT_PARTY_SIZE = 4;
+
+/** 🔔 버튼은 world-state 커맨드가 만들고 alarm 커맨드가 받는다 */
+export const REMIND_KEY = 'alarm/remind';

@@ -7,6 +7,7 @@ import {
   bold,
   button,
   emptyCard,
+  ephemeral,
   errorCard,
   guildOnly,
   literal,
@@ -19,6 +20,12 @@ import {
   subtext,
 } from '@/utils/discord-embed';
 import { resolveTimezone } from '@/utils/timezone';
+import {
+  isRemindTarget,
+  TargetCommand,
+  TargetCommandLabel,
+} from '@/warframe-api/enum';
+import { CycleLabel, isCycleName } from '@/warframe-api/world-state/vo/enum';
 import { BadRequestException, Injectable, UseGuards } from '@nestjs/common';
 import { ButtonStyle, PermissionFlagsBits } from 'discord.js';
 import {
@@ -30,6 +37,7 @@ import {
   type ButtonContext,
   type SlashCommandContext,
 } from 'necord';
+import { REMIND_KEY } from './constants';
 import { AlarmCommands } from './decorators/alarm-commands.decorator';
 import { CanPostGuard } from './guards/can-post.guard';
 
@@ -132,6 +140,50 @@ export class AlarmCommandService {
     await this.alarmService.unRegister(id, interaction.guildId);
     return interaction.update(
       await this.listView(interaction.guildId, Number(page)),
+    );
+  }
+
+  /** 리마인더는 누른 사람 것이라 update()가 아니라 ephemeral reply()로 결과를 알린다 */
+  @Button(`${REMIND_KEY}/:target/:option`)
+  async remind(
+    @Context() [interaction]: ButtonContext,
+    @ComponentParam('target') target: string,
+    @ComponentParam('option') option: string,
+  ) {
+    if (!interaction.guildId)
+      throw new BadRequestException(
+        'This needs a server channel to fall back to when your DMs are closed.',
+      );
+    if (!isRemindTarget(target))
+      throw new BadRequestException('That reminder is no longer available.');
+
+    const region = isCycleName(option) ? option : undefined;
+    const at = await this.alarmService.remind({
+      guildId: interaction.guildId,
+      channelId: interaction.channelId,
+      userId: interaction.user.id,
+      target,
+      option: region,
+    });
+    const label = region
+      ? CycleLabel[region]
+      : TargetCommandLabel[target as TargetCommand];
+    const lead = this.alarmService.leadFor(target);
+
+    return interaction.reply(
+      ephemeral(
+        at
+          ? okCard(
+              `Reminder set · ${label}`,
+              `I will DM you ${relative(at)} — ${lead} minutes before.`,
+              'Press 🔔 again to cancel',
+            )
+          : okCard(
+              `Reminder cancelled · ${label}`,
+              'Nothing will be sent.',
+              'Press 🔔 again to set it back',
+            ),
+      ),
     );
   }
 

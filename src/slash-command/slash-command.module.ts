@@ -10,7 +10,9 @@ import { PartyCommandService } from './party-command.service';
 import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor';
 import { IncarnonWeaponAutocompleteInterceptor } from './interceptors/incarnon-weapon-autocomplete.interceptor';
 import { RelicAutocompleteInterceptor } from './interceptors/relic-autocomplete.interceptor';
+import { ItemCommandService } from './item-command.service';
 import { SlashCommandService } from './slash-command.service';
+import { WorldStateCommandService } from './world-state-command.service';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { SlashCommandService } from './slash-command.service';
   ],
   providers: [
     SlashCommandService,
+    WorldStateCommandService,
+    ItemCommandService,
     AlarmCommandService,
     NotificationCommandService,
     PartyCommandService,
