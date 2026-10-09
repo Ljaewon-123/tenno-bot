@@ -46,7 +46,7 @@ npm test          # vitest
 
 ### 콘텐츠
 - [x] 아바타 교체 — `public/avatar.jpg`(320px)·`icon.png`(192px)·`og.jpg`(1200×630). 캐릭터가 바뀌면 이 세 파일만 덮어쓰면 된다. accent는 캐릭터와 무관한 브랜드 색으로 유지
-- [ ] 도메인 생기면 HTML 4개의 `og:image` 절대 URL(`tenno-bot.jml6388.workers.dev`) 교체
+- [ ] 도메인 생기면 HTML 4개의 `og:image` 절대 URL(`tenno-bot.docs-cephalon.workers.dev`) 교체
 - [x] 파비콘 · OG 메타 (`public/`, 각 HTML `<head>`)
 - [ ] 커맨드가 바뀌면 `src/data/commands.ts`도 손으로 갱신 (DTO 자동 생성은 안 함)
 
