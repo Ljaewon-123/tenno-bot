@@ -51,5 +51,5 @@ export function DocsSidebar(props: DocsSidebarProps): RawHtml {
       <summary class="cursor-pointer font-display text-sm font-bold text-text">Browse commands</summary>
       <nav aria-label="Docs" class="mt-3 flex flex-col gap-5">${groups}</nav>
     </details>
-    <nav aria-label="Docs" class="hidden w-[272px] shrink-0 flex-col gap-5 px-4 py-6 text-base lg:flex">${groups}</nav>`;
+    <nav aria-label="Docs" class="sticky top-0 hidden max-h-screen w-[272px] shrink-0 flex-col gap-5 self-start overflow-y-auto px-4 py-6 text-base lg:flex">${groups}</nav>`;
 }
