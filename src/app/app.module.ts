@@ -26,6 +26,7 @@ import { AppController } from './app.controller';
 import { BotLifecycleHook } from './bot-lifecycle.hook';
 import { CommandExceptionFilter } from './command-exception.filter';
 import { CommandLoggingInterceptor } from './command-logging.interceptor';
+import { HttpLoggingInterceptor } from './http-logging.interceptor';
 import { TopggStatsService } from './topgg-stats.service';
 
 @Module({
@@ -94,6 +95,10 @@ import { TopggStatsService } from './topgg-stats.service';
     {
       provide: APP_INTERCEPTOR,
       useClass: CommandLoggingInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpLoggingInterceptor,
     },
     BotLifecycleHook,
     TopggStatsService,

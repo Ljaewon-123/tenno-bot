@@ -6,7 +6,11 @@ import {
   Logger,
   NestInterceptor,
 } from '@nestjs/common';
-import { NecordExecutionContext, type SlashCommandContext } from 'necord';
+import {
+  NecordExecutionContext,
+  type NecordContextType,
+  type SlashCommandContext,
+} from 'necord';
 import {
   catchError,
   from,
@@ -22,6 +26,9 @@ export class CommandLoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(CommandLoggingInterceptor.name);
 
   intercept(context: ExecutionContext, next: CallHandler) {
+    // 전역 인터셉터라 HTTP 요청에도 걸린다 — 가드 없이 인터랙션을 구조분해하다 헬스·스탯이 전부 500이 났었다
+    if (context.getType<NecordContextType>() !== 'necord') return next.handle();
+
     const [interaction] =
       NecordExecutionContext.create(context).getContext<SlashCommandContext>();
     // 자동완성은 키 입력마다 와서 로깅·defer하지 않는다
