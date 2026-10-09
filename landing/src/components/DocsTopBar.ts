@@ -29,7 +29,7 @@ export function DocsTopBar({ homeHref, githubHref, inviteHref, showSearch = true
   return html`<header class="flex flex-wrap items-center gap-4 border-b border-border bg-surface px-6 py-4 sm:px-7">
     <a href="${homeHref}" class="flex items-center gap-2.5 text-text">
       ${Avatar({ size: 36 })}
-      <span class="font-display text-lg font-extrabold">Teno</span>
+      <span class="font-display text-lg font-extrabold">Tenno</span>
       ${BETA ? html`<span class="rounded-full bg-accent-soft px-2.5 py-0.5 text-[13px] font-bold text-accent-text">Beta</span>` : ''}
       <span class="rounded-full bg-surface-2 px-2.5 py-0.5 text-[13px] font-bold text-text-faint">Docs</span>
     </a>

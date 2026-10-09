@@ -8,7 +8,7 @@ const SECTIONS: LegalSection[] = [
   {
     title: 'The service',
     body: html`<p>
-      Teno is provided free, as-is, with no warranty of any kind. Features may change or the service may stop at any time, without
+      Tenno is provided free, as-is, with no warranty of any kind. Features may change or the service may stop at any time, without
       notice.
     </p>`,
   },
@@ -19,7 +19,7 @@ const SECTIONS: LegalSection[] = [
   {
     title: 'Not affiliated',
     body: html`<p>
-      Teno is a fan-made project and is not affiliated with or endorsed by Digital Extremes. Warframe and related trademarks belong
+      Tenno is a fan-made project and is not affiliated with or endorsed by Digital Extremes. Warframe and related trademarks belong
       to their respective owners.
     </p>`,
   },

@@ -15,7 +15,7 @@ function GettingStarted(): RawHtml {
   return html`<section id="intro" class="flex flex-col gap-3 border-b border-border pb-10">
       <h2 class="font-display text-3xl font-extrabold text-text">Introduction</h2>
       <p class="max-w-2xl text-lg leading-relaxed text-text-muted">
-        Teno is a Discord bot for Warframe. It answers live worldstate questions right in chat — Sortie, Archon Hunt, Void Fissures,
+        Tenno is a Discord bot for Warframe. It answers live worldstate questions right in chat — Sortie, Archon Hunt, Void Fissures,
         open-world cycles, Nightwave, Archimedea, events and Baro Ki'Teer — plus drop and relic lookups, Incarnon Genesis details,
         repeating alarms, worldstate change notifications, and squad recruiting with ${CommandRef({ children: '/party', tone: 'accent' })}.
       </p>
@@ -24,9 +24,9 @@ function GettingStarted(): RawHtml {
       <h2 class="font-display text-3xl font-extrabold text-text">Invite &amp; permissions</h2>
       <p class="max-w-2xl text-lg leading-relaxed text-text-muted">
         ${INVITE_HREF
-          ? html`<a href="${INVITE_HREF}" class="font-bold text-accent-text">Invite Teno to your server</a> — every`
-          : 'Teno is in beta and not open for invites yet. Once it is, every'}
-        command needs Teno to already be a member of the server. ${CommandRef({ children: '/notification' })} additionally needs the Manage Server permission, since it
+          ? html`<a href="${INVITE_HREF}" class="font-bold text-accent-text">Invite Tenno to your server</a> — every`
+          : 'Tenno is in beta and not open for invites yet. Once it is, every'}
+        command needs Tenno to already be a member of the server. ${CommandRef({ children: '/notification' })} additionally needs the Manage Server permission, since it
         changes what the whole server gets pinged for.
       </p>
     </section>
@@ -34,7 +34,7 @@ function GettingStarted(): RawHtml {
       <h2 class="font-display text-3xl font-extrabold text-text">Timezones</h2>
       <p class="max-w-2xl text-lg leading-relaxed text-text-muted">
         ${CommandRef({ children: '/alarm register' })} takes an optional ${CommandRef({ children: 'timezone' })} option. Leave it out
-        and Teno guesses from your Discord locale, falling back to Korea Standard Time if it can't — each alarm keeps its own timezone
+        and Tenno guesses from your Discord locale, falling back to Korea Standard Time if it can't — each alarm keeps its own timezone
         once set.
       </p>
     </section>`;
@@ -43,7 +43,7 @@ function GettingStarted(): RawHtml {
 export function render(): RawHtml {
   return html`<div class="flex min-h-screen flex-col bg-bg">
     ${DocsTopBar({ homeHref: HOME_HREF, githubHref: GITHUB_REPO_URL, inviteHref: INVITE_HREF })}
-    <h1 class="sr-only">Teno docs</h1>
+    <h1 class="sr-only">Tenno docs</h1>
     <div class="mx-auto flex w-full max-w-[1440px] flex-1 flex-col lg:flex-row">
       ${DocsSidebar({ gettingStarted: GETTING_STARTED, sections: SIDEBAR_SECTIONS })}
       <main

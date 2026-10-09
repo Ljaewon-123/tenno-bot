@@ -19,7 +19,7 @@ export function SiteNav({ links, inviteHref, extra }: SiteNavProps): RawHtml {
   return html`<header class="flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 lg:px-24">
     <a href="#top" class="flex items-center gap-3 text-text">
       ${Avatar({ size: 40 })}
-      <span class="font-display text-xl font-extrabold">Teno</span>
+      <span class="font-display text-xl font-extrabold">Tenno</span>
       ${BETA ? html`<span class="rounded-full bg-accent-soft px-2.5 py-0.5 text-[13px] font-bold text-accent-text">Beta</span>` : ''}
     </a>
     <nav class="flex flex-wrap items-center gap-2 text-base font-bold">

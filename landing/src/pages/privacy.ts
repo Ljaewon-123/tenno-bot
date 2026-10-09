@@ -37,11 +37,11 @@ const WHAT_WE_STORE: LegalSection = {
 const WHAT_WE_DONT_STORE: LegalSection = {
   title: "What we don't store",
   body: html`<p>
-      Teno does not read or store the content of your regular messages. As a slash-command bot it only ever receives the values you
+      Tenno does not read or store the content of your regular messages. As a slash-command bot it only ever receives the values you
       type into a command it runs — an alarm name, a party's mission text — never anything else said in the channel.
     </p>
     <p>
-      Teno also looks up public Warframe game data (worldstate, drop tables, Incarnon perks) from third-party sources — Warframe
+      Tenno also looks up public Warframe game data (worldstate, drop tables, Incarnon perks) from third-party sources — Warframe
       status APIs and the Warframe Wiki. Those requests go to a fixed, code-defined list of endpoints and never carry your Discord
       IDs, server name or anything you typed.
     </p>`,
@@ -50,7 +50,7 @@ const WHAT_WE_DONT_STORE: LegalSection = {
 const AUTOMATIC_DELETION: LegalSection = {
   title: 'Automatic deletion',
   body: html`<p>
-    If Teno is removed from a server, or a channel it was using is deleted, Discord tells Teno right away and it deletes every alarm,
+    If Tenno is removed from a server, or a channel it was using is deleted, Discord tells Tenno right away and it deletes every alarm,
     subscription and party tied to that server or channel immediately — there's no separate cleanup job to wait on.
   </p>`,
 };

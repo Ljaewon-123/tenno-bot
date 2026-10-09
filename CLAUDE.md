@@ -1,4 +1,4 @@
-# teno-bot
+# tenno-bot
 
 Warframe 정보를 제공하는 Discord 봇. NestJS + necord(discord.js) + TypeORM(Postgres).
 

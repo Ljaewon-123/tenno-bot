@@ -1,6 +1,6 @@
-# teno-landing
+# tenno-landing
 
-Teno 봇의 랜딩 · 문서 · Privacy · Terms 정적 사이트. 봇과 분리된 npm 패키지다 (루트 `tsconfig.json`이 `landing`을 exclude, Railway `watchPatterns`에도 없음 → 여기만 바뀌면 봇은 재배포되지 않는다).
+Tenno 봇의 랜딩 · 문서 · Privacy · Terms 정적 사이트. 봇과 분리된 npm 패키지다 (루트 `tsconfig.json`이 `landing`을 exclude, Railway `watchPatterns`에도 없음 → 여기만 바뀌면 봇은 재배포되지 않는다).
 
 ```
 npm run dev       # vite dev 서버

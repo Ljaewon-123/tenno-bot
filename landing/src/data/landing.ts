@@ -56,7 +56,7 @@ export const FEATURES: Feature[] = [
     iconKey: 'comms',
     chipLabel: 'Comms',
     title: 'Worldstate alerts',
-    desc: 'Subscribe a channel and Teno posts as soon as a new Sortie, hunt or event goes live.',
+    desc: 'Subscribe a channel and Tenno posts as soon as a new Sortie, hunt or event goes live.',
     commands: '/notification',
   },
   {
@@ -90,7 +90,7 @@ export const STEPS: Step[] = [
   {
     num: 1,
     tone: 'intel',
-    title: 'Invite Teno',
+    title: 'Invite Tenno',
     desc: 'Pick your server and hit authorize. No setup page, no dashboard.',
   },
   {
@@ -106,7 +106,7 @@ export const STEPS: Step[] = [
   {
     num: 3,
     tone: 'ops',
-    title: 'Let Teno keep watch',
+    title: 'Let Tenno keep watch',
     desc: 'Set alarms or subscribe a channel, then get back to farming.',
   },
 ];

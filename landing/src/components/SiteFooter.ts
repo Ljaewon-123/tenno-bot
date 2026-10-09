@@ -15,7 +15,7 @@ const DEFAULT_NOTICE = "Fan-made. Not affiliated with Digital Extremes. Warframe
 export function SiteFooter({ links, notice = DEFAULT_NOTICE }: SiteFooterProps): RawHtml {
   return html`<footer class="mt-auto flex flex-col items-start gap-6 border-t border-border px-6 py-9 sm:px-10 lg:flex-row lg:items-center lg:justify-between lg:px-24">
     <div class="flex flex-col gap-1.5">
-      <span class="font-display text-lg font-extrabold text-text">Teno</span>
+      <span class="font-display text-lg font-extrabold text-text">Tenno</span>
       <span class="text-sm text-text-faint">${notice}</span>
     </div>
     <nav class="flex flex-wrap gap-6 text-base font-bold">

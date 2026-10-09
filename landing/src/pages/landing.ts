@@ -40,7 +40,7 @@ function HeroChat(): RawHtml {
       ${Avatar({ size: 42 })}
       <div class="flex flex-1 flex-col gap-1.5">
         <div class="flex items-center gap-2">
-          <span class="text-base font-bold text-text">Teno</span>
+          <span class="text-base font-bold text-text">Tenno</span>
           <span class="rounded bg-accent px-1.5 py-0.5 text-[10px] font-extrabold text-on-accent">APP</span>
         </div>
         <div class="flex gap-3 rounded-2xl bg-surface-2 p-4">
@@ -92,10 +92,10 @@ export function render(): RawHtml {
           </div>
         </div>
         <h1 class="font-display text-5xl font-extrabold leading-[1.08] tracking-tight text-text sm:text-6xl">
-          Meet Teno,<br />your pocket <span class="text-accent">Cephalon</span>.
+          Meet Tenno,<br />your pocket <span class="text-accent">Cephalon</span>.
         </h1>
         <p class="text-xl leading-relaxed text-text-muted">
-          Ask about Sorties, fissures and drop tables right in chat. Teno keeps an eye on the worldstate, pings your clan on schedule and
+          Ask about Sorties, fissures and drop tables right in chat. Tenno keeps an eye on the worldstate, pings your clan on schedule and
           helps you fill a squad.
         </p>
         <div class="mt-1.5 flex flex-wrap gap-3">
@@ -130,7 +130,7 @@ export function render(): RawHtml {
 
     <section id="features" class="flex flex-col gap-10 px-6 pt-24 sm:px-10 lg:px-24 ${HIDE.kofi ? 'pb-24' : ''}">
       <div class="flex flex-wrap items-end justify-between gap-4">
-        <h2 class="font-display text-3xl font-extrabold text-text sm:text-4xl">What Teno can do</h2>
+        <h2 class="font-display text-3xl font-extrabold text-text sm:text-4xl">What Tenno can do</h2>
         <a href="${DOCS_HREF}" class="font-bold text-accent-text">See every command &rarr;</a>
       </div>
       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -153,9 +153,9 @@ export function render(): RawHtml {
     >
       ${Avatar({ size: 140 })}
       <div class="flex flex-1 flex-col gap-3">
-        <h2 class="font-display text-3xl font-extrabold text-text">Buy Teno a coffee?</h2>
+        <h2 class="font-display text-3xl font-extrabold text-text">Buy Tenno a coffee?</h2>
         <p class="mx-auto max-w-xl text-lg leading-relaxed text-text-muted lg:mx-0">
-          Teno is free and made by one Tenno. Hosting and the database come out of pocket, so any support keeps Teno online.
+          Tenno is free and made by one Tenno. Hosting and the database come out of pocket, so any support keeps Tenno online.
         </p>
       </div>
       <div class="flex w-full max-w-xs shrink-0 flex-col gap-3">

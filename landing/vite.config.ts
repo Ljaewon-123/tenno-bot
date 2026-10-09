@@ -18,7 +18,7 @@ const pageByEntry: Record<string, () => { toString(): string }> = {
 // 콘텐츠가 이미 채워진 정적 HTML을 만들기 위한 최소 프리렌더 파이프라인.
 function prerender(): Plugin {
   return {
-    name: 'teno-prerender',
+    name: 'tenno-prerender',
     transformIndexHtml(html, ctx) {
       const entry = ctx.filename.split(/[\\/]/).pop()?.replace(/\.html$/, '') ?? '';
       const render = pageByEntry[entry];

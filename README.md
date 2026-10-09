@@ -1,3 +1,3 @@
-# Teno Bot
+# Tenno Bot
 
-Teno Bot
+Tenno Bot
