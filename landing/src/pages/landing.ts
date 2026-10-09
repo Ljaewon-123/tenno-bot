@@ -86,7 +86,7 @@ export function render(): RawHtml {
     <section class="flex flex-col items-center gap-12 px-6 py-16 sm:px-10 lg:flex-row lg:items-center lg:gap-16 lg:px-24 lg:py-20">
       <div class="flex max-w-xl flex-col gap-6">
         <div class="flex items-end gap-4">
-          ${Avatar({ size: 112, label: '[AVATAR]' })}
+          ${Avatar({ size: 112 })}
           <div class="mb-4 rounded-2xl rounded-bl-none bg-surface-2 px-4.5 py-3 font-display text-lg font-semibold text-text">
             Hi, Tenno! Need a hand?
           </div>
@@ -151,7 +151,7 @@ export function render(): RawHtml {
       id="support"
       class="mx-6 my-24 flex flex-col items-center gap-10 rounded-[32px] border border-border bg-surface-2 p-10 text-center sm:mx-10 lg:mx-24 lg:flex-row lg:text-left"
     >
-      ${Avatar({ size: 140, label: '[AVATAR]' })}
+      ${Avatar({ size: 140 })}
       <div class="flex flex-1 flex-col gap-3">
         <h2 class="font-display text-3xl font-extrabold text-text">Buy Teno a coffee?</h2>
         <p class="mx-auto max-w-xl text-lg leading-relaxed text-text-muted lg:mx-0">
