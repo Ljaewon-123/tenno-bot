@@ -47,10 +47,10 @@ function HeroChat(): RawHtml {
           <span class="flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-full bg-intel-bg text-intel">${CHECK_ICON}</span>
           <div class="flex flex-col gap-1.5">
             <div class="text-base font-bold text-text">
-              Alarm registered &middot; <span class="rounded bg-surface px-1.5 font-mono text-sm">[ID]</span>
+              Alarm registered &middot; <span class="rounded bg-surface px-1.5 font-mono text-sm">01K7B3QX9MZ4T2V8N6R5C1JHDW</span>
             </div>
             <div class="text-sm leading-relaxed text-text-muted">/void-fissures tier:Axi every 30 min &middot; first run in 30 minutes</div>
-            <div class="text-xs text-text-faint">/alarm delete id:[ID] to remove</div>
+            <div class="text-xs text-text-faint">/alarm delete id:01K7B3QX9MZ4T2V8N6R5C1JHDW to remove</div>
           </div>
         </div>
       </div>
