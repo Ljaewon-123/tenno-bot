@@ -6,9 +6,9 @@ export const KOFI_URL = 'https://ko-fi.com/ljaewon';
 export const GITHUB_REPO_URL = 'https://github.com/Ljaewon-123/tenno-bot';
 export const SUPPORT_SERVER_URL = 'https://discord.gg/qxv7pvhtVm';
 
-// 준비 안 된 링크를 페이지에서 유도하지 않기 위한 토글 — Ko-fi는 후원 페이지가 준비되면 푼다.
+// 준비 안 된 링크를 페이지에서 유도하지 않기 위한 토글 — 레포가 public이라 URL 자체는 비밀이 아니다.
 export const BETA = false;
-export const HIDE = { invite: false, kofi: true, supportServer: false };
+export const HIDE = { invite: false, kofi: false, supportServer: false };
 
 export const INVITE_HREF = HIDE.invite ? undefined : INVITE_URL;
 // 서포트 서버를 숨기는 동안에도 privacy/terms엔 문의 창구가 있어야 해서 GitHub 이슈로 돌린다.

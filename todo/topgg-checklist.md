@@ -8,7 +8,7 @@ top.gg 심사 통과를 위한 요구사항 정리. 리뷰어는 위반 사항�
 
 ### 봇 상태
 - [ ] **심사 기간 내내 봇이 온라인** — 리뷰어가 접속했을 때 오프라인이면 즉시 반려
-- [ ] **Public 봇이고 초대 가능** — Developer Portal에서 `Public Bot` 켜져 있을 것
+- [x] **Public 봇이고 초대 가능** (2026-10-09 확인) — Developer Portal에서 `Public Bot` 켜져 있을 것
 - [ ] **메인 기능과 대부분의 명령어가 정상 동작**
 - [x] **명확한 진입점(동작하는 help 명령어)** (2026-09-28 코드 확인: 실제 커맨드 목록과 일치) — `/help` 존재 (`src/slash-command/slash-command.service.ts`)
 - [ ] 슬래시 커맨드가 리뷰어 서버에서도 보일 것 — production은 전역 등록이라 OK. 개발 모드는 `DISCORD_DEVELOPMENT_GUILD_ID` 전용이므로 **심사 중 배포 환경이 production인지 확인**
