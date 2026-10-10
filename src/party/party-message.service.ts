@@ -90,6 +90,7 @@ export class PartyMessageService {
   fullNotice(party: Party) {
     return {
       content: `Party is full! ${party.members.map((userId) => `<@${userId}>`).join(' ')}`,
+      allowedMentions: { users: party.members },
     };
   }
 }

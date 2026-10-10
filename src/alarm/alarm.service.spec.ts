@@ -6,7 +6,11 @@ import { BadRequestException, Logger } from '@nestjs/common';
 import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AlarmService } from './alarm.service.js';
-import { ALARM_LIMIT_PER_GUILD } from './constants.js';
+import {
+  ALARM_LIMIT_PER_GUILD,
+  ALARM_MAX_INTERVAL_MINUTES,
+  ALARM_MIN_INTERVAL_MINUTES,
+} from './constants.js';
 import { AlarmConfig } from './entities/alarm-config.entity.js';
 import { AlarmStatus } from './vo/enum.js';
 
@@ -196,6 +200,15 @@ describe('AlarmService.run', () => {
     );
   });
 
+  /** 이름에 멘션을 넣고 짧은 주기로 걸면 봇이 특정 유저를 무한히 핑하는 도구가 된다 */
+  it('반복 알람은 멘션 허용을 열지 않는다', async () => {
+    const { service, send } = build();
+
+    await service.run(alarmOf({ doneAt: dayjs(NOW), name: '<@victim>' }));
+
+    expect(send.mock.calls[0][0]).not.toHaveProperty('allowedMentions');
+  });
+
   it('임베드 생성이 실패해도 error를 남기고 재스케줄한다', async () => {
     const alarm = alarmOf({ doneAt: dayjs(NOW) });
     const { service, getAlarmTarget, alarmConfigRepository } = build();
@@ -362,6 +375,18 @@ describe('AlarmService.run — 1회용', () => {
     expect(alarmConfigRepository.delete).toHaveBeenCalledWith({ id: 'r1' });
   });
 
+  /** 전역 allowedMentions가 막혀 있어 여기서 열지 않으면 채널로 떨어진 리마인더가 아무도 안 부른다 */
+  it('채널로 떨어지면 건 사람만 핑한다', async () => {
+    const { service, dm, send } = build();
+    dm.mockRejectedValue(new Error('Cannot send messages to this user'));
+
+    await service.run(remindOf());
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ allowedMentions: { users: ['u1'] } }),
+    );
+  });
+
   it('DM·채널 둘 다 실패해도 지운다', async () => {
     // 실패한 1회용을 남기면 1분마다 영원히 재시도한다
     const alarm = remindOf();
@@ -373,6 +398,32 @@ describe('AlarmService.run — 1회용', () => {
 
     expect(alarmConfigRepository.delete).toHaveBeenCalledWith({ id: 'r1' });
   });
+});
+
+/** 커맨드 스키마 min/max는 배포 후 재등록이 끝나야 걸린다 — 그 사이 들어온 값은 서비스가 막아야 한다 */
+describe('AlarmService.register — 주기 범위', () => {
+  it.each([1, ALARM_MAX_INTERVAL_MINUTES + 1])(
+    '%i분은 거절한다',
+    async (intervalValue) => {
+      const { service, alarmConfigRepository } = build([]);
+
+      await expect(
+        service.register(alarmOf({ intervalValue })),
+      ).rejects.toThrow(BadRequestException);
+      expect(alarmConfigRepository.save).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([ALARM_MIN_INTERVAL_MINUTES, ALARM_MAX_INTERVAL_MINUTES])(
+    '%i분은 받는다',
+    async (intervalValue) => {
+      const { service, alarmConfigRepository } = build([]);
+
+      await service.register(alarmOf({ intervalValue }));
+
+      expect(alarmConfigRepository.save).toHaveBeenCalled();
+    },
+  );
 });
 
 describe('AlarmService.register — 개수 제한', () => {

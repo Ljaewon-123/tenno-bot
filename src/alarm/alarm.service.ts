@@ -23,6 +23,8 @@ import { Client, type ContainerBuilder } from 'discord.js';
 import { FindOptionsWhere, In, IsNull, LessThanOrEqual, Not } from 'typeorm';
 import {
   ALARM_LIMIT_PER_GUILD,
+  ALARM_MAX_INTERVAL_MINUTES,
+  ALARM_MIN_INTERVAL_MINUTES,
   CYCLE_REMIND_LEAD_MINUTES,
   REMIND_LEAD_MINUTES,
   STALE_AFTER_MINUTES,
@@ -61,6 +63,16 @@ export class AlarmService {
     if (options && target !== TargetCommand.VoidFissures)
       throw new BadRequestException(
         '`tier` only applies to the void-fissures target.',
+      );
+
+    // 커맨드 스키마 min/max는 배포 후 재등록 전·재등록 실패 시 옛 값이 남는다
+    const interval = alarm.intervalValue ?? 0;
+    if (
+      interval < ALARM_MIN_INTERVAL_MINUTES ||
+      interval > ALARM_MAX_INTERVAL_MINUTES
+    )
+      throw new BadRequestException(
+        `Interval must be between ${ALARM_MIN_INTERVAL_MINUTES} and ${ALARM_MAX_INTERVAL_MINUTES} minutes.`,
       );
 
     const registered = await this.alarmConfigRepository.countBy({
@@ -250,7 +262,13 @@ export class AlarmService {
   private async toChannel(alarm: AlarmConfig, view: ContainerBuilder) {
     if (!alarm.channelId) return;
     const channel = await this.client.channels.fetch(alarm.channelId);
-    if (channel?.isSendable()) await channel.send(payload(view));
+    if (!channel?.isSendable()) return;
+    // 전역은 멘션을 막아 둔다 — 반복 알람 이름의 <@id>는 핑하지 않고, 리마인더는 건 사람만 부른다
+    await channel.send(
+      alarm.userId
+        ? { ...payload(view), allowedMentions: { users: [alarm.userId] } }
+        : payload(view),
+    );
   }
 
   async afterFire(alarm: AlarmConfig) {

@@ -4,6 +4,10 @@ import { TargetCommand } from '@/warframe-api/enum.js';
 import { VoidTier } from '@/warframe-api/world-state/vo/enum.js';
 import { Expose } from 'class-transformer';
 import { IntegerOption, StringOption } from 'necord';
+import {
+  ALARM_MAX_INTERVAL_MINUTES,
+  ALARM_MIN_INTERVAL_MINUTES,
+} from '../constants.js';
 
 export class CreateAlarmCommand {
   @Expose()
@@ -11,6 +15,7 @@ export class CreateAlarmCommand {
     name: 'name',
     description: 'Alarm name',
     required: true,
+    max_length: 100,
   })
   name: string;
 
@@ -28,7 +33,8 @@ export class CreateAlarmCommand {
     name: 'interval-minutes',
     description: 'Repeat interval in minutes',
     required: true,
-    min_value: 1,
+    min_value: ALARM_MIN_INTERVAL_MINUTES,
+    max_value: ALARM_MAX_INTERVAL_MINUTES,
   })
   intervalValue: number;
 
@@ -53,6 +59,7 @@ export class CreateAlarmCommand {
     name: 'description',
     description: 'Alarm description',
     required: false,
+    max_length: 200,
   })
   description?: string;
 }

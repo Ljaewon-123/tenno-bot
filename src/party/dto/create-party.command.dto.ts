@@ -9,6 +9,8 @@ export class CreatePartyCommand {
     name: 'name',
     description: 'Party name',
     required: true,
+    // 모달과 같은 한도 — 길면 /party list 합산 4000자를 넘겨 서버 목록 전체가 가려진다
+    max_length: 100,
   })
   name: string;
 
@@ -17,6 +19,7 @@ export class CreatePartyCommand {
     name: 'mission',
     description: 'Mission to run',
     required: true,
+    max_length: 100,
   })
   mission: string;
 

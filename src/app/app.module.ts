@@ -40,9 +40,9 @@ import { TopggStatsService } from './topgg-stats.service.js';
       useFactory: (config: AppConfig) => ({
         token: config.DISCORD_TOKEN,
         intents: [IntentsBitField.Flags.Guilds],
-        // 이름·검색어·위키 텍스트가 본문에 그대로 실린다 — 역할 멘션은 권한 없이도 핑이 가서 반복 알람이 스팸 통로가 된다.
-        // 파티 Full·리마인더는 유저 멘션이 본업이라 users만 연다
-        allowedMentions: { parse: ['users'] },
+        // 이름·검색어·위키 텍스트가 본문에 그대로 실린다 — 유저 멘션까지 열면 알람 이름의 <@id>로 특정 유저를 무한히 핑할 수 있다.
+        // 핑이 본업인 파티 Full·리마인더만 메시지마다 users를 지정해 연다
+        allowedMentions: { parse: [] },
         development:
           config.nodeEnv !== NodeEnv.Production &&
           config.DISCORD_DEVELOPMENT_GUILD_ID

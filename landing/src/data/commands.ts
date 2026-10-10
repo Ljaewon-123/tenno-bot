@@ -256,7 +256,7 @@ export const COMMANDS: Command[] = [
             name: 'interval-minutes',
             type: 'integer',
             required: true,
-            description: 'Repeat interval in minutes',
+            description: 'Repeat interval in minutes (10–10080)',
           },
           {
             name: 'tier',

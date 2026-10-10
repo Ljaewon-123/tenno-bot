@@ -44,3 +44,14 @@ describe('PartyMessageService — 유저 입력 이스케이프', () => {
     expect(service.line(partyOf())).not.toMatch(LIVE_LINK);
   });
 });
+
+describe('PartyMessageService.fullNotice', () => {
+  /** 전역 allowedMentions가 막혀 있어 여기서 열지 않으면 정원이 차도 아무도 안 불린다 */
+  it('멤버만 핑한다', () => {
+    const notice = new PartyMessageService().fullNotice(
+      partyOf({ members: ['host', 'u2'] }),
+    );
+
+    expect(notice.allowedMentions).toEqual({ users: ['host', 'u2'] });
+  });
+});
