@@ -49,6 +49,7 @@ src/
 ## 스타일
 
 - 경로 별칭 `@/*` → `src/*`. 상대경로는 같은 모듈 내부에서만.
+- **ESM 프로젝트다** (`"type": "module"`). 로컬 import는 `@/`·상대경로 모두 `.js` 확장자를 붙인다 (`'./foo.js'`, 디렉터리는 `'./dir/index.js'`). `__dirname` 대신 `import.meta.dirname`.
 - 주석은 한국어. **"무엇"이 아니라 "왜"를 적는다** — 이 코드베이스 주석은 대부분 제약이나 실패 사례를 기록한다. 그 스타일을 유지할 것.
 - `await`가 없어도 `async`를 명시한다 (`require-await` off).
 - enum/타입은 모듈별 `vo/` 또는 `types.ts`에 둔다.

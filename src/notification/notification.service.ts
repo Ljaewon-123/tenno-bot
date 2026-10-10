@@ -1,19 +1,19 @@
-import { asPush, payload } from '@/utils/discord-embed';
-import dayjs from '@/utils/dayjs';
-import { TargetCommand } from '@/warframe-api/enum';
-import { CacheKey } from '@/warframe-api/shared/enum';
-import { CacheRepository } from '@/warframe-api/shared/modules/repositories/cache.repository';
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
-import { WorldStateService } from '@/warframe-api/world-state/world-state.service';
+import { asPush, payload } from '@/utils/discord-embed/index.js';
+import dayjs from '@/utils/dayjs.js';
+import { TargetCommand } from '@/warframe-api/enum.js';
+import { CacheKey } from '@/warframe-api/shared/enum.js';
+import { CacheRepository } from '@/warframe-api/shared/modules/repositories/cache.repository.js';
+import { WarframeApiService } from '@/warframe-api/warframe-api.service.js';
+import { WorldStateService } from '@/warframe-api/world-state/world-state.service.js';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
 import { FindOptionsWhere, LessThanOrEqual } from 'typeorm';
-import { HISTORY_RETENTION_DAYS } from './constants';
-import { Notification } from './entities/notification.entity';
-import { NotificationHistoryRepository } from './repositories/notification-history.repository';
-import { NotificationRepository } from './repositories/notification.repository';
-import { WatchTarget, WatchTargetLabel } from './types';
+import { HISTORY_RETENTION_DAYS } from './constants.js';
+import { Notification } from './entities/notification.entity.js';
+import { NotificationHistoryRepository } from './repositories/notification-history.repository.js';
+import { NotificationRepository } from './repositories/notification.repository.js';
+import { WatchTarget, WatchTargetLabel } from './types.js';
 
 @Injectable()
 export class NotificationService {

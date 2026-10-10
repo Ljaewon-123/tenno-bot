@@ -1,8 +1,8 @@
 import { ActionRowBuilder, type ButtonBuilder } from 'discord.js';
-import { subtext, title as heading } from '../markdown';
-import { Accent, type Child, type Line } from '../types';
-import { assemble, kept, text } from './card';
-import { payload } from './message';
+import { subtext, title as heading } from '../markdown.js';
+import { Accent, type Child, type Line } from '../types.js';
+import { assemble, kept, text } from './card.js';
+import { payload } from './message.js';
 
 const notice = (
   accent: Accent,

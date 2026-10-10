@@ -7,12 +7,12 @@ import {
   payload,
   relative,
   subtext,
-} from '@/utils/discord-embed';
+} from '@/utils/discord-embed/index.js';
 import { Injectable } from '@nestjs/common';
 import { ButtonStyle } from 'discord.js';
-import { PARTY_EXPIRE_HOURS } from './constants';
-import { Party } from './entities/party.entity';
-import { PartyStatus, PartyVisibilityLabel } from './vo/enum';
+import { PARTY_EXPIRE_HOURS } from './constants.js';
+import { Party } from './entities/party.entity.js';
+import { PartyStatus, PartyVisibilityLabel } from './vo/enum.js';
 
 @Injectable()
 export class PartyMessageService {

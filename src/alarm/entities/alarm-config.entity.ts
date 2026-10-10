@@ -1,11 +1,11 @@
-import type { Dayjs } from '@/utils/dayjs';
-import dayjs from '@/utils/dayjs';
+import type { Dayjs } from '@/utils/dayjs.js';
+import dayjs from '@/utils/dayjs.js';
 import {
   CommonWithGuildChannel,
   DateColumn,
   IsDayjs,
-} from '@/utils/entity/common.entity';
-import { Timezone } from '@/utils/types';
+} from '@/utils/entity/common.entity.js';
+import { Timezone } from '@/utils/types.js';
 import { Expose, Type } from 'class-transformer';
 import {
   IsEnum,
@@ -15,8 +15,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';
-import { AlarmStatus } from '../vo/enum';
-import { TargetCommandAlarm } from '../vo/target-command.vo';
+import { AlarmStatus } from '../vo/enum.js';
+import { TargetCommandAlarm } from '../vo/target-command.vo.js';
 
 @Entity()
 @Index(['guildId', 'userId', 'name'], {

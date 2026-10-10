@@ -1,13 +1,13 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { CacheKey, HttpMethod } from '../shared/enum';
-import { HttpJsonService } from '../shared/http-json.service';
-import { CacheRepository } from '../shared/modules/repositories/cache.repository';
-import { INDEX_VERSION } from './constants';
-import { DropSourceService } from './drop-source.service';
-import { DropSourceRepository } from './repositories/drop-source.repository';
-import { DropTableData, DropTableInfo } from './types';
-import { DropCategory } from './vo/enum';
+import { CacheKey, HttpMethod } from '../shared/enum.js';
+import { HttpJsonService } from '../shared/http-json.service.js';
+import { CacheRepository } from '../shared/modules/repositories/cache.repository.js';
+import { INDEX_VERSION } from './constants.js';
+import { DropSourceService } from './drop-source.service.js';
+import { DropSourceRepository } from './repositories/drop-source.repository.js';
+import { DropTableData, DropTableInfo } from './types.js';
+import { DropCategory } from './vo/enum.js';
 
 /** 드랍테이블은 Prime Access 단위로만 바뀐다 — 주 1회 info.json 해시가 바뀌었을 때만 all.json을 재수집한다 */
 @Injectable()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WfcdItemsService } from './wfcd-items.service';
+import { WfcdItemsService } from './wfcd-items.service.js';
 
 /** 드랍 이름 → 이미지 폴백. 이게 깨지면 /drop 임베드에서 썸네일이 통째로 사라진다 */
 describe('WfcdItemsService.findItemImgByName', () => {

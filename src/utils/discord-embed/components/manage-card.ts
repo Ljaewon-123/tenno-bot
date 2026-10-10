@@ -3,10 +3,10 @@ import {
   SectionBuilder,
   type ButtonBuilder,
 } from 'discord.js';
-import { subtext, title as heading } from '../markdown';
-import { SECTION_LIMIT } from '../constants';
-import { Accent, type Child, type Line, type ManageRow } from '../types';
-import { assemble, divider, kept, text } from './card';
+import { subtext, title as heading } from '../markdown.js';
+import { SECTION_LIMIT } from '../constants.js';
+import { Accent, type Child, type Line, type ManageRow } from '../types.js';
+import { assemble, divider, kept, text } from './card.js';
 
 export const manageCard = ({
   accent = Accent.Default,

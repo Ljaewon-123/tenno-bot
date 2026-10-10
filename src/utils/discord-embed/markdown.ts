@@ -1,4 +1,4 @@
-import dayjs from '@/utils/dayjs';
+import dayjs from '@/utils/dayjs.js';
 import type { ConfigType } from 'dayjs';
 import { escapeMarkdown } from 'discord.js';
 

@@ -1,5 +1,5 @@
-import type { Dayjs } from '@/utils/dayjs';
-import dayjs from '@/utils/dayjs';
+import type { Dayjs } from '@/utils/dayjs.js';
+import dayjs from '@/utils/dayjs.js';
 import { Expose } from 'class-transformer';
 import {
   IsOptional,

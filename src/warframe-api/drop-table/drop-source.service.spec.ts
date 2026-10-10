@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DropSourceService } from './drop-source.service';
-import type { DropSource } from './entities/drop-source.entity';
-import type { DropTableData, Relic } from './types';
-import { DropCategory } from './vo/enum';
+import { DropSourceService } from './drop-source.service.js';
+import type { DropSource } from './entities/drop-source.entity.js';
+import type { DropTableData, Relic } from './types.js';
+import { DropCategory } from './vo/enum.js';
 
 // @Transactional()은 초기화된 CLS 네임스페이스 + DataSource를 요구한다.
 // 트랜잭션 경계는 DB가 보장하는 것이라 여기선 벗겨내고 평탄화 로직만 본다.

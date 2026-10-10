@@ -1,6 +1,6 @@
 import { ArgumentsHost, HttpException } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { ExceptionResponder } from './types';
+import { ExceptionResponder } from './types.js';
 
 /** 헬스체크 같은 HTTP 요청 — 응답을 안 쓰면 요청이 타임아웃까지 매달린다 */
 export class HttpResponder implements ExceptionResponder {

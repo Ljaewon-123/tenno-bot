@@ -1,5 +1,5 @@
-import { CacheKey } from '../shared/enum';
-import { ArchonBoss, CycleName } from './vo/enum';
+import { CacheKey } from '../shared/enum.js';
+import { ArchonBoss, CycleName } from './vo/enum.js';
 
 /** 겹치는 호출(감지 → 임베드, 동시 커맨드)을 API 대신 DB로 받는다 */
 export const TTL_SECONDS = 60;

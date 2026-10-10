@@ -1,14 +1,14 @@
-import dayjs from '@/utils/dayjs';
+import dayjs from '@/utils/dayjs.js';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';
 import { ArrayContains, FindOptionsWhere } from 'typeorm';
-import { Party } from './entities/party.entity';
-import { PARTY_EXPIRE_HOURS, PARTY_HISTORY_SIZE } from './constants';
-import { PartyMessageService } from './party-message.service';
-import { PartyRepository } from './repositories/party.repository';
-import { CreateParty } from './types';
-import { PartyStatus } from './vo/enum';
+import { Party } from './entities/party.entity.js';
+import { PARTY_EXPIRE_HOURS, PARTY_HISTORY_SIZE } from './constants.js';
+import { PartyMessageService } from './party-message.service.js';
+import { PartyRepository } from './repositories/party.repository.js';
+import { CreateParty } from './types.js';
+import { PartyStatus } from './vo/enum.js';
 
 @Injectable()
 export class PartyService {

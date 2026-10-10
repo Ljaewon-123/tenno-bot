@@ -1,8 +1,8 @@
-import { IsDayjs } from '@/utils/entity/common.entity';
+import { IsDayjs } from '@/utils/entity/common.entity.js';
 import { OmitType } from '@nestjs/mapped-types';
 import { IsOptional } from 'class-validator';
-import { Dayjs } from 'dayjs';
-import { AlarmConfig } from '../entities/alarm-config.entity';
+import type { Dayjs } from '@/utils/dayjs.js';
+import { AlarmConfig } from '../entities/alarm-config.entity.js';
 
 export class CreateAlarm extends OmitType(AlarmConfig, [
   'id',

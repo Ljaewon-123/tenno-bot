@@ -1,17 +1,17 @@
-import { NotificationCommand } from '@/notification/dto/notification.command.dto';
-import { NotificationService } from '@/notification/notification.service';
-import { WatchTarget, WatchTargetLabel } from '@/notification/types';
+import { NotificationCommand } from '@/notification/dto/notification.command.dto.js';
+import { NotificationService } from '@/notification/notification.service.js';
+import { WatchTarget, WatchTargetLabel } from '@/notification/types.js';
 import {
   guildOnly,
   manageCard,
   okCard,
   payload,
   subtext,
-} from '@/utils/discord-embed';
+} from '@/utils/discord-embed/index.js';
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Context, Options, Subcommand, type SlashCommandContext } from 'necord';
-import { NotificationCommands } from './decorators/notification.decorator';
-import { CanPostGuard } from './guards/can-post.guard';
+import { NotificationCommands } from './decorators/notification.decorator.js';
+import { CanPostGuard } from './guards/can-post.guard.js';
 
 @NotificationCommands()
 @Injectable()

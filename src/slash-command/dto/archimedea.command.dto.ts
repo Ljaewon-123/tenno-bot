@@ -1,7 +1,7 @@
 import {
   ArchimedeaLabel,
   ArchimedeaType,
-} from '@/warframe-api/world-state/vo/enum';
+} from '@/warframe-api/world-state/vo/enum.js';
 import { Expose } from 'class-transformer';
 import { BooleanOption, StringOption } from 'necord';
 

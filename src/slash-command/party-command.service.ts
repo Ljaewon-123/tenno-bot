@@ -1,7 +1,7 @@
-import { CreatePartyCommand } from '@/party/dto/create-party.command.dto';
-import { PartyMessageService } from '@/party/party-message.service';
-import { PartyService } from '@/party/party.service';
-import { PartyVisibility, PartyVisibilityLabel } from '@/party/vo/enum';
+import { CreatePartyCommand } from '@/party/dto/create-party.command.dto.js';
+import { PartyMessageService } from '@/party/party-message.service.js';
+import { PartyService } from '@/party/party.service.js';
+import { PartyVisibility, PartyVisibilityLabel } from '@/party/vo/enum.js';
 import {
   Accent,
   button,
@@ -10,7 +10,7 @@ import {
   manageCard,
   payload,
   relative,
-} from '@/utils/discord-embed';
+} from '@/utils/discord-embed/index.js';
 import { Injectable } from '@nestjs/common';
 import {
   ActionRowBuilder,
@@ -30,8 +30,8 @@ import {
   type ModalContext,
   type SlashCommandContext,
 } from 'necord';
-import { DEFAULT_PARTY_SIZE, PARTY_CREATE_ID } from './constants';
-import { PartyCommands } from './decorators/party-commands.decorator';
+import { DEFAULT_PARTY_SIZE, PARTY_CREATE_ID } from './constants.js';
+import { PartyCommands } from './decorators/party-commands.decorator.js';
 
 @PartyCommands()
 @Injectable()

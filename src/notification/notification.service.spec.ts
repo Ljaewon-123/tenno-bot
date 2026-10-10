@@ -1,10 +1,10 @@
-import { Accent, card } from '@/utils/discord-embed';
-import { TargetCommand } from '@/warframe-api/enum';
-import { CacheKey } from '@/warframe-api/shared/enum';
+import { Accent, card } from '@/utils/discord-embed/index.js';
+import { TargetCommand } from '@/warframe-api/enum.js';
+import { CacheKey } from '@/warframe-api/shared/enum.js';
 import { Logger } from '@nestjs/common';
 import type { ContainerBuilder } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationService } from './notification.service';
+import { NotificationService } from './notification.service.js';
 
 interface Overrides {
   /** broadcast 대상 구독 목록 */

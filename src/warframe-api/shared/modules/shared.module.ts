@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Cache } from './entities/cache.entity';
-import { CacheRepository } from './repositories/cache.repository';
+import { Cache } from './entities/cache.entity.js';
+import { CacheRepository } from './repositories/cache.repository.js';
 
 @Global()
 @Module({

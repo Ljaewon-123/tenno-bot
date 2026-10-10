@@ -1,12 +1,12 @@
 import { ComponentType, MessageFlags } from 'discord.js';
 import { describe, expect, it } from 'vitest';
-import { subtext } from '../markdown';
-import { LIMIT } from '../constants';
-import { Accent } from '../types';
-import { card } from './card';
-import { manageCard } from './manage-card';
-import { asPush, button, payload } from './message';
-import { emptyCard, errorCard } from './notice';
+import { subtext } from '../markdown.js';
+import { LIMIT } from '../constants.js';
+import { Accent } from '../types.js';
+import { card } from './card.js';
+import { manageCard } from './manage-card.js';
+import { asPush, button, payload } from './message.js';
+import { emptyCard, errorCard } from './notice.js';
 
 const bodies = (view: ReturnType<typeof card>) => view.toJSON().components;
 

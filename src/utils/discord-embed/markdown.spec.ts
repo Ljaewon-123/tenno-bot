@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { literal } from './markdown';
+import { literal } from './markdown.js';
 
 /** 유저가 친 이름이 봇 명의 메시지에서 피싱 링크·서식으로 렌더되면 안 된다 */
 describe('literal', () => {

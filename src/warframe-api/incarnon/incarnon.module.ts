@@ -1,8 +1,8 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { HttpJsonService } from '../shared/http-json.service';
-import { WfcdItemsModule } from '../wfcd-items/wfcd-items.module';
-import { IncarnonService } from './incarnon.service';
+import { HttpJsonService } from '../shared/http-json.service.js';
+import { WfcdItemsModule } from '../wfcd-items/wfcd-items.module.js';
+import { IncarnonService } from './incarnon.service.js';
 
 @Module({
   imports: [

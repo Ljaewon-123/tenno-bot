@@ -1,7 +1,7 @@
-import { EnumOption } from '@/utils/decorators/enum-option';
-import { Timezone } from '@/utils/types';
-import { TargetCommand } from '@/warframe-api/enum';
-import { VoidTier } from '@/warframe-api/world-state/vo/enum';
+import { EnumOption } from '@/utils/decorators/enum-option.js';
+import { Timezone } from '@/utils/types.js';
+import { TargetCommand } from '@/warframe-api/enum.js';
+import { VoidTier } from '@/warframe-api/world-state/vo/enum.js';
 import { Expose } from 'class-transformer';
 import { IntegerOption, StringOption } from 'necord';
 

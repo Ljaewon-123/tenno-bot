@@ -1,14 +1,14 @@
-import { card } from '@/utils/discord-embed';
-import dayjs from '@/utils/dayjs';
-import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
-import { CycleName, VoidTier } from '@/warframe-api/world-state/vo/enum';
+import { card } from '@/utils/discord-embed/index.js';
+import dayjs from '@/utils/dayjs.js';
+import { RemindTarget, TargetCommand } from '@/warframe-api/enum.js';
+import { CycleName, VoidTier } from '@/warframe-api/world-state/vo/enum.js';
 import { BadRequestException, Logger } from '@nestjs/common';
 import type { FindOperator } from 'typeorm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AlarmService } from './alarm.service';
-import { ALARM_LIMIT_PER_GUILD } from './constants';
-import { AlarmConfig } from './entities/alarm-config.entity';
-import { AlarmStatus } from './vo/enum';
+import { AlarmService } from './alarm.service.js';
+import { ALARM_LIMIT_PER_GUILD } from './constants.js';
+import { AlarmConfig } from './entities/alarm-config.entity.js';
+import { AlarmStatus } from './vo/enum.js';
 
 const NOW = '2026-08-25T12:00:00Z';
 

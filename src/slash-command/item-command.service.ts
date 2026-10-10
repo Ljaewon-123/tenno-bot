@@ -1,12 +1,12 @@
-import { payload } from '@/utils/discord-embed';
-import { isDropCategory } from '@/warframe-api/drop-table/vo/enum';
+import { payload } from '@/utils/discord-embed/index.js';
+import { isDropCategory } from '@/warframe-api/drop-table/vo/enum.js';
 import {
   DROP_KEY,
   INCARNON_KEY,
   RELIC_OPEN,
   RELIC_REWARD,
-} from '@/warframe-api/constants';
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
+} from '@/warframe-api/constants.js';
+import { WarframeApiService } from '@/warframe-api/warframe-api.service.js';
 import { Injectable, UseInterceptors } from '@nestjs/common';
 import type {
   ButtonContext,
@@ -22,12 +22,12 @@ import {
   SlashCommand,
   StringSelect,
 } from 'necord';
-import { DropCommand } from './dto/drop.command.dto';
-import { IncarnonCommand } from './dto/incarnon.command.dto';
-import { RelicCommand } from './dto/relic.command.dto';
-import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor';
-import { IncarnonWeaponAutocompleteInterceptor } from './interceptors/incarnon-weapon-autocomplete.interceptor';
-import { RelicAutocompleteInterceptor } from './interceptors/relic-autocomplete.interceptor';
+import { DropCommand } from './dto/drop.command.dto.js';
+import { IncarnonCommand } from './dto/incarnon.command.dto.js';
+import { RelicCommand } from './dto/relic.command.dto.js';
+import { DropItemAutocompleteInterceptor } from './interceptors/drop-item-autocomplete.interceptor.js';
+import { IncarnonWeaponAutocompleteInterceptor } from './interceptors/incarnon-weapon-autocomplete.interceptor.js';
+import { RelicAutocompleteInterceptor } from './interceptors/relic-autocomplete.interceptor.js';
 
 @Injectable()
 export class ItemCommandService {

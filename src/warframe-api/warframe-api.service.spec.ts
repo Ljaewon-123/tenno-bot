@@ -1,18 +1,18 @@
 import { ComponentType, type ContainerBuilder } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
-import { WarframeApiService } from './warframe-api.service';
+import { WarframeApiService } from './warframe-api.service.js';
 import Items from '@wfcd/items';
-import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
-import { DropCategory } from './drop-table/vo/enum';
-import dayjs from '@/utils/dayjs';
-import { markStale } from './world-state/stale';
+import { WfcdItemsService } from './wfcd-items/wfcd-items.service.js';
+import { DropCategory } from './drop-table/vo/enum.js';
+import dayjs from '@/utils/dayjs.js';
+import { markStale } from './world-state/stale.js';
 import {
   ArchimedeaType,
   ArchonBoss,
   ArchonReward,
   NightwaveFilter,
   VoidTraderCategory,
-} from './world-state/vo/enum';
+} from './world-state/vo/enum.js';
 
 /**
  * V2 컨테이너는 슬롯이 아니라 컴포넌트 목록이라 필드 이름으로 못 집는다.

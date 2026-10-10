@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DropItemAutocompleteInterceptor } from './drop-item-autocomplete.interceptor';
+import { DropItemAutocompleteInterceptor } from './drop-item-autocomplete.interceptor.js';
 
 /** 조회가 터져도 자동완성은 응답해야 한다 — 안 그러면 디스코드에 "로딩 실패"가 뜬 채 남는다 */
 describe('DropItemAutocompleteInterceptor', () => {

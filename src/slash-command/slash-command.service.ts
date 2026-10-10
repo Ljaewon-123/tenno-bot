@@ -1,15 +1,15 @@
-import { FeedbackService } from '@/feedback/feedback.service';
+import { FeedbackService } from '@/feedback/feedback.service.js';
 import {
   card,
   okCard,
   payload,
   SUPPORT_SERVER_URL,
-} from '@/utils/discord-embed';
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
+} from '@/utils/discord-embed/index.js';
+import { WarframeApiService } from '@/warframe-api/warframe-api.service.js';
 import { Injectable } from '@nestjs/common';
 import type { SlashCommandContext } from 'necord';
 import { Context, Options, SlashCommand } from 'necord';
-import { FeedbackCommand } from './dto/feedback.command.dto';
+import { FeedbackCommand } from './dto/feedback.command.dto.js';
 
 @Injectable()
 export class SlashCommandService {

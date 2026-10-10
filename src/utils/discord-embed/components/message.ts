@@ -5,10 +5,10 @@ import {
   StringSelectMenuBuilder,
   type ContainerBuilder,
 } from 'discord.js';
-import { subtext } from '../markdown';
-import { PUSH_MAX_LINES } from '../constants';
-import { Accent } from '../types';
-import { text } from './card';
+import { subtext } from '../markdown.js';
+import { PUSH_MAX_LINES } from '../constants.js';
+import { Accent } from '../types.js';
+import { text } from './card.js';
 
 export const button = (
   customId: string,

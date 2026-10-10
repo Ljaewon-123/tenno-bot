@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { lastValueFrom, NEVER, of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { HttpLoggingInterceptor } from './http-logging.interceptor';
+import { HttpLoggingInterceptor } from './http-logging.interceptor.js';
 
 const httpContext = {
   getType: () => 'http',

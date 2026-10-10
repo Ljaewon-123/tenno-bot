@@ -1,6 +1,6 @@
-import { EnumOption } from '@/utils/decorators/enum-option';
+import { EnumOption } from '@/utils/decorators/enum-option.js';
 import { Expose } from 'class-transformer';
-import { WatchTarget } from '../types';
+import { WatchTarget } from '../types.js';
 
 export class NotificationCommand {
   @Expose()

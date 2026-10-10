@@ -27,12 +27,6 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   },
-  // ts-node는 스크립트 실행 전용(scripts/) — nest build(tsc)와 vitest(swc)는 이 섹션을 읽지 않는다
-  "ts-node": {
-    "swc": true,
-    "require": ["tsconfig-paths/register"],
-    "compilerOptions": { "module": "commonjs", "moduleResolution": "node" }
-  },
   // landing/은 별개 npm 패키지(자체 tsconfig) — 루트 tsc가 include/exclude 없이 전체를 훑다 끌려들어오는 걸 막는다
   "exclude": ["node_modules", "dist", "landing"]
 }

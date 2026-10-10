@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CacheKey } from '../shared/enum';
-import { INDEX_VERSION } from './constants';
-import { DropTableService } from './drop-table.service';
-import { DropCategory } from './vo/enum';
+import { CacheKey } from '../shared/enum.js';
+import { INDEX_VERSION } from './constants.js';
+import { DropTableService } from './drop-table.service.js';
+import { DropCategory } from './vo/enum.js';
 
 /** 체이닝만 되는 QueryBuilder 흉내. 어떤 절이 붙었는지만 본다 */
 const stubQueryBuilder = () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TopggStatsService } from './topgg-stats.service';
+import { TopggStatsService } from './topgg-stats.service.js';
 
 const client = {
   isReady: () => true,

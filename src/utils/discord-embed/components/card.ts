@@ -11,17 +11,17 @@ import {
   type ButtonBuilder,
   type StringSelectMenuBuilder,
 } from 'discord.js';
-import { bold, subtext, title as heading, truncate } from '../markdown';
-import dayjs from '@/utils/dayjs';
+import { bold, subtext, title as heading, truncate } from '../markdown.js';
+import dayjs from '@/utils/dayjs.js';
 import type { ConfigType } from 'dayjs';
-import { LIMIT, NOTICE_RESERVE } from '../constants';
+import { LIMIT, NOTICE_RESERVE } from '../constants.js';
 import {
   Accent,
   type Block,
   type CardInput,
   type Child,
   type Line,
-} from '../types';
+} from '../types.js';
 
 export const accentFor = (expiry: ConfigType, soonMinutes = 30) => {
   const left = dayjs(expiry).diff(dayjs(), 'minute');

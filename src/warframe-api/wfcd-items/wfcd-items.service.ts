@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import Items from '@wfcd/items';
-import { CDN_BASE_URL, REMOVED_VARIANT } from './constants';
-import { DropItem } from './vo/drop-item.interface';
+import { CDN_BASE_URL, REMOVED_VARIANT } from './constants.js';
+import { DropItem } from './vo/drop-item.interface.js';
 
 @Injectable()
 export class WfcdItemsService {

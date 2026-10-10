@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadConfig } from './config.service';
+import { loadConfig } from './config.service.js';
 
 /** 로컬 .env가 섞여 들어오면 결과가 개발자 PC마다 달라진다 */
 vi.mock('dotenv', () => ({ default: { config: vi.fn() } }));

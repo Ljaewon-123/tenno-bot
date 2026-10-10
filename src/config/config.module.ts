@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { AppConfig, loadConfig } from './config.service';
-import { DatabaseConfig } from './database.config';
+import { AppConfig, loadConfig } from './config.service.js';
+import { DatabaseConfig } from './database.config.js';
 
 @Global()
 @Module({

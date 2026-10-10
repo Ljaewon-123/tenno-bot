@@ -1,4 +1,4 @@
-import { CycleName, VoidTier } from './world-state/vo/enum';
+import { CycleName, VoidTier } from './world-state/vo/enum.js';
 
 export enum TargetCommand {
   ArchonHunt = 'archon-hunt',

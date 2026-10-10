@@ -3,8 +3,8 @@ import {
   initializeTransactionalContext,
   StorageDriver,
 } from 'typeorm-transactional';
-import { AppModule } from './app/app.module';
-import { AppConfig } from './config/config.service';
+import { AppModule } from './app/app.module.js';
+import { AppConfig } from './config/config.service.js';
 
 async function bootstrap() {
   initializeTransactionalContext({ storageDriver: StorageDriver.AUTO });

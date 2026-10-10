@@ -1,8 +1,8 @@
-import { AlarmService } from '@/alarm/alarm.service';
-import { ALARM_LIMIT_PER_GUILD } from '@/alarm/constants';
-import { CreateAlarmCommand } from '@/alarm/dto/create-alarm.command.dto';
-import { DeleteAlarmCommand } from '@/alarm/dto/delete-alarm.command.dto';
-import { TargetCommandAlarm } from '@/alarm/vo/target-command.vo';
+import { AlarmService } from '@/alarm/alarm.service.js';
+import { ALARM_LIMIT_PER_GUILD } from '@/alarm/constants.js';
+import { CreateAlarmCommand } from '@/alarm/dto/create-alarm.command.dto.js';
+import { DeleteAlarmCommand } from '@/alarm/dto/delete-alarm.command.dto.js';
+import { TargetCommandAlarm } from '@/alarm/vo/target-command.vo.js';
 import {
   bold,
   button,
@@ -18,14 +18,14 @@ import {
   relative,
   SECTION_LIMIT,
   subtext,
-} from '@/utils/discord-embed';
-import { resolveTimezone } from '@/utils/timezone';
+} from '@/utils/discord-embed/index.js';
+import { resolveTimezone } from '@/utils/timezone.js';
 import {
   isRemindTarget,
   TargetCommand,
   TargetCommandLabel,
-} from '@/warframe-api/enum';
-import { CycleLabel, isCycleName } from '@/warframe-api/world-state/vo/enum';
+} from '@/warframe-api/enum.js';
+import { CycleLabel, isCycleName } from '@/warframe-api/world-state/vo/enum.js';
 import { BadRequestException, Injectable, UseGuards } from '@nestjs/common';
 import { ButtonStyle, PermissionFlagsBits } from 'discord.js';
 import {
@@ -37,9 +37,9 @@ import {
   type ButtonContext,
   type SlashCommandContext,
 } from 'necord';
-import { REMIND_KEY } from './constants';
-import { AlarmCommands } from './decorators/alarm-commands.decorator';
-import { CanPostGuard } from './guards/can-post.guard';
+import { REMIND_KEY } from './constants.js';
+import { AlarmCommands } from './decorators/alarm-commands.decorator.js';
+import { CanPostGuard } from './guards/can-post.guard.js';
 
 @AlarmCommands()
 @Injectable()

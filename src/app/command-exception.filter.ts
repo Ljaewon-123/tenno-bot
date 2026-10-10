@@ -6,9 +6,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { CommandResponder } from './exception-responder/command.responder';
-import { HttpResponder } from './exception-responder/http.responder';
-import { ExceptionResponder } from './exception-responder/types';
+import { CommandResponder } from './exception-responder/command.responder.js';
+import { HttpResponder } from './exception-responder/http.responder.js';
+import { ExceptionResponder } from './exception-responder/types.js';
 
 @Catch()
 export class CommandExceptionFilter implements ExceptionFilter {

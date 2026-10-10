@@ -1,12 +1,12 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HttpJsonService } from '../shared/http-json.service';
-import { WfcdItemsModule } from '../wfcd-items/wfcd-items.module';
-import { DropSourceService } from './drop-source.service';
-import { DropTableService } from './drop-table.service';
-import { DropSource } from './entities/drop-source.entity';
-import { DropSourceRepository } from './repositories/drop-source.repository';
+import { HttpJsonService } from '../shared/http-json.service.js';
+import { WfcdItemsModule } from '../wfcd-items/wfcd-items.module.js';
+import { DropSourceService } from './drop-source.service.js';
+import { DropTableService } from './drop-table.service.js';
+import { DropSource } from './entities/drop-source.entity.js';
+import { DropSourceRepository } from './repositories/drop-source.repository.js';
 
 @Module({
   imports: [

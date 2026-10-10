@@ -1,11 +1,11 @@
-import { AppConfig } from '@/config/config.service';
-import dayjs from '@/utils/dayjs';
-import { bold, literal } from '@/utils/discord-embed';
+import { AppConfig } from '@/config/config.service.js';
+import dayjs from '@/utils/dayjs.js';
+import { bold, literal } from '@/utils/discord-embed/index.js';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Dayjs } from 'dayjs';
 import { WebhookClient } from 'discord.js';
-import { FEEDBACK_COOLDOWN_SECONDS } from './constants';
-import type { Feedback } from './types';
+import { FEEDBACK_COOLDOWN_SECONDS } from './constants.js';
+import type { Feedback } from './types.js';
 
 @Injectable()
 export class FeedbackService {

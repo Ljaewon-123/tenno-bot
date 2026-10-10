@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseEvolutions } from './wiki-parser';
+import { parseEvolutions } from './wiki-parser.js';
 
 /**
  * 위키텍스트 표 파싱. 여기가 틀리면 퍽 효과·해금 조건이 조용히 어긋난 채로 나간다 —

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { join } from 'node:path';
-import { AppConfig } from './config.service';
-import { NodeEnv } from './enum';
+import { AppConfig } from './config.service.js';
+import { NodeEnv } from './enum.js';
 
-/** CWD가 아니라 __dirname 기준이어야 nest build 후 dist에서도 같은 자리를 본다 */
-const migrations = [join(__dirname, '../migrations/*{.js,.ts}')];
+/** CWD가 아니라 이 파일 기준이어야 nest build 후 dist에서도 같은 자리를 본다 */
+const migrations = [join(import.meta.dirname, '../migrations/*{.js,.ts}')];
 
 @Injectable()
 export class DatabaseConfig {

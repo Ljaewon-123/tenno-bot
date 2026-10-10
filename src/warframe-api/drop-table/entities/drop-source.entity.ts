@@ -1,7 +1,7 @@
-import { CommonEntity } from '@/utils/entity/common.entity';
+import { CommonEntity } from '@/utils/entity/common.entity.js';
 import { IsEnum, IsNumber, IsObject, IsString } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';
-import { DropCategory } from '../vo/enum';
+import { DropCategory } from '../vo/enum.js';
 
 @Entity()
 export class DropSource extends CommonEntity {

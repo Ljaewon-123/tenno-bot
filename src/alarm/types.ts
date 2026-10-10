@@ -1,5 +1,5 @@
-import { RemindTarget } from '@/warframe-api/enum';
-import { CycleName } from '@/warframe-api/world-state/vo/enum';
+import { RemindTarget } from '@/warframe-api/enum.js';
+import { CycleName } from '@/warframe-api/world-state/vo/enum.js';
 
 export type RemindInput = {
   guildId: string;

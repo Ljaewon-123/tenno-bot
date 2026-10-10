@@ -1,10 +1,10 @@
-import { AlarmModule } from '@/alarm/alarm.module';
-import { AppConfig } from '@/config/config.service';
-import { DatabaseConfig } from '@/config/database.config';
-import { NodeEnv } from '@/config/enum';
-import { NotificationModule } from '@/notification/notification.module';
-import { PartyModule } from '@/party/party.module';
-import { SlashCommandModule } from '@/slash-command/slash-command.module';
+import { AlarmModule } from '@/alarm/alarm.module.js';
+import { AppConfig } from '@/config/config.service.js';
+import { DatabaseConfig } from '@/config/database.config.js';
+import { NodeEnv } from '@/config/enum.js';
+import { NotificationModule } from '@/notification/notification.module.js';
+import { PartyModule } from '@/party/party.module.js';
+import { SlashCommandModule } from '@/slash-command/slash-command.module.js';
 import {
   Module,
   UnprocessableEntityException,
@@ -21,13 +21,13 @@ import {
   addTransactionalDataSource,
   getDataSourceByName,
 } from 'typeorm-transactional';
-import { ConfigModule } from '../config/config.module';
-import { AppController } from './app.controller';
-import { BotLifecycleHook } from './bot-lifecycle.hook';
-import { CommandExceptionFilter } from './command-exception.filter';
-import { CommandLoggingInterceptor } from './command-logging.interceptor';
-import { HttpLoggingInterceptor } from './http-logging.interceptor';
-import { TopggStatsService } from './topgg-stats.service';
+import { ConfigModule } from '../config/config.module.js';
+import { AppController } from './app.controller.js';
+import { BotLifecycleHook } from './bot-lifecycle.hook.js';
+import { CommandExceptionFilter } from './command-exception.filter.js';
+import { CommandLoggingInterceptor } from './command-logging.interceptor.js';
+import { HttpLoggingInterceptor } from './http-logging.interceptor.js';
+import { TopggStatsService } from './topgg-stats.service.js';
 
 @Module({
   controllers: [AppController],

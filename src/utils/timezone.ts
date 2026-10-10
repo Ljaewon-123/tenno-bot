@@ -1,5 +1,5 @@
 import { Locale } from 'discord.js';
-import { Timezone } from './types';
+import { Timezone } from './types.js';
 
 // locale은 언어지 타임존이 아님 — 근사 휴리스틱, 불만 나오면 유저별 tz 저장으로 승격
 export const LOCALE_TIMEZONE: Partial<Record<Locale, Timezone>> = {

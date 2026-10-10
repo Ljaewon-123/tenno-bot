@@ -1,8 +1,8 @@
-import dayjs from '@/utils/dayjs';
+import dayjs from '@/utils/dayjs.js';
 import { describe, expect, it } from 'vitest';
-import { Party } from './entities/party.entity';
-import { PartyMessageService } from './party-message.service';
-import { PartyStatus, PartyVisibility } from './vo/enum';
+import { Party } from './entities/party.entity.js';
+import { PartyMessageService } from './party-message.service.js';
+import { PartyStatus, PartyVisibility } from './vo/enum.js';
 
 const PHISHING = '[Free Nitro](https://evil.x)';
 

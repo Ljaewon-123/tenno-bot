@@ -1,5 +1,5 @@
 import { StringOption } from 'necord';
-import { EnumOptionParams } from './types';
+import { EnumOptionParams } from './types.js';
 
 export const EnumOption = <T extends Record<string, string>>({
   enum: enumObj,

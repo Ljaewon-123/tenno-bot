@@ -1,11 +1,11 @@
-import { button, payload } from '@/utils/discord-embed';
-import { RemindTarget, TargetCommand } from '@/warframe-api/enum';
+import { button, payload } from '@/utils/discord-embed/index.js';
+import { RemindTarget, TargetCommand } from '@/warframe-api/enum.js';
 import {
   ARCHIMEDEA_DETAIL,
   FILTER_OFF,
   FISSURE_HARD,
-} from '@/warframe-api/constants';
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
+} from '@/warframe-api/constants.js';
+import { WarframeApiService } from '@/warframe-api/warframe-api.service.js';
 import {
   ArchimedeaType,
   CycleLabel,
@@ -13,7 +13,7 @@ import {
   isNightwaveFilter,
   isVoidTier,
   isVoidTraderCategory,
-} from '@/warframe-api/world-state/vo/enum';
+} from '@/warframe-api/world-state/vo/enum.js';
 import { Injectable } from '@nestjs/common';
 import type {
   ButtonContext,
@@ -29,9 +29,9 @@ import {
   SlashCommand,
   StringSelect,
 } from 'necord';
-import { REMIND_KEY } from './constants';
-import { ArchimedeaCommand } from './dto/archimedea.command.dto';
-import { VoidFissuresCommand } from './dto/void-fissures.command.dto';
+import { REMIND_KEY } from './constants.js';
+import { ArchimedeaCommand } from './dto/archimedea.command.dto.js';
+import { VoidFissuresCommand } from './dto/void-fissures.command.dto.js';
 
 @Injectable()
 export class WorldStateCommandService {

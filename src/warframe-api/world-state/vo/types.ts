@@ -1,4 +1,4 @@
-import { ArchonBoss, CircuitCategory, Enemy, VoidTier } from './enum';
+import { ArchonBoss, CircuitCategory, Enemy, VoidTier } from './enum.js';
 
 /** 소티/집정관 미션 3개 슬롯 중 하나 */
 export interface SortieVariant {

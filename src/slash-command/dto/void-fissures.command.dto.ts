@@ -1,5 +1,5 @@
-import { EnumOption } from '@/utils/decorators/enum-option';
-import { VoidTier } from '@/warframe-api/world-state/vo/enum';
+import { EnumOption } from '@/utils/decorators/enum-option.js';
+import { VoidTier } from '@/warframe-api/world-state/vo/enum.js';
 import { Expose } from 'class-transformer';
 import { BooleanOption } from 'necord';
 

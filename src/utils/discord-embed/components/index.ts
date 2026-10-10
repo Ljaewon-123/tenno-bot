@@ -1,5 +1,5 @@
-export { accentFor, card } from './card';
-export { manageCard } from './manage-card';
+export { accentFor, card } from './card.js';
+export { manageCard } from './manage-card.js';
 export {
   asPush,
   button,
@@ -7,6 +7,6 @@ export {
   linkButton,
   payload,
   select,
-} from './message';
-export { paged } from './pager';
-export { emptyCard, errorCard, guildOnly, okCard } from './notice';
+} from './message.js';
+export { paged } from './pager.js';
+export { emptyCard, errorCard, guildOnly, okCard } from './notice.js';

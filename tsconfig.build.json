@@ -1,5 +1,10 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    // rootDir를 지정하면 tsbuildinfo 기본 위치가 리포 루트로 빠진다 — dist 안에 둬야 deleteOutDir과 함께 정리된다
+    "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
+  },
   "include": ["src"],
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }

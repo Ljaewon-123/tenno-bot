@@ -1,4 +1,4 @@
-import { IncarnonPerk, IncarnonTier, IncarnonWeapon } from './types';
+import { IncarnonPerk, IncarnonTier, IncarnonWeapon } from './types.js';
 
 /** 손으로 쓴 위키텍스트라 표기가 제각각이다 — 정규식은 45개 페이지 전부에 맞춘 것이니 고치면 스펙 픽스처부터 늘릴 것 */
 

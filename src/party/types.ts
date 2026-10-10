@@ -1,4 +1,4 @@
-import type { Party } from './entities/party.entity';
+import type { Party } from './entities/party.entity.js';
 
 export type CreateParty = Pick<
   Party,

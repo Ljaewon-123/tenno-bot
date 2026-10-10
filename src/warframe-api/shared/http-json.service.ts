@@ -1,8 +1,8 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AxiosRequestConfig } from 'axios';
-import { ALLOWED_PATHS } from './allowed-paths.const';
-import { HttpMethod } from './enum';
+import { ALLOWED_PATHS } from './allowed-paths.const.js';
+import { HttpMethod } from './enum.js';
 
 @Injectable()
 export class HttpJsonService {

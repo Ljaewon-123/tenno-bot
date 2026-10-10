@@ -1,12 +1,12 @@
-import type { Dayjs } from '@/utils/dayjs';
+import type { Dayjs } from '@/utils/dayjs.js';
 import {
   CommonEntity,
   DateColumn,
   IsDayjs,
-} from '@/utils/entity/common.entity';
+} from '@/utils/entity/common.entity.js';
 import { IsEnum, IsOptional } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';
-import { CacheKey } from '../../enum';
+import { CacheKey } from '../../enum.js';
 
 @Entity()
 export class Cache extends CommonEntity {

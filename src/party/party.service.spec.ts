@@ -1,10 +1,10 @@
-import dayjs from '@/utils/dayjs';
+import dayjs from '@/utils/dayjs.js';
 import { BadRequestException, Logger } from '@nestjs/common';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
-import { Party } from './entities/party.entity';
-import { PartyMessageService } from './party-message.service';
-import { PartyService } from './party.service';
-import { PartyStatus, PartyVisibility } from './vo/enum';
+import { Party } from './entities/party.entity.js';
+import { PartyMessageService } from './party-message.service.js';
+import { PartyService } from './party.service.js';
+import { PartyStatus, PartyVisibility } from './vo/enum.js';
 
 const party = (overrides: Partial<Party> = {}) =>
   ({

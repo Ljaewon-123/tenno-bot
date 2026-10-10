@@ -7,7 +7,7 @@ import {
   validateSync,
 } from 'class-validator';
 import dotenv from 'dotenv';
-import { NodeEnv } from './enum';
+import { NodeEnv } from './enum.js';
 
 export class AppConfig {
   @Expose({ name: 'NODE_ENV' })

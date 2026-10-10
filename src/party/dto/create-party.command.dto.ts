@@ -1,7 +1,7 @@
-import { EnumOption } from '@/utils/decorators/enum-option';
+import { EnumOption } from '@/utils/decorators/enum-option.js';
 import { Expose } from 'class-transformer';
 import { IntegerOption, StringOption } from 'necord';
-import { PartyVisibility } from '../vo/enum';
+import { PartyVisibility } from '../vo/enum.js';
 
 export class CreatePartyCommand {
   @Expose()

@@ -1,6 +1,6 @@
-import { AlarmService } from '@/alarm/alarm.service';
-import { NotificationService } from '@/notification/notification.service';
-import { PartyService } from '@/party/party.service';
+import { AlarmService } from '@/alarm/alarm.service.js';
+import { NotificationService } from '@/notification/notification.service.js';
+import { PartyService } from '@/party/party.service.js';
 import { Injectable, Logger } from '@nestjs/common';
 import { Context, type ContextOf, On, Once } from 'necord';
 

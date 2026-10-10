@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { WebhookClient } from 'discord.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { FeedbackService } from './feedback.service';
+import { FeedbackService } from './feedback.service.js';
 
 const feedback = {
   userId: '1',

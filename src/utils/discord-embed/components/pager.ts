@@ -1,7 +1,7 @@
 import { ButtonStyle } from 'discord.js';
-import { PAGE_SIZE } from '../constants';
-import type { PagerInput } from '../types';
-import { button } from './message';
+import { PAGE_SIZE } from '../constants.js';
+import type { PagerInput } from '../types.js';
+import { button } from './message.js';
 
 /** 새 메시지를 쌓지 않고 같은 메시지를 갈아끼우는 전제다 */
 export const paged = <T>({

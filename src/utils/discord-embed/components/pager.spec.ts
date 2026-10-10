@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { paged } from './pager';
+import { paged } from './pager.js';
 
 const items = Array.from({ length: 20 }, (_, index) => index);
 const ids = (

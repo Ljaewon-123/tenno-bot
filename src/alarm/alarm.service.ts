@@ -1,17 +1,22 @@
-import dayjs from '@/utils/dayjs';
-import { asPush, literal, payload, relative } from '@/utils/discord-embed';
+import dayjs from '@/utils/dayjs.js';
+import {
+  asPush,
+  literal,
+  payload,
+  relative,
+} from '@/utils/discord-embed/index.js';
 import {
   AlarmRequest,
   RemindTarget,
   TargetCommand,
   TargetCommandLabel,
-} from '@/warframe-api/enum';
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
+} from '@/warframe-api/enum.js';
+import { WarframeApiService } from '@/warframe-api/warframe-api.service.js';
 import {
   CycleLabel,
   CycleName,
   VoidTier,
-} from '@/warframe-api/world-state/vo/enum';
+} from '@/warframe-api/world-state/vo/enum.js';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { Client, type ContainerBuilder } from 'discord.js';
@@ -21,13 +26,13 @@ import {
   CYCLE_REMIND_LEAD_MINUTES,
   REMIND_LEAD_MINUTES,
   STALE_AFTER_MINUTES,
-} from './constants';
-import { CreateAlarm } from './dto/create-alarm.dto';
-import { AlarmConfig } from './entities/alarm-config.entity';
-import { AlarmConfigRepository } from './repositories/alarm-config.repository';
-import { RemindInput } from './types';
-import { AlarmStatus } from './vo/enum';
-import { TargetCommandAlarm } from './vo/target-command.vo';
+} from './constants.js';
+import { CreateAlarm } from './dto/create-alarm.dto.js';
+import { AlarmConfig } from './entities/alarm-config.entity.js';
+import { AlarmConfigRepository } from './repositories/alarm-config.repository.js';
+import { RemindInput } from './types.js';
+import { AlarmStatus } from './vo/enum.js';
+import { TargetCommandAlarm } from './vo/target-command.vo.js';
 
 @Injectable()
 export class AlarmService {

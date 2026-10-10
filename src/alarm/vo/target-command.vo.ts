@@ -1,5 +1,5 @@
-import { TargetCommand } from '@/warframe-api/enum';
-import { CycleName, VoidTier } from '@/warframe-api/world-state/vo/enum';
+import { TargetCommand } from '@/warframe-api/enum.js';
+import { CycleName, VoidTier } from '@/warframe-api/world-state/vo/enum.js';
 import { IsEnum, IsIn, IsOptional } from 'class-validator';
 
 export class TargetCommandAlarm {

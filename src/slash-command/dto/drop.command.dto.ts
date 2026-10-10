@@ -1,5 +1,5 @@
-import { EnumOption } from '@/utils/decorators/enum-option';
-import { DropCategory } from '@/warframe-api/drop-table/vo/enum';
+import { EnumOption } from '@/utils/decorators/enum-option.js';
+import { DropCategory } from '@/warframe-api/drop-table/vo/enum.js';
 import { Expose } from 'class-transformer';
 import { StringOption } from 'necord';
 

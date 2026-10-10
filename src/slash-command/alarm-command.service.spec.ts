@@ -1,8 +1,8 @@
-import dayjs from '@/utils/dayjs';
-import { payload } from '@/utils/discord-embed';
+import dayjs from '@/utils/dayjs.js';
+import { payload } from '@/utils/discord-embed/index.js';
 import { ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AlarmCommandService } from './alarm-command.service';
+import { AlarmCommandService } from './alarm-command.service.js';
 
 const alarms = Array.from({ length: 5 }, (_, index) => ({
   id: `id-${index}`,

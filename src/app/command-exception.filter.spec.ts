@@ -1,7 +1,7 @@
 import { BadRequestException, Logger } from '@nestjs/common';
 import { MessageFlags } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CommandExceptionFilter } from './command-exception.filter';
+import { CommandExceptionFilter } from './command-exception.filter.js';
 
 /** 실패는 어느 커맨드에서 나오든 같은 빨강 카드여야 한다 — 평문으로 돌아가면 성공 응답과 구분이 안 된다 */
 const build = (deferred = true) => {

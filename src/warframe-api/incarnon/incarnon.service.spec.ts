@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PARSER_VERSION } from './constants';
-import { IncarnonService } from './incarnon.service';
+import { PARSER_VERSION } from './constants.js';
+import { IncarnonService } from './incarnon.service.js';
 
 /** 실제 상수 키를 그대로 쓴다 — 여기가 어긋나면 재료가 통째로 빈다 */
 const BRATON_ADAPTER =

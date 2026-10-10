@@ -1,11 +1,15 @@
-import dayjs from '@/utils/dayjs';
+import dayjs from '@/utils/dayjs.js';
 import { Injectable, Logger } from '@nestjs/common';
-import { CacheKey, HttpMethod } from '../shared/enum';
-import { HttpJsonService } from '../shared/http-json.service';
-import { CacheRepository } from '../shared/modules/repositories/cache.repository';
-import { CYCLE_CACHE_KEY, STALE_MAX_MINUTES, TTL_SECONDS } from './constants';
-import { markStale, staleAsOf } from './stale';
-import { CycleName, VoidTier } from './vo/enum';
+import { CacheKey, HttpMethod } from '../shared/enum.js';
+import { HttpJsonService } from '../shared/http-json.service.js';
+import { CacheRepository } from '../shared/modules/repositories/cache.repository.js';
+import {
+  CYCLE_CACHE_KEY,
+  STALE_MAX_MINUTES,
+  TTL_SECONDS,
+} from './constants.js';
+import { markStale, staleAsOf } from './stale.js';
+import { CycleName, VoidTier } from './vo/enum.js';
 import {
   Archimedea,
   ArchonHunt,
@@ -16,7 +20,7 @@ import {
   Sortie,
   VoidTrader,
   WorldEvent,
-} from './vo/types';
+} from './vo/types.js';
 
 @Injectable()
 export class WorldStateService {

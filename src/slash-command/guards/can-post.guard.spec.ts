@@ -1,6 +1,6 @@
 import { PermissionFlagsBits, PermissionsBitField } from 'discord.js';
 import { describe, expect, it } from 'vitest';
-import { CanPostGuard } from './can-post.guard';
+import { CanPostGuard } from './can-post.guard.js';
 
 /** necord는 인터랙션을 ExecutionContext의 첫 번째 인자 배열에 싣는다 */
 const context = (

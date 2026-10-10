@@ -1,8 +1,12 @@
-import { errorCard, payload, SUPPORT_SERVER_URL } from '@/utils/discord-embed';
+import {
+  errorCard,
+  payload,
+  SUPPORT_SERVER_URL,
+} from '@/utils/discord-embed/index.js';
 import { ArgumentsHost } from '@nestjs/common';
 import { MessageFlags } from 'discord.js';
 import { NecordArgumentsHost, type SlashCommandContext } from 'necord';
-import { ExceptionResponder } from './types';
+import { ExceptionResponder } from './types.js';
 
 export class CommandResponder implements ExceptionResponder {
   async respond(host: ArgumentsHost, exception: Error, userError: boolean) {

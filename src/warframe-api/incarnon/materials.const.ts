@@ -1,4 +1,4 @@
-import { IncarnonMaterial } from './types';
+import { IncarnonMaterial } from './types.js';
 
 /**
  * 어댑터 uniqueName → 설치 재료. DE Public Export `ExportRecipes.json`(IncarnonAdapters/UnlockerBlueprints/*)에서 옮겼다.

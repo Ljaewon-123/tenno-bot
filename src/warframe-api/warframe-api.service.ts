@@ -1,4 +1,4 @@
-import dayjs, { type Dayjs } from '@/utils/dayjs';
+import dayjs, { type Dayjs } from '@/utils/dayjs.js';
 import {
   Accent,
   accentFor,
@@ -18,14 +18,14 @@ import {
   type Block,
   type Line,
   LIMIT,
-} from '@/utils/discord-embed';
+} from '@/utils/discord-embed/index.js';
 import { Injectable } from '@nestjs/common';
 import { ButtonBuilder } from 'discord.js';
-import { DropTableService } from './drop-table/drop-table.service';
-import type { DropSource } from './drop-table/entities/drop-source.entity';
-import { DropCategory } from './drop-table/vo/enum';
-import { IncarnonService } from './incarnon/incarnon.service';
-import type { IncarnonTier } from './incarnon/types';
+import { DropTableService } from './drop-table/drop-table.service.js';
+import type { DropSource } from './drop-table/entities/drop-source.entity.js';
+import { DropCategory } from './drop-table/vo/enum.js';
+import { IncarnonService } from './incarnon/incarnon.service.js';
+import type { IncarnonTier } from './incarnon/types.js';
 import {
   ARCHIMEDEA_DETAIL,
   DROP_ALL,
@@ -42,11 +42,11 @@ import {
   TOP,
   TRADER_ALL,
   TRADER_PEEK,
-} from './constants';
-import { AlarmRequest, RemindTarget, TargetCommand } from './enum';
-import type { Buttons } from './types';
-import { DropItem } from './wfcd-items/vo/drop-item.interface';
-import { WfcdItemsService } from './wfcd-items/wfcd-items.service';
+} from './constants.js';
+import { AlarmRequest, RemindTarget, TargetCommand } from './enum.js';
+import type { Buttons } from './types.js';
+import { DropItem } from './wfcd-items/vo/drop-item.interface.js';
+import { WfcdItemsService } from './wfcd-items/wfcd-items.service.js';
 import {
   ArchimedeaLabel,
   ArchimedeaType,
@@ -60,7 +60,7 @@ import {
   VoidTier,
   VoidTraderCategory,
   VoidTraderCategoryLabel,
-} from './world-state/vo/enum';
+} from './world-state/vo/enum.js';
 import {
   Archimedea,
   ArchimedeaCondition,
@@ -69,15 +69,15 @@ import {
   NightwaveChallenge,
   VoidTraderItem,
   WorldEvent,
-} from './world-state/vo/types';
+} from './world-state/vo/types.js';
 import {
   ArchonImage,
   TTL_SECONDS,
   VOID_TRADER_IMAGE,
   VOID_TRADER_WEAPON_CATEGORIES,
-} from './world-state/constants';
-import { staleAsOf } from './world-state/stale';
-import { WorldStateService } from './world-state/world-state.service';
+} from './world-state/constants.js';
+import { staleAsOf } from './world-state/stale.js';
+import { WorldStateService } from './world-state/world-state.service.js';
 
 @Injectable()
 export class WarframeApiService {

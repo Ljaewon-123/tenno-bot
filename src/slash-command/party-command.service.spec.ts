@@ -1,10 +1,10 @@
-import { PartyMessageService } from '@/party/party-message.service';
-import dayjs from '@/utils/dayjs';
-import { PartyVisibility } from '@/party/vo/enum';
-import { payload } from '@/utils/discord-embed';
+import { PartyMessageService } from '@/party/party-message.service.js';
+import dayjs from '@/utils/dayjs.js';
+import { PartyVisibility } from '@/party/vo/enum.js';
+import { payload } from '@/utils/discord-embed/index.js';
 import { ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
-import { PartyCommandService } from './party-command.service';
+import { PartyCommandService } from './party-command.service.js';
 
 const party = (id: string, visibility: PartyVisibility) => ({
   id,

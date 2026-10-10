@@ -1,4 +1,4 @@
-import { AppConfig } from '@/config/config.service';
+import { AppConfig } from '@/config/config.service.js';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Client } from 'discord.js';

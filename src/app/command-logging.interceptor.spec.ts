@@ -1,7 +1,7 @@
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { lastValueFrom, of } from 'rxjs';
 import { describe, expect, it } from 'vitest';
-import { CommandLoggingInterceptor } from './command-logging.interceptor';
+import { CommandLoggingInterceptor } from './command-logging.interceptor.js';
 
 describe('CommandLoggingInterceptor', () => {
   it('HTTP 요청(헬스·스탯)은 인터랙션을 건드리지 않고 그대로 통과시킨다', async () => {

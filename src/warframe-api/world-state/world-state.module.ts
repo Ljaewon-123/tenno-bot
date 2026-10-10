@@ -1,7 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { HttpJsonService } from '../shared/http-json.service';
-import { WorldStateService } from './world-state.service';
+import { HttpJsonService } from '../shared/http-json.service.js';
+import { WorldStateService } from './world-state.service.js';
 
 @Module({
   imports: [

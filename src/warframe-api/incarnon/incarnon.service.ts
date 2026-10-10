@@ -1,18 +1,18 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { CacheKey, HttpMethod } from '../shared/enum';
-import { HttpJsonService } from '../shared/http-json.service';
-import { CacheRepository } from '../shared/modules/repositories/cache.repository';
-import { WfcdItemsService } from '../wfcd-items/wfcd-items.service';
-import { GENESIS_SUFFIX, PARSER_VERSION, WIKI_API } from './constants';
-import { INCARNON_MATERIALS } from './materials.const';
+import { CacheKey, HttpMethod } from '../shared/enum.js';
+import { HttpJsonService } from '../shared/http-json.service.js';
+import { CacheRepository } from '../shared/modules/repositories/cache.repository.js';
+import { WfcdItemsService } from '../wfcd-items/wfcd-items.service.js';
+import { GENESIS_SUFFIX, PARSER_VERSION, WIKI_API } from './constants.js';
+import { INCARNON_MATERIALS } from './materials.const.js';
 import {
   IncarnonCache,
   IncarnonDetail,
   IncarnonEntry,
   WikiRevisionsResponse,
-} from './types';
-import { evolutionsSection, parseEvolutions } from './wiki-parser';
+} from './types.js';
+import { evolutionsSection, parseEvolutions } from './wiki-parser.js';
 
 @Injectable()
 export class IncarnonService implements OnApplicationBootstrap {

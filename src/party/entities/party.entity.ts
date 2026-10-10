@@ -1,4 +1,4 @@
-import { CommonWithGuildChannel } from '@/utils/entity/common.entity';
+import { CommonWithGuildChannel } from '@/utils/entity/common.entity.js';
 import {
   ArrayMaxSize,
   IsEnum,
@@ -8,7 +8,7 @@ import {
   Min,
 } from 'class-validator';
 import { Column, Entity, Index } from 'typeorm';
-import { PartyStatus, PartyVisibility } from '../vo/enum';
+import { PartyStatus, PartyVisibility } from '../vo/enum.js';
 
 // user테이블이 따로 없어서 별도로 묶어줘야함
 @Entity()

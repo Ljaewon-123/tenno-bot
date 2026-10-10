@@ -1,4 +1,4 @@
-import { WarframeApiService } from '@/warframe-api/warframe-api.service';
+import { WarframeApiService } from '@/warframe-api/warframe-api.service.js';
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
 import { AutocompleteInterceptor } from 'necord';
