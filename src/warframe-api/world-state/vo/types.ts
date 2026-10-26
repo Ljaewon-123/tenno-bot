@@ -80,7 +80,7 @@ export interface VoidTrader {
   id: string;
   activation: string;
   expiry: string;
-  character: string; // 항상 "Baro Ki'Teer"
+  character: string; // 보통 "Baro Ki'Teer", 할로윈 변종은 내부명(EvilBaroWeek3)
   location: string; // 예: "Strata Relay (Earth)"
   completed: boolean;
   initialStart: string;

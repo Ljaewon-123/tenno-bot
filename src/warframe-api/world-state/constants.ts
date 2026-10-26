@@ -44,3 +44,7 @@ export const VOID_TRADER_WEAPON_CATEGORIES: string[] = [
   'Arch-Gun',
   'Arch-Melee',
 ];
+
+/** 할로윈 변종은 character가 내부명(EvilBaroWeek3 등 주차별)으로 와서 그대로 쓰면 제목이 깨진다 */
+export const EVIL_BARO_PREFIX = 'EvilBaro';
+export const EVIL_BARO_NAME = `"Scare-o" Ki'Teer`;

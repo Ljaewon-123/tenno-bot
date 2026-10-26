@@ -247,6 +247,22 @@ describe('WarframeApiService 카드 이미지', () => {
     expect(text).toContain('Inventory is unknown until he arrives');
   });
 
+  it('할로윈 변종은 내부명 대신 표시명을 쓴다', async () => {
+    const service = build({
+      voidTrader: vi.fn().mockResolvedValue({
+        character: 'EvilBaroWeek3',
+        location: 'Larunda Relay (Mercury)',
+        activation: '2099-09-10T00:00:00Z',
+        expiry: '2099-09-12T00:00:00Z',
+        inventory: [],
+      }),
+    });
+
+    const { text } = parts(await service.voidTrader());
+    expect(text).toContain(`"Scare-o" Ki'Teer is away`);
+    expect(text).not.toContain('EvilBaro');
+  });
+
   /** 재고 응답에는 카테고리가 없다 — 아이템 DB의 category가 유일한 근거라 여기가 회귀 지점이다 */
   it('기본 화면은 카테고리별 요약이고 못 찾은 아이템은 Other로 흡수된다', async () => {
     const service = new WarframeApiService(

@@ -72,6 +72,8 @@ import {
 } from './world-state/vo/types.js';
 import {
   ArchonImage,
+  EVIL_BARO_NAME,
+  EVIL_BARO_PREFIX,
   TTL_SECONDS,
   VOID_TRADER_IMAGE,
   VOID_TRADER_WEAPON_CATEGORIES,
@@ -330,12 +332,15 @@ export class WarframeApiService {
     const now = dayjs();
     const active =
       now.isAfter(trader.activation) && now.isBefore(trader.expiry);
+    const name = trader.character.startsWith(EVIL_BARO_PREFIX)
+      ? EVIL_BARO_NAME
+      : trader.character;
     const thumbnail = this.wfcdItemsService.imgUrl(VOID_TRADER_IMAGE);
 
     if (!active)
       return card({
         accent: Accent.Muted,
-        title: `${trader.character} is away`,
+        title: `${name} is away`,
         subtitle: `Arrives ${relative(trader.activation)} · stays 48 hours`,
         thumbnail,
         blocks: [],
@@ -368,7 +373,7 @@ export class WarframeApiService {
 
     const head = {
       accent: accentFor(trader.expiry),
-      title: `${trader.character} · ${trader.location}`,
+      title: `${name} · ${trader.location}`,
       thumbnail,
       select: picker,
     };
